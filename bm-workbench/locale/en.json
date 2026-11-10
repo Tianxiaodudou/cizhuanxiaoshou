@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Building materials order system workbench",
+    "description": "Phase-by-phase development workbench that dispatches each module to a strictly bounded agent."
+  }
+}

@@ -1,0 +1,13 @@
+# 本地工作台状态（含访问令牌，切勿上传）
+.workbench/
+
+# 构建产物
+**/build/
+.gradle/
+.idea/
+*.iml
+node_modules/
+
+# 临时文件
+docx_content.txt
+read_docx.py
