@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -285,6 +286,7 @@ function defaultState() {
     github: { repo: '', token: '', owner: '', name: '' },
     archive: {},                // moduleId -> { taskCard, summary, result, contractVersion, at }
     contractChanges: [],        // 契约变更申请 [{ id, module, dto, reason, status, at }]
+    dispatch: {},               // moduleId -> { childId, status: running|review|error, startedAt, summary, error }
   };
 }
 
@@ -299,10 +301,101 @@ function loadState() {
 }
 
 let STATE = loadState();
+let CTX = null;
+
+// 中文名（派活标签用）
+const CN_NAME = {
+  SHARED: '共享约定', S00: '数据库内核', S01: '部署配置', S02: '登录鉴权', S03: '账号管理',
+  S04: '客户档案', S05: '型号库', S06: '价格', S07: '单号', S08: '订单',
+  S09: '退单校验', S10: '差异备注', S11: '结算', S12: '打印', S13: '服务网关', S14: '日志审计',
+  C00: '网络请求', C01: '登录状态', C02: '通用界面', C03: '应用外壳', C04: '登录页',
+  C05: '首页', C06: '下单录入', C07: '历史查询', C08: '今日改单', C09: '差异备注单',
+  C10: '结算上传', C11: '管理后台', C12: '设置',
+  DOCS: '说明文档', SCAN: '按钮扫描', HOOKS: '自动化',
+};
+function cnName(id) { return CN_NAME[id] || String(id); }
 
 function saveState() {
   mkdirSync(STATE_DIR, { recursive: true });
   writeFileSync(STATE_FILE, JSON.stringify(STATE, null, 2), 'utf8');
+}
+
+// ────────────────────────────────────────────────────────────────
+// 派活：启动一个后台子 agent（标准模式），结果回传给父会话
+// ────────────────────────────────────────────────────────────────
+function subagentInfo() {
+  if (!CTX) return { ok: false, error: '插件上下文未就绪' };
+  const agents = CTX.get('agents');
+  const subagents = CTX.get('subagents');
+  if (!agents || !subagents) return { ok: false, error: '当前环境没有 agent 服务' };
+  const roots = agents.roots();
+  const providers = typeof subagents.list === 'function' ? subagents.list() : [];
+  return { ok: true, providers, roots: roots.map((a) => a.id), rootCount: roots.length };
+}
+
+// 建一个全新的【顶层会话】（不是子 agent），返回它的 id 给前端打开
+async function newSession(cwd) {
+  if (!CTX) return { ok: false, error: '插件上下文未就绪' };
+  const agents = CTX.get('agents');
+  if (!agents || typeof agents.create !== 'function') return { ok: false, error: '当前环境没有 agent 服务' };
+  const sessionId = 'session-' + randomUUID();
+  try {
+    await agents.create({
+      sessionId,
+      meta: { cwd: cwd || STATE.projectRoot || PLAN.projectRoot, agentPreset: 'standard' },
+    });
+    return { ok: true, sessionId };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+async function dispatchAgent(moduleId, text) {
+  if (!CTX) return { ok: false, error: '插件上下文未就绪' };
+  const agents = CTX.get('agents');
+  const subagents = CTX.get('subagents');
+  if (!agents || !subagents) return { ok: false, error: '当前环境没有 agent 服务' };
+  const roots = agents.roots();
+  if (!roots.length) return { ok: false, error: '当前没有可用会话（先开一个对话再派活）' };
+  // 取最近注册的根会话作为父会话（单用户场景通常就是当前会话）
+  const parent = roots[roots.length - 1];
+  const providers = typeof subagents.list === 'function' ? subagents.list() : [];
+  const provider = providers.find((p) => p === 'spawn-in-process') || providers.find((p) => p === 'in-process') || providers[0];
+  if (!provider) return { ok: false, error: '没有可用的派活通道' };
+  const ctrl = new AbortController();
+  const strict = '【硬性要求】你是「' + cnName(moduleId) + '」模块的专职 agent。\n只做这一个模块，做完立刻停下并简要汇报；**绝对不要顺手去做别的模块**（尤其别的编号的模块）。\n如果发现需要改别的模块，先停下说明，不要自己动手。\n\n' + String(text || '');
+  try {
+    const act = await subagents.startActivation({
+      provider,
+      label: cnName(moduleId),
+      request: {
+        cwd: STATE.projectRoot || PLAN.projectRoot,
+        agentPreset: 'standard',
+        prompt: [{ type: 'text', text: strict }],
+        parent,
+      },
+      signal: ctrl.signal,
+      delivery: 'caller',
+    });
+    STATE.dispatch = STATE.dispatch || {};
+    STATE.dispatch[moduleId] = { childId: act.childId, status: 'running', startedAt: Date.now() };
+    STATE.moduleStatus = STATE.moduleStatus || {};
+    STATE.moduleStatus[moduleId] = 'doing';
+    STATE.openSession = act.childId;
+    saveState();
+    act.result.then((r) => {
+      let out = '';
+      try { out = (r && r.output ? r.output.map((b) => (b && b.text) || '').join('') : ''); } catch (e) { out = ''; }
+      STATE.dispatch[moduleId] = { ...(STATE.dispatch[moduleId] || {}), status: 'review', summary: out.slice(0, 4000), finishedAt: Date.now() };
+      saveState();
+    }).catch((e) => {
+      STATE.dispatch[moduleId] = { ...(STATE.dispatch[moduleId] || {}), status: 'error', error: String((e && e.message) || e), finishedAt: Date.now() };
+      saveState();
+    });
+    return { ok: true, childId: act.childId, provider };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -562,6 +655,9 @@ async function handleNode(req, res) {
     if (p === '/bmwb/api/github/commit' && method === 'POST') { const b = await readBody(req); return sendJson(res, 200, await githubCommit(b.message)); }
     if (p === '/bmwb/api/github/release' && method === 'POST') { const b = await readBody(req); return sendJson(res, 200, await githubRelease(b.tag, b.notes)); }
     if (p === '/bmwb/api/github/workflow' && method === 'POST') { const b = await readBody(req); return sendJson(res, 200, await githubWorkflow(b.workflow, b.ref)); }
+    if (p === '/bmwb/api/subagents') return sendJson(res, 200, subagentInfo());
+    if (p === '/bmwb/api/dispatch' && method === 'POST') { const b = await readBody(req); return sendJson(res, 200, await dispatchAgent(b.moduleId, b.text)); }
+    if (p === '/bmwb/api/new-session' && method === 'POST') { const b = await readBody(req); return sendJson(res, 200, await newSession(b.cwd)); }
     return sendJson(res, 404, { error: 'not found: ' + p });
   } catch (e) {
     return sendJson(res, 500, { error: String(e && e.message ? e.message : e) });
@@ -569,7 +665,24 @@ async function handleNode(req, res) {
 }
 
 // ────────────────────────────────────────────────────────────────
+function onSubagentEnd(info) {
+  if (!info || !info.id) return;
+  const maps = STATE.dispatch || {};
+  const key = Object.keys(maps).find((k) => maps[k] && maps[k].childId === info.id);
+  if (!key) return;
+  const rec = maps[key];
+  let out = '';
+  try { out = (info.lastAssistantMessage || []).map((b) => (b && b.text) || '').join(''); } catch (e) { out = ''; }
+  const bad = info.stopReason === 'error' || info.stopReason === 'aborted';
+  STATE.dispatch[key] = { ...rec, status: bad ? 'error' : 'review', summary: out.slice(0, 4000), stopReason: info.stopReason, finishedAt: Date.now() };
+  STATE.moduleStatus = STATE.moduleStatus || {};
+  STATE.moduleStatus[key] = bad ? 'issue' : 'review';
+  saveState();
+}
+
 export function apply(ctx) {
+  CTX = ctx;
+  ctx.effect(() => ctx.on('subagent/end', onSubagentEnd), 'bm-workbench: subagent end');
   ctx.inject(['webServer'], (webCtx) => {
     webCtx.effect(() => webCtx.webServer.register({
       kind: 'prefix',

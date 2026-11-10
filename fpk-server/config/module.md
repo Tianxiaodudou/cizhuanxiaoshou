@@ -104,7 +104,7 @@ ContractInfoDto(serverTime = ..., merchantName = config.getMerchantName())
 
 ## 验收对照
 
-以下用例已随模块提交；本机缺 JDK / Gradle **尚未执行**，装配后运行 `:fpk-server:config:test` 验证。
+本机已用 JDK 17 + Gradle 8.10.2 执行 `:fpk-server:config:test`：**10 个用例全部通过（0 失败 / 0 跳过）**。
 
 - [x] 商家名称由服务端配置生效：
       `ConfigPortTest.merchant_name_comes_from_the_server_side_deployment_config`
@@ -122,10 +122,11 @@ ContractInfoDto(serverTime = ..., merchantName = config.getMerchantName())
 - [x] 迁移：`ConfigMigrationsTest.deployment_config_table_is_created_by_the_config_migration`、
       `ConfigMigrationsTest.migration_version_is_in_the_config_segment_and_idempotent`。
 
-## 集成前置（当前仓库尚缺）
+## 集成前置（仓库仍缺根工程）
 
-本仓库还没有根工程（`settings.gradle.kts` / 根 `build.gradle.kts`），也还没有 `fpk-server` 聚合工程；
-当前环境没有 JDK / Gradle，因此 `:fpk-server:config:test` **尚未在本机执行**。装配时补：
+本仓库还没有根工程（`settings.gradle.kts` / 根 `build.gradle.kts`），也还没有 `fpk-server` 聚合工程。
+本机已装便携 JDK / Gradle（`.tools/`，已 gitignore），并用 `.tools/verify-all` 临时根工程跑通
+`:fpk-server:config:test`（10/10）。正式装配时补：
 
 ```kotlin
 // 根 settings.gradle.kts
@@ -133,7 +134,7 @@ include(":shared", ":fpk-server", ":fpk-server:db-core", ":fpk-server:config")
 ```
 
 `jvmToolchain(17)` 与 `shared` / db-core 一致，需要 JDK 17（或根工程配 foojay-resolver）。
-根工程补上后运行 `:fpk-server:config:test` 即可验证上表全部用例。
+根工程补上后运行 `:fpk-server:config:test` 即可复跑上表全部用例。
 
 ## 待确认的落地假设（v1.0.0 基线，如有异议按契约流程调整）
 

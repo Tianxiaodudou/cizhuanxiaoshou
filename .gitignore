@@ -11,3 +11,6 @@ node_modules/
 # 临时文件
 docx_content.txt
 read_docx.py
+
+# 本机工具链（JDK / Gradle / 验证用临时根工程）
+.tools/

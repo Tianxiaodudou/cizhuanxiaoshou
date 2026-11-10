@@ -87,6 +87,22 @@ window.__ModuleLoader__.load({
       const s = ST[props.status] || ST.todo;
       return h('span', { className: 'bm-chip', style: { background: s.color, color: '#fff', borderColor: s.color } }, s.label);
     }
+
+    // 派活：先试后台自动派活，不成再退回「复制 + 新开会话」
+    async function tryDispatch(moduleId, text, toast, onFallback) {
+      try {
+        const r = await api('/api/dispatch', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ moduleId, text }) });
+        if (r && r.ok) {
+          if (toast) toast('已派活：后台标准模式开跑，干完自动回传');
+          return true;
+        }
+        if (toast) toast('派活失败：' + ((r && r.error) || '未知') + '；改为复制 + 新开会话');
+      } catch (e) {
+        if (toast) toast('派活服务不可用；改为复制 + 新开会话');
+      }
+      onFallback();
+      return false;
+    }
     function buildTaskCardCn(plan, data, m) {
       const rules = data.globalRules && data.globalRules.length ? data.globalRules : (plan.globalRules || []).map((r) => r.text);
       const L = [];
@@ -307,7 +323,7 @@ window.__ModuleLoader__.load({
                     h(StatusChip, { status: stOf(data, id) }),
                     h('span', { className: 'bm-muted' }, deps ? '要先做：' + deps : '不依赖别人'),
                     h('button', { className: 'bm-btn', onClick: () => setStatus(id, stNext(stOf(data, id))) }, '改状态'),
-                    h('button', { className: 'bm-btn bm-btn-p', onClick: () => { setStatus(id, 'doing'); const t = buildTaskCard(plan, data, m); if (onDispatchAgent) onDispatchAgent(t); else copyText(t); } }, '派人干'));
+                    h('button', { className: 'bm-btn bm-btn-p', onClick: async () => { setStatus(id, 'doing'); const t = buildTaskCard(plan, data, m); const r = await this.props.onDispatchAgent(id, t, data.projectRoot); if (this.props.toast) this.props.toast(r && r.ok ? '已新开会话，任务卡已填在输入框，按回车开跑' : ((r && r.error) || '派活失败')); } }, '派人干'));
                 })));
           }));
       }
@@ -352,7 +368,7 @@ window.__ModuleLoader__.load({
           h('select', { className: 'bm-select', value: this.state.tpl, onChange: (e) => this.setTpl(e.target.value) },
             h('option', { value: '' }, '不要'),
             tplOpts),
-          this.state.text ? h('button', { className: 'bm-btn bm-btn-p', onClick: () => { if (this.props.onSave && selM) this.props.onSave({ moduleStatus: { ...(data.moduleStatus || {}), [selM.id]: 'doing' } }); const t = this.state.text; if (this.props.onDispatchAgent) this.props.onDispatchAgent(t); else copyText(t); toast('已标为进行中，说明已复制并新开对话'); } }, '派人干这活') : null,
+          this.state.text ? h('button', { className: 'bm-btn bm-btn-p', onClick: async () => { if (this.props.onSave && selM) this.props.onSave({ moduleStatus: { ...(data.moduleStatus || {}), [selM.id]: 'doing' } }); const t = this.state.text; const r = await this.props.onDispatchAgent(selM.id, t, data.projectRoot); toast(r && r.ok ? '已新开会话，任务卡已填在输入框，按回车开跑' : ((r && r.error) || '派活失败')); } }, '派人干这活') : null,
           this.state.text ? h('button', { className: 'bm-btn', onClick: () => { copyText(this.state.text); toast('说明已复制'); } }, '复制给机器人的说明') : null,
           this.state.text ? h('button', { className: 'bm-btn', onClick: () => { copyText(buildModuleMd(plan, selM)); toast('模块说明已复制'); } }, '生成模块说明') : null);
         const warnBanner = warn ? h('div', { className: 'bm-card', style: { marginBottom: 10 } }, h('div', { className: 'bm-card-b bm-red' }, warn)) : null;
@@ -549,6 +565,11 @@ window.__ModuleLoader__.load({
             const b = build && build.id === m.id ? build : null;
             const buildOut = b ? (b.loading ? h('div', { className: 'bm-muted' }, '编译中…')
               : h('pre', { className: 'bm-pre', style: { maxHeight: 160, marginTop: 8 } }, (b.r && (b.r.out || b.r.err || b.r.error)) || JSON.stringify(b.r))) : null;
+            const dp = (data.dispatch || {})[m.id];
+            const dispatchBox = dp ? h('div', { style: { marginTop: 8 } },
+              h('div', { className: 'bm-field-label' }, '后台派活：' + (dp.status === 'running' ? '运行中…' : dp.status === 'review' ? '已回传，待审核' : '出错了')),
+              dp.summary ? h('pre', { className: 'bm-pre', style: { maxHeight: 160 } }, soften(dp.summary)) : null,
+              dp.error ? h('div', { className: 'bm-red' }, dp.error) : null) : null;
             return h('div', { className: 'bm-card', key: m.id },
               h('div', { className: 'bm-card-h' },
                 h('span', { className: 'bm-grow' }, h('b', null, cnName(m.id))),
@@ -560,7 +581,8 @@ window.__ModuleLoader__.load({
                 (m.accept || []).map((a, i) => h('label', { key: i, className: 'bm-row', style: { cursor: 'pointer' } },
                   h('input', { type: 'checkbox', className: 'bm-check', checked: cur.includes(i), onChange: () => this.toggle(m.id, i) }),
                   h('span', { className: 'bm-grow' }, a))),
-                buildOut));
+                buildOut,
+                dispatchBox));
           }));
       }
     }
@@ -590,8 +612,33 @@ window.__ModuleLoader__.load({
         this.state = { plan: null, data: null, tab: 'overview', error: null, toast: null };
         this._toastTimer = null;
       }
-      componentDidMount() { this.load(); }
-      componentWillUnmount() { if (this._toastTimer) clearTimeout(this._toastTimer); }
+      componentDidMount() {
+        this.load();
+        this._poll = setInterval(() => { this.refreshDispatch(); }, 6000);
+      }
+      componentWillUnmount() {
+        if (this._toastTimer) clearTimeout(this._toastTimer);
+        if (this._poll) clearInterval(this._poll);
+      }
+      async refreshDispatch() {
+        const d = this.state.data;
+        if (!d) return;
+        const running = d.dispatch && Object.values(d.dispatch).some((x) => x && x.status === 'running');
+        const doing = Object.values(d.moduleStatus || {}).some((v) => v === 'doing');
+        const pendingOpen = !!d.openSession;
+        if (!running && !doing && !pendingOpen) return;
+        try {
+          const s = await api('/api/state');
+          if (s && s.state) {
+            this.setState({ data: s.state });
+            if (s.state.openSession && this.props.onOpenSession) {
+              const id = s.state.openSession;
+              try { this.props.onOpenSession(id); } catch (e) { /* ignore */ }
+              try { await api('/api/state', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ openSession: null }) }); } catch (e) { /* ignore */ }
+            }
+          }
+        } catch (e) { /* ignore */ }
+      }
       toast(msg) {
         this.setState({ toast: msg });
         if (this._toastTimer) clearTimeout(this._toastTimer);
@@ -602,6 +649,10 @@ window.__ModuleLoader__.load({
           const p = await api('/api/plan');
           const s = await api('/api/state');
           this.setState({ plan: p, data: s.state || {} });
+          if (s.state && s.state.openSession && this.props.onOpenSession) {
+            try { this.props.onOpenSession(s.state.openSession); } catch (e) { /* ignore */ }
+            try { await api('/api/state', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ openSession: null }) }); } catch (e) { /* ignore */ }
+          }
         } catch (e) {
           this.setState({ error: String(e.message || e) });
         }
@@ -621,7 +672,7 @@ window.__ModuleLoader__.load({
         if (!plan) return h('div', { className: 'bm-root' }, h('div', { className: 'bm-inner' }, h('span', { className: 'bm-muted' }, '加载中…')));
         const d = data || { globalRules: (plan.globalRules || []).map((r) => r.text), acceptance: {}, frozenPhases: [], contractVersion: plan.contractVersion, projectRoot: plan.projectRoot, github: {} };
         let content = null;
-        if (tab === 'overview') content = h(Overview, { plan, data: d, onSave: (p) => this.save(p), onDispatchAgent: this.props.onDispatchAgent });
+        if (tab === 'overview') content = h(Overview, { plan, data: d, onSave: (p) => this.save(p), onDispatchAgent: this.props.onDispatchAgent, toast: (m) => this.toast(m) });
         else if (tab === 'contract') content = h(ContractExplorer, { plan, data: d });
         else if (tab === 'version') content = h(ContractVersion, { plan, data: d, onSave: (p) => this.save(p), toast: (m) => this.toast(m) });
         else if (tab === 'tasks') content = h(TaskCards, { plan, data: d, onSave: (p) => this.save(p), toast: (m) => this.toast(m), onDispatchAgent: this.props.onDispatchAgent });
@@ -996,18 +1047,31 @@ window.__ModuleLoader__.load({
         ctx.effect(() => () => { styleEl.remove(); });
 
         const uiWorkspace = ctx.get('uiWorkspace');
-        const dispatchAgent = (text) => {
-          try { copyText(text); } catch (e) { /* ignore */ }
+        const openSession = (id) => {
           try {
-            if (uiWorkspace && typeof uiWorkspace.startSession === 'function') uiWorkspace.startSession();
+            const uw = ctx.get('uiWorkspace');
+            if (uw && typeof uw.openSession === 'function') uw.openSession(id);
           } catch (e) { /* ignore */ }
+        };
+        // 完整自动派活：用原生「新建会话」在前台开一个全新顶层会话，并把任务卡填进输入框
+        const dispatchAgent = async (moduleId, text, cwd) => {
+          const strict = '【硬性要求】你只做「' + cnName(moduleId) + '」这一个模块，做完立刻停下并简要汇报；绝对不要顺手做别的模块。\n\n' + String(text || '');
+          if (uiWorkspace && typeof uiWorkspace.startSession === 'function') {
+            try {
+              uiWorkspace.startSession(undefined, { prompt: strict, agentPreset: 'standard' });
+              try { copyText(strict); } catch (e) { /* ignore */ }
+              return { ok: true, mode: 'draft' };
+            } catch (e) { /* ignore */ }
+          }
+          try { copyText(strict); } catch (e) { /* ignore */ }
+          return { ok: false, error: '无法新开会话，已复制说明' };
         };
 
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
           name: 'sidebar.panellist', id: 'bm-workbench', order: 60, label: '建材系统工作台',
         }, PanelIcon));
 
-        const Main = () => h(ErrorBoundary, null, h(Workbench, { onDispatchAgent: dispatchAgent }));
+        const Main = () => h(ErrorBoundary, null, h(Workbench, { onDispatchAgent: dispatchAgent, onOpenSession: openSession }));
 
         ctx.slots.inject('main', () => ctx.slots.register({
           name: 'main', key: 'bm-workbench',
