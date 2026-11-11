@@ -238,13 +238,7 @@ function Dashboard() {
         <button onClick={() => setModal('pickup_return')}>自提退货</button>
         <button className="secondary" onClick={() => setModal('note')}>备注单</button>
       </div>
-      <table>
-        <thead><tr><th>单号</th><th>类型</th><th>客户</th><th>金额</th><th>操作</th></tr></thead>
-        <tbody>{rows.map((o) => (
-          <tr key={o.id}><td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td><td>{o.customer_name}</td>
-            <td>{o.order_total}</td><td><button className="secondary" onClick={() => open(o.id)}>详情</button></td></tr>
-        ))}</tbody>
-      </table>
+      <OrderTable rows={rows} onOpen={open} />
       <OrderDetail o={detail} />
       {modal && modal !== 'note' && <OrderModal type={modal} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
       {modal === 'note' && <NoteModal onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}

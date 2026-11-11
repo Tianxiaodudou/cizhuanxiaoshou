@@ -540,8 +540,12 @@ func (a *App) priceFor(cid, cat int64, batch string) string {
 
 func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	var in struct {
-		Phone, Name, Type, Remark, Address string
-		Items                     []struct {
+		Phone   string `json:"phone"`
+		Name    string `json:"customer_name"`
+		Type    string `json:"type"`
+		Remark  string `json:"remark"`
+		Address string `json:"address"`
+		Items   []struct {
 			CategoryID int64   `json:"category_id"`
 			BatchTag   string  `json:"batch_tag"`
 			InputUnit  string  `json:"input_unit"`
