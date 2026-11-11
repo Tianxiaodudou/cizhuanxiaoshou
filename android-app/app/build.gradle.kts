@@ -1,7 +1,15 @@
-﻿// 客户端 Android 应用（真机验证用）：纯系统控件实现，不引入 AndroidX / Compose，降低构建风险。
+// 客户端 Android 应用（真机验证用）：纯系统控件实现，不引入 AndroidX / Compose，降低构建风险。
 plugins {
     id("com.android.application")
     kotlin("android")
+}
+
+// 版本号来自仓库根 VERSION（与 FPK 同一份，发版时由 workflow 递增）
+val appVersion: String = rootProject.file("VERSION").readText().trim()
+val appVersionCode: Int = appVersion.split('.').let { parts ->
+    (parts.getOrNull(0)?.toIntOrNull() ?: 1) * 10000 +
+        (parts.getOrNull(1)?.toIntOrNull() ?: 0) * 100 +
+        (parts.getOrNull(2)?.toIntOrNull() ?: 0)
 }
 
 android {
@@ -12,13 +20,8 @@ android {
         applicationId = "com.jiancai.android.app"
         minSdk = 26
         targetSdk = 34
-        // 版本号来自仓库根 VERSION（与 FPK 同一份，发版时由 workflow 递增）
-        versionName = rootProject.file("VERSION").readText().trim()
-        versionCode = versionName.split('.').let { parts ->
-            (parts[0].toIntOrNull() ?: 1) * 10000 +
-                (parts.getOrNull(1)?.toIntOrNull() ?: 0) * 100 +
-                (parts.getOrNull(2)?.toIntOrNull() ?: 0)
-        }
+        versionName = appVersion
+        versionCode = appVersionCode
     }
 
     buildTypes {
