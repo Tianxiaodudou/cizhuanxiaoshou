@@ -3,7 +3,7 @@
  * @role 客户端唯一入口。
  * @exports HttpMethod, ApiRequestSpec, ApiResult, TokenProvider, ApiClient
  * @depends shared
- * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/AndroidTransport.kt, android-app/app/src/main/kotlin/com/jiancai/android/app/data/AppContainer.kt, android-app/app/src/main/kotlin/com/jiancai/android/app/ui/common/Api.kt
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/ApiPaths.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt
  * @sideEffects 网络请求（HTTP）
  */
 

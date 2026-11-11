@@ -3,7 +3,7 @@
  * @role 登录态与导航守卫：**全客户端唯一的 token 判断点**（验收「token 判断仅此一处」）。
  * @exports SessionState, LaunchDestination, Session, SessionStore, InMemorySessionStore, LoginOutcome, SessionGate
  * @depends core-network, shared
- * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/data/AppContainer.kt, android-app/app/src/main/kotlin/com/jiancai/android/app/navigation/AppNav.kt, android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/feature-login/src/main/kotlin/com/jiancai/android/login/LoginRoute.kt
  * @sideEffects 网络请求（HTTP）
  */
 

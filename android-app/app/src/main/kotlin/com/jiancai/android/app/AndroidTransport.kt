@@ -1,12 +1,11 @@
-﻿/*
+/*
  * @file android-app/app/src/main/kotlin/com/jiancai/android/app/AndroidTransport.kt
- * @role 用 [HttpURLConnection] 实现 C00 的传输层（Android 上没有 `java.net.http`）。
+ * @role Android 侧 HTTP 传输实现（java.net.HttpURLConnection；Android 没有 java.net.http）
  * @exports AndroidTransport
  * @depends core-network
- * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/data/AppContainer.kt
+ * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/MainActivity.kt
  * @sideEffects 网络请求（HTTP）
  */
-
 package com.jiancai.android.app
 
 import com.jiancai.android.network.HttpMethod

@@ -3,7 +3,7 @@
  * @role 导航图：把各 feature 登记的路由装配起来（验收「路由跳转正常」）。
  * @exports NavGraph, AppShell, TokenBridge, ClientAssembly
  * @depends core-network, core-session, core-ui, feature-login, feature-home, feature-order-entry, feature-query, feature-today, feature-note, feature-settle, feature-admin, feature-settings
- * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/data/AppContainer.kt
+ * @calledBy （无）
  * @sideEffects 网络请求（HTTP）
  */
 

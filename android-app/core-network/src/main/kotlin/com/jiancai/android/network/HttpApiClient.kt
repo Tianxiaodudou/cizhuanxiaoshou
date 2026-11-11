@@ -3,7 +3,7 @@
  * @role [ApiClient] 的唯一实现：拼请求 → 发传输层 → 统一解析错误码 / DTO。
  * @exports HttpApiClient
  * @depends shared
- * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/data/AppContainer.kt, android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
  * @sideEffects 网络请求（HTTP）
  */
 

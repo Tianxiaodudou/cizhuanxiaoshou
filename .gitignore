@@ -17,9 +17,3 @@ read_docx.py
 
 # ????
 dist/
-
-# ??????
-.kotlin/
-*.hprof
-android-app/app/build/
-

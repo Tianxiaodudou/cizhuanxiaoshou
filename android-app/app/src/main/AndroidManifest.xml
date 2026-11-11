@@ -7,7 +7,7 @@
         android:allowBackup="false"
         android:label="建材进销存"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:theme="@android:style/Theme.Material.Light"
         android:usesCleartextTraffic="true">
 
         <activity

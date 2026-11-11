@@ -3,7 +3,7 @@
  * @role C06 下单录入页：4 类单据共用，只传 [orderType]（验收「4 类页共用组件；提交走服务端」）。
  * @exports OrderFormLine, OrderFormState, OrderFormComponent, OrderEntryRoute
  * @depends core-network, core-ui, shared
- * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/ui/order/DeliveryEntryPage.kt, android-app/app/src/main/kotlin/com/jiancai/android/app/ui/order/DeliveryReturnPage.kt, android-app/app/src/main/kotlin/com/jiancai/android/app/ui/order/OrderFormComponent.kt
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/feature-today/src/main/kotlin/com/jiancai/android/today/TodayRoute.kt
  * @sideEffects 网络请求（HTTP）
  */
 
