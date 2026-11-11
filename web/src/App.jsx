@@ -10,7 +10,11 @@ async function api(path, opt = {}) {
     ...opt,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(opt.headers || {}) },
   })
-  const body = await res.json().catch(() => ({}))
+  const text = await res.text()
+  let body = {}
+  try { body = text ? JSON.parse(text) : {} } catch (e) {
+    throw new Error('网关返回的不是 JSON（可能登录失效或被重定向），请刷新页面重试')
+  }
   if (res.status === 401) {
     localStorage.removeItem('czxs_token')
     location.reload()
@@ -92,16 +96,18 @@ function OrderModal({ type, onClose, onDone }) {
   const [isNew, setIsNew] = useState(false)
   const [lines, setLines] = useState([newLine()])
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
   useEffect(() => { api('/api/categories').then(setCats).catch(() => {}) }, [])
   const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
   const lookup = async () => {
+    setBusy(true); setErr('')
     try {
       const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
       setLooked(true)
       setIsNew(!c.exists)
       setName(c.exists ? c.name : '')
       setAddr(c.exists ? (c.addr || '') : '')
-    } catch (e) { setErr(e.message) }
+    } catch (e) { setErr(e.message || '查询失败') } finally { setBusy(false) }
   }
   const pickCat = (i, id) => {
     const c = cats.find((x) => String(x.id) === String(id))
@@ -136,7 +142,8 @@ function OrderModal({ type, onClose, onDone }) {
     <dialog open className="modal" style={{ width: 760 }}>
       <form onSubmit={submit}>
         <h3>{label}单</h3>
-        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={lookup}>查客户</button></div>
+        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        {err && <div className="err">{err}</div>}
         {looked && (
           <>
             <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /> <span className="muted">{isNew ? '新客户，提交时创建' : '老客户，以库中姓名为准'}</span></div>
