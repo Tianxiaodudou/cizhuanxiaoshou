@@ -48,186 +48,72 @@ function Login({ onLogin }) {
   )
 }
 
-function OrderDetail({ o }) {
-  if (!o) return null
+
+function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
+  const [o, setO] = useState(null)
+  const [editing, setEditing] = useState(!!startEdit)
+  const [remark, setRemark] = useState('')
+  const [lines, setLines] = useState([])
+  const [err, setErr] = useState('')
+  const load = useCallback(async () => {
+    const d = await api('/api/orders/' + id)
+    setO(d); setRemark(d.remark || ''); setLines(d.items.map((i) => ({ ...i, input_quantity: i.input_quantity, unit_price: i.unit_price })))
+  }, [id])
+  useEffect(() => { load().catch((e) => setErr(e.message)) }, [load])
+  if (!o) return (<dialog open className="modal"><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></dialog>)
+  const archived = o.status === 'archived'
+  const save = async () => {
+    try {
+      await api('/api/orders/' + id, { method: 'PUT', body: JSON.stringify({ version: o.version, remark, items: lines.map((l) => ({ category_id: l.category_id, batch_tag: l.batch_tag, input_unit: l.input_unit, input_quantity: l.input_quantity, unit_price: l.unit_price })) }) })
+      setEditing(false); await load(); onChanged?.()
+    } catch (e) { setErr(e.message) }
+  }
+  const del = async () => {
+    if (!confirm('确认删除该单据？')) return
+    try { await api('/api/orders/' + id, { method: 'DELETE' }); onChanged?.(); onClose() } catch (e) { alert(e.message) }
+  }
+  const archive = async () => {
+    if (!confirm('归档后不可修改、不可删除，只能作为开新单的基础，确认归档？')) return
+    try { await api('/api/orders/' + id + '/archive', { method: 'POST' }); await load(); onChanged?.() } catch (e) { alert(e.message) }
+  }
   return (
-    <div style={{ marginTop: 12 }}>
-      <h3>{o.order_no} · {typeLabel[o.type] || o.type}</h3>
-      <p>客户：{o.customer_name} {o.customer_phone}　下单员：{o.account_name}　{o.created_at?.slice(0, 16).replace('T', ' ')}</p>
-      <p>状态：{o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　合计：<b>{o.order_total}</b>　累计：{o.cumulative_total}</p>
+    <dialog open className="modal" style={{ width: 820 }}>
+      <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
+      <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
+      <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　合计：<b>{o.order_total}</b>　累计：{o.cumulative_total}</p>
       <table>
         <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th></tr></thead>
         <tbody>{o.items.map((i, k) => (
           <tr key={k}><td>{i.group}</td><td>{i.name}</td><td>{i.batch_tag}</td>
-            <td>{i.input_quantity}{i.input_unit}</td><td>{i.settlement_quantity}{i.settlement_unit}</td>
-            <td>{i.unit_price}</td><td>{i.line_total}</td></tr>
+            <td>{editing ? <input style={{ width: 80 }} value={lines[k].input_quantity} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_quantity: e.target.value } : x))} /> : `${i.input_quantity}${i.input_unit}`}</td>
+            <td>{i.settlement_quantity}{i.settlement_unit}</td>
+            <td>{editing ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price}</td>
+            <td>{i.line_total}</td></tr>
         ))}</tbody>
       </table>
-    </div>
-  )
-}
-
-function OrderTable({ rows, onOpen }) {
-  return (
-    <table>
-      <thead><tr><th>单号</th><th>类型</th><th>客户（电话/姓名/地址）</th><th>金额</th><th>状态</th><th>操作</th></tr></thead>
-      <tbody>{(rows || []).map((o) => (
-        <tr key={o.id}>
-          <td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td>
-          <td>{o.customer_phone}<br />{o.customer_name}<br />{o.customer_address || ''}</td>
-          <td>{o.order_total}</td><td>{o.status === 'printed' ? '已打印' : '待打印'}</td>
-          <td><button className="secondary" onClick={() => onOpen(o.id)}>详情</button></td>
-        </tr>
-      ))}</tbody>
-    </table>
-  )
-}
-
-
-function newLine() {
-  return { category_id: '', batch_tag: '', input_unit: '', input_quantity: '', unit_price: '', locked: false, units: [] }
-}
-
-function OrderModal({ type, onClose, onDone }) {
-  const [cats, setCats] = useState([])
-  const [phone, setPhone] = useState('')
-  const [name, setName] = useState('')
-  const [addr, setAddr] = useState('')
-  const [looked, setLooked] = useState(false)
-  const [isNew, setIsNew] = useState(false)
-  const [lines, setLines] = useState([newLine()])
-  const [err, setErr] = useState('')
-  const [busy, setBusy] = useState(false)
-  useEffect(() => { api('/api/categories').then(setCats).catch(() => {}) }, [])
-  const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
-  const lookup = async () => {
-    setBusy(true); setErr('')
-    try {
-      const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
-      setLooked(true)
-      setIsNew(!c.exists)
-      setName(c.exists ? c.name : '')
-      setAddr(c.exists ? (c.addr || '') : '')
-    } catch (e) { setErr(e.message || '查询失败') } finally { setBusy(false) }
-  }
-  const pickCat = (i, id) => {
-    const c = cats.find((x) => String(x.id) === String(id))
-    if (!c) return
-    setLine(i, { category_id: c.id, batch_tag: c.batch, input_unit: c.settlement_unit, units: [c.settlement_unit, c.conversion_unit].filter(Boolean), unit_price: '', locked: false })
-    loadPrice(i, c.id, c.batch)
-  }
-  const loadPrice = async (i, catId, batch) => {
-    if (!phone || !catId) return
-    try {
-      const d = await api('/api/prices?phone=' + encodeURIComponent(phone) + '&category_id=' + catId + '&batch_tag=' + encodeURIComponent(batch || ''))
-      setLine(i, { unit_price: d.unit_price, locked: true })
-    } catch (e) { setLine(i, { locked: false }) }
-  }
-  const submit = async (e) => {
-    e.preventDefault()
-    setErr('')
-    try {
-      if (!looked) throw new Error('请先点击“查客户”')
-      if (!name) throw new Error('请填写客户姓名')
-      const items = lines.filter((l) => l.category_id && l.input_quantity).map((l) => ({
-        category_id: Number(l.category_id), batch_tag: l.batch_tag, input_unit: l.input_unit,
-        input_quantity: l.input_quantity, unit_price: l.locked ? undefined : l.unit_price,
-      }))
-      if (!items.length) throw new Error('请至少录入一行明细')
-      await api('/api/orders', { method: 'POST', body: JSON.stringify({ type, phone, customer_name: name, address: addr, items }) })
-      onDone()
-    } catch (x) { setErr(x.message) }
-  }
-  const label = typeLabel[type]
-  return (
-    <dialog open className="modal" style={{ width: 760 }}>
-      <form onSubmit={submit}>
-        <h3>{label}单</h3>
-        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
-        {err && <div className="err">{err}</div>}
-        {looked && (
-          <>
-            <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /> <span className="muted">{isNew ? '新客户，提交时创建' : '老客户，以库中姓名为准'}</span></div>
-            <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /> <span className="muted">{isNew ? '新客户，可填写' : '老客户，以库中地址为准'}</span></div>
-          </>
-        )}
-        <table>
-          <thead><tr><th>型号</th><th>批号</th><th>单位</th><th>数量</th><th>单价</th><th></th></tr></thead>
-          <tbody>{lines.map((l, i) => (
-            <tr key={i}>
-              <td><select value={l.category_id} onChange={(e) => pickCat(i, e.target.value)}>
-                <option value="">选择型号</option>
-                {cats.map((c) => <option key={c.id} value={c.id}>{c.group} {c.name} {c.batch}</option>)}
-              </select></td>
-              <td><input value={l.batch_tag} onChange={(e) => { setLine(i, { batch_tag: e.target.value }); loadPrice(i, l.category_id, e.target.value) }} /></td>
-              <td><select value={l.input_unit} onChange={(e) => setLine(i, { input_unit: e.target.value })}>
-                {(l.units.length ? l.units : ['']).map((u) => <option key={u} value={u}>{u}</option>)}
-              </select></td>
-              <td><input style={{ width: 70 }} value={l.input_quantity} onChange={(e) => setLine(i, { input_quantity: e.target.value })} /></td>
-              <td><input style={{ width: 80 }} value={l.unit_price} readOnly={l.locked} onChange={(e) => setLine(i, { unit_price: e.target.value })} /></td>
-              <td><button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button></td>
-            </tr>
-          ))}</tbody>
-        </table>
-        <button type="button" className="secondary" onClick={() => setLines((ls) => [...ls, newLine()])}>+ 添加一行</button>
-        {err && <div className="err">{err}</div>}
-        <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
-      </form>
+      {editing && <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>}
+      {err && <div className="err">{err}</div>}
+      <div style={{ marginTop: 10 }}>
+        {!editing && !archived && <button onClick={() => setEditing(true)}>编辑</button>}
+        {editing && <button onClick={save}>保存修改</button>}
+        {!archived && <button className="secondary" onClick={archive}>归档</button>}
+        {!archived && <button className="danger" onClick={del}>删除</button>}
+        <button className="secondary" onClick={onClose}>关闭</button>
+      </div>
+      {archived && (
+        <p className="muted">已归档：不可修改、不可删除；请到「仪表盘」以该客户信息开新单（送货/退货/备注），或到「结算」查看该客户汇总。</p>
+      )}
     </dialog>
   )
 }
-
-function NoteModal({ onClose, onDone }) {
-  const [phone, setPhone] = useState('')
-  const [orders, setOrders] = useState([])
-  const [ref, setRef] = useState(null)
-  const [diffType, setDiffType] = useState('short')
-  const [qty, setQty] = useState('')
-  const [remark, setRemark] = useState('')
-  const [err, setErr] = useState('')
-  const search = async () => {
-    try { setOrders(await api('/api/orders/recent?phone=' + encodeURIComponent(phone) + '&days=3')) } catch (e) { setErr(e.message) }
-  }
-  const submit = async (e) => {
-    e.preventDefault()
-    try {
-      if (!ref) throw new Error('请选择原单')
-      const item = ref.items[0]
-      await api('/api/notes', { method: 'POST', body: JSON.stringify({ ref_order_no: ref.order_no, items: [{ category_id: item.category_id, batch_tag: item.batch_tag, diff_type: diffType, diff_quantity: qty, remark }] }) })
-      onDone()
-    } catch (x) { setErr(x.message) }
-  }
-  return (
-    <dialog open className="modal" style={{ width: 650 }}>
-      <form onSubmit={submit}>
-        <h3>备注单</h3>
-        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={search}>查近三日单据</button></div>
-        {orders.length > 0 && (
-          <div className="row">原单：<select value={ref?.order_no || ''} onChange={(e) => setRef(orders.find((o) => o.order_no === e.target.value) || null)}>
-            <option value="">选择原单</option>
-            {orders.map((o) => <option key={o.order_no} value={o.order_no}>{o.order_no} {typeLabel[o.type]} {o.order_total}</option>)}
-          </select></div>
-        )}
-        {ref && <p className="muted">原单 {ref.order_no}　客户 {ref.customer_name}　合计 {ref.order_total}</p>}
-        <div className="row">差异类型：<select value={diffType} onChange={(e) => setDiffType(e.target.value)}>
-          <option value="short">少</option><option value="over">多</option><option value="damaged">破损</option>
-        </select></div>
-        <div className="row">差异数量：<input value={qty} onChange={(e) => setQty(e.target.value)} /></div>
-        <div className="row">说明：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
-        {err && <div className="err">{err}</div>}
-        <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
-      </form>
-    </dialog>
-  )
-}
-
 function Dashboard() {
   const [rows, setRows] = useState([])
   const [detail, setDetail] = useState(null)
   const [modal, setModal] = useState(null)
   const load = useCallback(() => api('/api/orders/today').then(setRows).catch(() => {}), [])
   useEffect(() => { load() }, [load])
-  const open = async (id) => setDetail(await api('/api/orders/' + id))
+  const del = async (id) => { if (confirm('确认删除该单据？')) { await api('/api/orders/' + id, { method: 'DELETE' }); load() } }
+  const archive = async (id) => { if (confirm('归档后不可修改/删除，确认？')) { await api('/api/orders/' + id + '/archive', { method: 'POST' }); load() } }
   return (
     <>
       <h2>仪表盘 · 今日单据（{rows.length}）</h2>
@@ -238,8 +124,8 @@ function Dashboard() {
         <button onClick={() => setModal('pickup_return')}>自提退货</button>
         <button className="secondary" onClick={() => setModal('note')}>备注单</button>
       </div>
-      <OrderTable rows={rows} onOpen={open} />
-      <OrderDetail o={detail} />
+      <OrderTable rows={rows} onDetail={(id, edit) => setDetail({ id, edit })} onDelete={del} onArchive={archive} />
+      {detail && <OrderDetailModal id={detail.id} startEdit={detail.edit} onClose={() => setDetail(null)} onChanged={load} />}
       {modal && modal !== 'note' && <OrderModal type={modal} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
       {modal === 'note' && <NoteModal onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
     </>
@@ -249,13 +135,15 @@ function Dashboard() {
 function Orders() {
   const [rows, setRows] = useState([])
   const [detail, setDetail] = useState(null)
-  useEffect(() => { api('/api/orders/all').then(setRows).catch(() => {}) }, [])
-  const open = async (id) => setDetail(await api('/api/orders/' + id))
+  const load = useCallback(() => api('/api/orders/all').then(setRows).catch(() => {}), [])
+  useEffect(() => { load() }, [load])
+  const del = async (id) => { if (confirm('确认删除该单据？')) { await api('/api/orders/' + id, { method: 'DELETE' }); load() } }
+  const archive = async (id) => { if (confirm('归档后不可修改/删除，确认？')) { await api('/api/orders/' + id + '/archive', { method: 'POST' }); load() } }
   return (
     <>
       <h2>单据库（全部 {rows.length} 张）</h2>
-      <OrderTable rows={rows} onOpen={open} />
-      <OrderDetail o={detail} />
+      <OrderTable rows={rows} onDetail={(id) => setDetail({ id })} onDelete={del} onArchive={archive} />
+      {detail && <OrderDetailModal id={detail.id} startEdit={detail.edit} onClose={() => setDetail(null)} onChanged={load} />}
     </>
   )
 }

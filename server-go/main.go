@@ -362,6 +362,10 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		ok(w, o)
 	case strings.HasPrefix(p, "/orders/") && r.Method == "PUT":
 		a.updateOrder(w, r, id, strings.TrimPrefix(p, "/orders/"))
+	case strings.HasSuffix(p, "/archive") && r.Method == "POST":
+		a.archiveOrder(w, strings.TrimSuffix(strings.TrimPrefix(p, "/orders/"), "/archive"))
+	case strings.HasPrefix(p, "/orders/") && r.Method == "DELETE":
+		a.deleteOrder(w, strings.TrimPrefix(p, "/orders/"))
 	case p == "/notes" && r.Method == "POST":
 		a.createNote(w, r, id)
 	case strings.HasPrefix(p, "/notes/") && r.Method == "GET":
@@ -659,7 +663,118 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 }
 
 func (a *App) updateOrder(w http.ResponseWriter, r *http.Request, acc int64, rawID string) {
-	fail(w, 501, "TODO", "改单接口开发中")
+	oid, _ := strconv.ParseInt(strings.TrimSpace(rawID), 10, 64)
+	var in struct {
+		Version int    `json:"version"`
+		Remark  string `json:"remark"`
+		Items   []struct {
+			CategoryID int64  `json:"category_id"`
+			BatchTag   string `json:"batch_tag"`
+			InputUnit  string `json:"input_unit"`
+			Quantity   string `json:"input_quantity"`
+			UnitPrice  string `json:"unit_price"`
+		} `json:"items"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	var status, created string
+	var cid int64
+	var version int
+	if err := a.db.QueryRow(`SELECT status,created_at,customer_id,version FROM orders WHERE id=?`, oid).Scan(&status, &created, &cid, &version); err != nil {
+		fail(w, 404, "NOT_FOUND", "单据不存在")
+		return
+	}
+	if status == "archived" {
+		fail(w, 409, "ORDER_ARCHIVED", "该单已归档，不可修改")
+		return
+	}
+	if !strings.HasPrefix(created, time.Now().Format("2006-01-02")) {
+		fail(w, 400, "ORDER_NOT_MODIFIABLE", "仅可修改今天生成的单据")
+		return
+	}
+	if in.Version != 0 && in.Version != version {
+		fail(w, 409, "ORDER_VERSION_CONFLICT", "该单已被他人修改，请刷新后重试")
+		return
+	}
+	type line struct {
+		c            Category
+		batch, iu, iq string
+		settle       float64
+		price        float64
+		total        float64
+	}
+	lines := []line{}
+	for _, it := range in.Items {
+		var c Category
+		if err := a.db.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion FROM categories WHERE id=?`, it.CategoryID).
+			Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion); err != nil {
+			fail(w, 400, "CATEGORY_NOT_FOUND", "型号不存在")
+			return
+		}
+		qty := bd(it.Quantity)
+		if qty <= 0 {
+			fail(w, 400, "QUANTITY", "数量必须大于 0")
+			return
+		}
+		conv := 1.0
+		if it.InputUnit == c.ConversionUnit {
+			conv = c.Conversion
+		}
+		settle := qty * conv
+		p := a.priceFor(cid, c.ID, it.BatchTag)
+		if p == "" {
+			if it.UnitPrice == "" {
+				fail(w, 400, "PRICE_REQUIRED", "该批次无价格，请录入单价")
+				return
+			}
+			p = f2(bd(it.UnitPrice))
+			_, _ = a.db.Exec(`INSERT INTO customer_prices(customer_id,category_id,batch_tag,unit_price,updated_at) VALUES(?,?,?,?,?)
+				ON CONFLICT(customer_id,category_id,batch_tag) DO UPDATE SET unit_price=excluded.unit_price`, cid, c.ID, it.BatchTag, p, now())
+		}
+		lines = append(lines, line{c, it.BatchTag, it.InputUnit, it.Quantity, settle, bd(p), settle * bd(p)})
+	}
+	total := 0.0
+	for _, l := range lines {
+		total += l.total
+	}
+	var typ string
+	_ = a.db.QueryRow(`SELECT type FROM orders WHERE id=?`, oid).Scan(&typ)
+	if strings.HasSuffix(typ, "_return") {
+		total = -total
+	}
+	_, _ = a.db.Exec(`DELETE FROM order_items WHERE order_id=?`, oid)
+	for i, l := range lines {
+		_, _ = a.db.Exec(`INSERT INTO order_items(order_id,line_no,category_id,batch_tag,input_unit,input_quantity,settlement_unit,settlement_quantity,unit_price,line_total) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+			oid, i+1, l.c.ID, l.batch, l.iu, l.iq, l.c.SettlementUnit, f2(l.settle), f2(l.price), f2(l.total))
+	}
+	_, _ = a.db.Exec(`UPDATE orders SET order_total=?, remark=?, version=version+1, status='submitted' WHERE id=?`, f2(total), in.Remark, oid)
+	a.log(&acc, "ORDER_UPDATE", fmt.Sprint(oid))
+	ok(w, a.order(oid))
+}
+
+func (a *App) archiveOrder(w http.ResponseWriter, rawID string) {
+	oid, _ := strconv.ParseInt(strings.TrimSpace(rawID), 10, 64)
+	if _, err := a.db.Exec(`UPDATE orders SET status='archived' WHERE id=?`, oid); err != nil {
+		fail(w, 500, "DB", err.Error())
+		return
+	}
+	ok(w, map[string]any{"id": oid, "status": "archived"})
+}
+
+func (a *App) deleteOrder(w http.ResponseWriter, rawID string) {
+	oid, _ := strconv.ParseInt(strings.TrimSpace(rawID), 10, 64)
+	var status string
+	if err := a.db.QueryRow(`SELECT status FROM orders WHERE id=?`, oid).Scan(&status); err != nil {
+		fail(w, 404, "NOT_FOUND", "单据不存在")
+		return
+	}
+	if status == "archived" {
+		fail(w, 409, "ORDER_ARCHIVED", "该单已归档，不可删除")
+		return
+	}
+	_, _ = a.db.Exec(`DELETE FROM order_items WHERE order_id=?`, oid)
+	_, _ = a.db.Exec(`DELETE FROM print_jobs WHERE order_id=?`, oid)
+	_, _ = a.db.Exec(`DELETE FROM orders WHERE id=?`, oid)
+	ok(w, map[string]any{"deleted": true})
 }
 
 func (a *App) order(oid int64) map[string]any {
