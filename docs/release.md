@@ -100,3 +100,15 @@ adb shell am start -n com.jiancai.android.app/.MainActivity
 
 截图留在本机（未入库）：`.tools/app-order-success.png`、`.tools/app-contract.png`。
 
+## 第六轮：Compose 客户端 + 新测试服务器（v1.0.12）
+
+| 项目 | 结果 |
+| --- | --- |
+| 客户端 UI 框架 | 全量 **Jetpack Compose + Material 3**（单 Activity + navigation-compose），12 页按预览页落文件，3–6 共用 `OrderFormComponent` |
+| 规范文档 | [docs/specs/fnos-fpk.md](specs/fnos-fpk.md)、[docs/specs/android-compose.md](specs/android-compose.md) |
+| CI 产物 | Release `v1.0.12`：`jiancai-client_1.0.12.apk`（Compose）+ `jiancai_1.0.12_x86_64.fpk` |
+| 新测试机 | fnOS `192.168.1.20`（Debian 12 / x86_64），FPK 已升级到 1.0.12，`/contract` = 1.2.0，旧订单保留 |
+| 真机 | Redmi K40 安装 CI 产物 1.0.12，登录 `http://192.168.1.20:8080` → 首页 → 配送送货（李四 / 800×800 浅灰 / 浅灰A12 / 20 件 / 单价 45.00）→ 提交 `PS202611110001` 总额 900.00；查询、改当日单、设置页均实测 |
+| 服务端核对 | `/orders/today` = 1 单 `PS202611110001 purchase 900.00`，行 20 件 × 45.00 |
+
+
