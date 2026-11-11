@@ -21,8 +21,9 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run build
-          rm -rf ../server-go/web/dist
-          cp -r dist ../server-go/web/dist
+          mkdir -p ../server-go/web/dist
+          rm -rf ../server-go/web/dist/*
+          cp -r dist/. ../server-go/web/dist/
 
       - uses: actions/setup-go@v5
         with:
