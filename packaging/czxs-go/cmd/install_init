@@ -1,0 +1,7 @@
+#!/bin/bash
+set -u
+APP_HOME="${TRIM_APPDEST:-$(cd "$(dirname "$0")/.." && pwd)}"
+PKGVAR="${TRIM_PKGVAR:-$APP_HOME/data}"
+mkdir -p "$PKGVAR" "$APP_HOME/target"
+echo "$(date '+%F %T') $0" >> "$PKGVAR/install.log" 2>/dev/null || true
+exit 0

@@ -1,0 +1,32 @@
+#!/bin/bash
+# czxs(Go) 生命周期：start|stop|restart|status
+set -u
+APP_HOME="${TRIM_APPDEST:-$(cd "$(dirname "$0")/.." && pwd)}"
+PKGVAR="${TRIM_PKGVAR:-$APP_HOME/data}"
+BIN="$APP_HOME/bin/czxs"
+PID="$PKGVAR/czxs.pid"
+LOG="$PKGVAR/czxs.log"
+export CZ_XS_SOCKET="$APP_HOME/app.sock"
+export CZ_XS_PREFIX="${CZ_XS_PREFIX:-/app/czxs}"
+export CZ_XS_DATA_DIR="$PKGVAR"
+[ -f "$APP_HOME/etc/api_port" ] && export CZ_XS_API_PORT="$(cat "$APP_HOME/etc/api_port")"
+[ -f "$APP_HOME/etc/admin_password" ] && export CZ_XS_ADMIN_PASSWORD="$(cat "$APP_HOME/etc/admin_password")"
+
+running() { [ -f "$PID" ] && kill -0 "$(cat "$PID" 2>/dev/null)" 2>/dev/null; }
+
+case "${1:-status}" in
+  start)
+    running && { echo "already running"; exit 0; }
+    mkdir -p "$PKGVAR" "$APP_HOME/target"
+    [ -x "$BIN" ] || { echo "missing $BIN" >&2; exit 1; }
+    nohup "$BIN" >>"$LOG" 2>&1 &
+    echo $! >"$PID"; sleep 1
+    running && echo "started" || { echo "start failed" >&2; tail -n 30 "$LOG" >&2; exit 1; } ;;
+  stop)
+    running && kill "$(cat "$PID")" 2>/dev/null
+    sleep 1; running && kill -9 "$(cat "$PID")" 2>/dev/null
+    rm -f "$PID" "$APP_HOME/app.sock"; echo stopped ;;
+  status)
+    running && { echo running; exit 0; } || { echo stopped; exit 3; } ;;
+  *) echo "usage: $0 start|stop|status" >&2; exit 2 ;;
+esac
