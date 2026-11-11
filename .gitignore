@@ -20,3 +20,7 @@ dist/
 
 packaging/fnos-czxs/.work/
 
+
+server-go/czxs-linux
+server-go/czxs.exe
+
