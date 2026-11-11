@@ -133,7 +133,8 @@ function CategoryModal({ init, onClose, onDone }) {
   const save = async (e) => {
     e.preventDefault()
     try {
-      const body = JSON.stringify({ ...f, conversion: Number(f.conversion) || 1 })
+      const noConvert = f.conversion_unit.trim() === ''
+      const body = JSON.stringify({ ...f, conversion: noConvert ? 1 : (Number(f.conversion) || 1) })
       if (init?.id) await api('/api/categories/' + init.id, { method: 'PUT', body })
       else await api('/api/categories', { method: 'POST', body })
       onDone()
@@ -148,7 +149,9 @@ function CategoryModal({ init, onClose, onDone }) {
         <label className="row">三级 批号：<input value={f.batch} onChange={set('batch')} placeholder="789 / ii8" required /></label>
         <label className="row">四级 计价单位：<input value={f.settlement_unit} onChange={set('settlement_unit')} placeholder="片 / 箱" required /></label>
         <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} placeholder="没有其他单位可留空" /></label>
-        <div className="row">换算系数：1 <b>{f.conversion_unit || '暂无'}</b> = <input style={{ width: 70 }} value={f.conversion} onChange={set('conversion')} /> <b>{f.settlement_unit || '暂无'}</b></div>
+        {f.conversion_unit.trim() !== '' && (
+          <div className="row">换算系数：1 <b>{f.conversion_unit}</b> = <input style={{ width: 70 }} value={f.conversion} onChange={set('conversion')} /> <b>{f.settlement_unit || '暂无'}</b></div>
+        )}
         {err && <div className="err">{err}</div>}
         <button>保存</button> <button type="button" className="secondary" onClick={onClose}>取消</button>
       </form>
