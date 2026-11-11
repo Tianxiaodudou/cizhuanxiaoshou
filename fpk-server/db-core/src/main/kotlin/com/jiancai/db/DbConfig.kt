@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   24 行  类 DbConfig
- * 第   38 行  对象 ?
- * 第   46 行  函数 inMemory
- * 第   49 行  函数 file
- * 第   58 行  类 JournalMode
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/DbConfig.kt
+ * @role db-core 连接配置（唯一连接口径）。
+ * @exports DbConfig, JournalMode
+ * @depends （无）
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/Main.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.db

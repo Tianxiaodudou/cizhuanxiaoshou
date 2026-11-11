@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   43 行  类 LoginRouteTest
- * 第   54 行  类 FakeClient
- * 第   56 行  函数 call
- * 第   62 行  函数 serverAddress
- * 第   68 行  函数 a_login_with_the_edited_server_address_lands_on_home
- * 第   85 行  函数 a_bad_server_address_is_reported_without_calling_the_network
- * 第   99 行  函数 a_server_side_login_failure_is_shown_as_is
- * 第  114 行  函数 the_login_screen_exposes_the_editable_server_address
- * 第  123 行  函数 the_feature_never_stores_the_token_itself
+ * @file android-app/feature-login/src/test/kotlin/com/jiancai/android/login/LoginRouteTest.kt
+ * @role C04 验收：登录可用；服务端地址可改。
+ * @exports LoginRouteTest
+ * @depends core-network, core-session, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.login

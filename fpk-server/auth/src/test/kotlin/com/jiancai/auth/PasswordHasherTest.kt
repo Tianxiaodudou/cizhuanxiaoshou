@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 PasswordHasherTest
- * 第   37 行  函数 encoding_is_self_describing_and_carries_no_plaintext
- * 第   51 行  函数 every_hash_uses_a_fresh_random_salt
- * 第   61 行  函数 wrong_or_blank_password_never_verifies
- * 第   69 行  函数 corrupt_or_unknown_encodings_are_not_matching_instead_of_throwing
- * 第   93 行  函数 tampering_with_salt_or_derived_key_breaks_the_match
- * 第  119 行  函数 unsafe_cost_parameters_are_rejected_at_construction
- * 第  135 行  函数 hashing_a_blank_password_is_a_programming_error
+ * @file fpk-server/auth/src/test/kotlin/com/jiancai/auth/PasswordHasherTest.kt
+ * @role 密码散列硬边界（S02）：自描述格式、随机盐、损坏 / 越界输入一律判为「不匹配」，不抛 500。
+ * @exports PasswordHasherTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.auth

@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   32 行  对象 OrderMath
- * 第   35 行  函数 amount
- * 第   43 行  函数 total
- * 第   54 行  函数 receivable
- * 第   61 行  函数 isReturn
- * 第   70 行  函数 status
+ * @file fpk-server/order/src/main/kotlin/com/jiancai/order/OrderMath.kt
+ * @role 订单金额派生（内部）：只做「服务端算金额」，不解析单价、不生成单号。
+ * @exports （无）
+ * @depends shared
+ * @calledBy fpk-server/order/src/main/kotlin/com/jiancai/order/OrderPriceRecalculator.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.order

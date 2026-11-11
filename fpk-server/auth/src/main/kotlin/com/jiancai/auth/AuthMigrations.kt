@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   20 行  对象 AuthMigrations
+ * @file fpk-server/auth/src/main/kotlin/com/jiancai/auth/AuthMigrations.kt
+ * @role S02 的迁移（版本号段 210–219，见 `db-core/module.md` 与 `config/module.md` 的子段约定
+ * @exports AuthMigrations
+ * @depends db-core
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.auth

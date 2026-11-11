@@ -1,8 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 SerialConcurrencyTest
- * 第   31 行  函数 concurrent_calls_never_duplicate_a_serial_number
+ * @file fpk-server/serial/src/test/kotlin/com/jiancai/serial/SerialConcurrencyTest.kt
+ * @role 验收：并发取号不重号。
+ * @exports SerialConcurrencyTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.serial

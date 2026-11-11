@@ -1,8 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   33 行  类 ReturnCheckPolicy
- * 第   51 行  对象 ?
+ * @file fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnCheckPolicy.kt
+ * @role 退单校验策略（S09 的**唯一**规则开关，独立于 Port 与读取路径，可整体替换升级）。
+ * @exports ReturnCheckPolicy
+ * @depends shared
+ * @calledBy fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnCheckService.kt, fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnRules.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.returncheck

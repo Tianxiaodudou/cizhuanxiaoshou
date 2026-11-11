@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   17 行  对象 GatewayMigrations
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayMigrations.kt
+ * @role S13 的迁移（版本号段 800–899；100 S07、200 S01、210 S02、300 S04、310 S05、320 S06、
+ * @exports GatewayMigrations
+ * @depends db-core
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

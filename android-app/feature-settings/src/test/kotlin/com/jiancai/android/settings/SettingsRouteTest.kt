@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   34 行  类 SettingsRouteTest
- * 第   37 行  函数 the_print_status_is_read_only_and_comes_from_the_server
- * 第   50 行  函数 an_inconsistent_print_status_is_rejected
- * 第   57 行  函数 the_server_address_can_be_changed_and_reset
- * 第   70 行  函数 the_settings_screen_has_no_print_action_at_all
- * 第   82 行  函数 the_module_only_mentions_printing_in_read_only_labels
- * 第  101 行  函数 the_settings_entry_is_the_third_tab
+ * @file android-app/feature-settings/src/test/kotlin/com/jiancai/android/settings/SettingsRouteTest.kt
+ * @role C12 验收：打印状态只读。
+ * @exports SettingsRouteTest
+ * @depends core-network, core-ui
+ * @calledBy （无）
+ * @sideEffects 文件 IO
  */
 
 package com.jiancai.android.settings

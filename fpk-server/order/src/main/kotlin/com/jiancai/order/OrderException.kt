@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   31 行  类 OrderException
+ * @file fpk-server/order/src/main/kotlin/com/jiancai/order/OrderException.kt
+ * @role 订单用例失败（S08）。
+ * @exports OrderException
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderPriceRecalculator.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.order

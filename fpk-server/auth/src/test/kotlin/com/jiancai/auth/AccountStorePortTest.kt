@@ -1,19 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   41 行  类 AccountStorePortTest
- * 第   45 行  函数 staffCmd
- * 第   49 行  函数 create_list_and_get_round_trip
- * 第   72 行  函数 create_rejects_duplicate_usernames_case_insensitively
- * 第   87 行  函数 create_rejects_invalid_input_with_validation_error
- * 第  109 行  函数 update_without_password_keeps_the_old_password
- * 第  127 行  函数 update_with_a_new_password_rotates_it
- * 第  148 行  函数 update_rejects_a_too_short_new_password_and_keeps_the_old_one
- * 第  165 行  函数 disabled_account_can_no_longer_log_in_and_its_token_is_rejected
- * 第  188 行  函数 delete_removes_the_account_and_revokes_its_token
- * 第  204 行  函数 update_and_delete_missing_accounts_report_absence_without_throwing
- * 第  218 行  函数 created_password_is_persisted_only_as_a_hash
- * 第  235 行  函数 writes_join_the_callers_transaction_and_roll_back_together
+ * @file fpk-server/auth/src/test/kotlin/com/jiancai/auth/AccountStorePortTest.kt
+ * @role `AccountStorePort` 验收：S03 account 的账号 CRUD 依赖本 Port。
+ * @exports AccountStorePortTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.auth

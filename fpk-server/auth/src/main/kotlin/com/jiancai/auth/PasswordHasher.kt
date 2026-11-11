@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  接口 PasswordHasher
- * 第   36 行  函数 hash
- * 第   39 行  函数 verify
- * 第   48 行  类 Pbkdf2PasswordHasher
- * 第   63 行  函数 hash
- * 第   70 行  函数 verify
- * 第   86 行  函数 derive
- * 第   95 行  对象 ?
- * 第  127 行  函数 encode
- * 第  129 行  函数 decode
+ * @file fpk-server/auth/src/main/kotlin/com/jiancai/auth/PasswordHasher.kt
+ * @role 密码哈希策略（硬边界：**禁止明文存密码**）。
+ * @exports PasswordHasher, Pbkdf2PasswordHasher
+ * @depends （无）
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt, fpk-server/auth/src/main/kotlin/com/jiancai/auth/AuthService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.auth

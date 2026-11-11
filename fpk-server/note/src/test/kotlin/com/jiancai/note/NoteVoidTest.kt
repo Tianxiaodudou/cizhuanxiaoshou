@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 NoteVoidTest
- * 第   33 行  函数 void_marks_the_note_without_touching_the_source_order
- * 第   68 行  函数 void_keeps_the_original_diff_data_in_storage
- * 第   89 行  函数 a_voided_note_cannot_be_voided_again_with_e4002
- * 第  109 行  函数 void_rejects_an_unknown_note_with_e4001
- * 第  119 行  函数 void_rejects_a_blank_reason_or_operator_with_e422_and_writes_nothing
- * 第  146 行  函数 a_caller_rollback_keeps_the_note_active
- * 第  169 行  函数 convenience_overloads_open_one_transaction_and_tx_overloads_reuse_the_caller_transaction
+ * @file fpk-server/note/src/test/kotlin/com/jiancai/note/NoteVoidTest.kt
+ * @role S10 作废用例：只作废备注单、保留原始数据、不动原单。
+ * @exports NoteVoidTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.note

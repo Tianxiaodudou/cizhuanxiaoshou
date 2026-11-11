@@ -1,28 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   57 行  类 RoutesBehaviourTest
- * 第   65 行  函数 contract_handshake_exposes_the_version_and_the_merchant_name
- * 第   75 行  函数 accounts_can_be_listed_created_and_deleted_by_an_admin
- * 第   98 行  函数 a_customer_can_be_looked_up_by_phone_and_created
- * 第  118 行  函数 the_category_library_supports_listing_and_admin_writes
- * 第  135 行  函数 the_price_can_be_resolved_by_an_authenticated_user
- * 第  150 行  函数 an_admin_price_change_is_traced_through_s14
- * 第  171 行  函数 an_order_is_created_with_server_produced_numbers_and_amounts
- * 第  186 行  函数 a_return_order_without_a_source_order_is_rejected_before_creation
- * 第  200 行  函数 a_return_order_is_checked_by_s09_before_it_is_created
- * 第  226 行  函数 a_return_order_for_an_unknown_source_is_404
- * 第  244 行  函数 today_and_history_lists_are_served_from_s08
- * 第  259 行  函数 an_update_whose_body_disagrees_with_the_path_is_rejected
- * 第  271 行  函数 returnable_batches_and_return_check_are_forwarded_to_s09
- * 第  295 行  函数 a_note_can_be_created_and_voided
- * 第  322 行  函数 a_settlement_can_be_submitted_and_audited_with_a_trace
- * 第  346 行  函数 the_balance_read_model_is_served_from_s11
- * 第  358 行  函数 printing_returns_the_server_rendered_ticket_as_text
- * 第  373 行  函数 money_is_returned_as_the_server_produced_string
- * 第  383 行  函数 the_audit_trail_is_readable_by_an_admin_only
- * 第  406 行  函数 the_audit_trail_can_be_filtered_by_action
- * 第  432 行  函数 placeholderOrder
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/RoutesBehaviourTest.kt
+ * @role 路由行为（每个业务模块一个入口用例）：证明「网关只转发、DTO 由服务端产出」。
+ * @exports RoutesBehaviourTest
+ * @depends observability, shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   18 行  函数 exec
- * 第   25 行  函数 queryInt
- * 第   31 行  函数 queryText
- * 第   36 行  函数 tags
- * 第   46 行  函数 createProbeTables
+ * @file fpk-server/db-core/src/test/kotlin/com/jiancai/db/TestFixtures.kt
+ * @role package com.jiancai.db
+ * @exports （无）
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 写 probe_row, probe_other（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.db

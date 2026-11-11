@@ -1,26 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   79 行  类 PriceService
- * 第   97 行  函数 resolve
- * 第  100 行  函数 resolve
- * 第  113 行  函数 changePrice
- * 第  116 行  函数 changePrice
- * 第  157 行  函数 applyChange
- * 第  209 行  函数 history
- * 第  212 行  函数 history
- * 第  228 行  函数 validateDimensions
- * 第  264 行  函数 normalizeBatchTag
- * 第  292 行  函数 normalizeHistoryTag
- * 第  306 行  函数 normalizeReason
- * 第  319 行  函数 requirePositivePrice
- * 第  328 行  函数 publish
- * 第  332 行  函数 today
- * 第  334 行  函数 now
- * 第  336 行  函数 displayTag
- * 第  342 行  函数 isUniqueViolation
- * 第  349 行  类 Dimensions
- * 第  355 行  对象 ?
+ * @file fpk-server/pricing/src/main/kotlin/com/jiancai/pricing/PriceService.kt
+ * @role [PricePort] 的唯一实现：恒定价格的用例层。
+ * @exports PriceService
+ * @depends category, customer, db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.pricing

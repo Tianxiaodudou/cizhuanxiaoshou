@@ -1,24 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  接口 IdempotencyStore
- * 第   41 行  函数 get
- * 第   44 行  函数 put
- * 第   47 行  函数 remove
- * 第   56 行  类 StoredResponse
- * 第   69 行  类 InMemoryIdempotencyStore
- * 第   73 行  函数 removeEldestEntry
- * 第   77 行  函数 get
- * 第   79 行  函数 put
- * 第   83 行  函数 remove
- * 第   90 行  对象 ?
- * 第  105 行  类 IdempotencyGuard
- * 第  108 行  函数 requireKey
- * 第  124 行  函数 replay
- * 第  137 行  函数 remember
- * 第  142 行  函数 release
- * 第  147 行  函数 fingerprint
- * 第  158 行  对象 ?
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/Idempotency.kt
+ * @role 幂等键存储：接口在这里，实现在本模块内（生产可换成持久化实现，不需要改路由）。
+ * @exports IdempotencyStore, StoredResponse, InMemoryIdempotencyStore, IdempotencyGuard
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/SqliteIdempotencyStore.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

@@ -1,24 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   46 行  类 ApiClientTest
- * 第   48 行  类 RecordingTransport
- * 第   52 行  函数 exchange
- * 第   58 行  函数 client
- * 第   72 行  函数 the_token_is_injected_on_every_call_and_not_injected_when_logged_out
- * 第   83 行  函数 the_contract_version_is_always_sent
- * 第   90 行  函数 a_write_call_carries_the_idempotency_key_from_the_command
- * 第  108 行  函数 a_successful_login_is_decoded_through_the_shared_contract
- * 第  124 行  函数 a_401_is_parsed_into_the_shared_error_code
- * 第  136 行  函数 every_error_code_from_the_contract_is_parsed_uniformly
- * 第  146 行  函数 an_unknown_error_code_keeps_the_wire_value_and_uses_the_server_message
- * 第  158 行  函数 an_unparseable_error_body_falls_back_to_the_http_status
- * 第  167 行  函数 a_network_failure_becomes_a_retryable_e503_instead_of_an_exception
- * 第  177 行  函数 a_print_call_returns_the_server_rendered_text_verbatim
- * 第  186 行  函数 a_delete_without_a_body_succeeds_without_decoding
- * 第  193 行  函数 query_values_are_url_encoded
- * 第  201 行  函数 the_server_address_is_normalised_and_reported
- * 第  210 行  函数 the_client_never_computes_money_or_order_numbers
+ * @file android-app/core-network/src/test/kotlin/com/jiancai/android/network/ApiClientTest.kt
+ * @role C00 验收：错误码统一解析 + token 自动注入。
+ * @exports ApiClientTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.network

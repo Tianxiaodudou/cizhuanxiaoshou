@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   35 行  类 PrintBoundaryTest
- * 第   47 行  函数 the_print_port_never_receives_a_role_token_or_account_dto
- * 第   68 行  函数 the_print_port_only_returns_print_documents
- * 第   78 行  函数 sql_only_lives_in_the_print_repository
- * 第  103 行  函数 the_module_never_touches_order_or_note_tables
- * 第  119 行  函数 the_module_never_composes_a_serial_number_itself
- * 第  141 行  函数 the_module_owns_exactly_one_business_table
- * 第  150 行  函数 the_module_has_no_client_side_print_dependency
- * 第  172 行  函数 printPortMethods
- * 第  177 行  函数 mainSources
+ * @file fpk-server/print/src/test/kotlin/com/jiancai/print/PrintBoundaryTest.kt
+ * @role 硬边界（S12）的结构化守卫
+ * @exports PrintBoundaryTest
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.print

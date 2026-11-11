@@ -1,19 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  类 PermissionTest
- * 第   41 行  函数 the_login_and_contract_endpoints_are_public
- * 第   53 行  函数 a_missing_or_invalid_token_is_rejected_with_e401
- * 第   66 行  函数 a_non_bearer_authorization_header_is_rejected_with_e401
- * 第   80 行  函数 a_staff_account_cannot_reach_an_admin_endpoint
- * 第   91 行  函数 a_staff_account_cannot_create_a_master_data_record
- * 第  101 行  函数 a_staff_account_cannot_change_a_price_and_the_price_port_is_never_called
- * 第  115 行  函数 an_admin_can_reach_the_admin_endpoints
- * 第  123 行  函数 a_staff_account_may_reach_the_business_endpoints
- * 第  134 行  函数 the_gateway_passes_the_authenticated_identity_down_as_a_data_field
- * 第  149 行  函数 the_me_endpoint_returns_the_caller
- * 第  158 行  函数 a_public_route_never_touches_the_token
- * 第  167 行  函数 the_router_exposes_the_permission_level_of_every_route
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/PermissionTest.kt
+ * @role 验收「权限在 API 层拦截」。
+ * @exports PermissionTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

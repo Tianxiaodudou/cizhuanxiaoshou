@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   35 行  类 GatewayMigrationsTest
- * 第   39 行  函数 db
- * 第   41 行  函数 clock
- * 第   45 行  函数 the_migration_creates_the_idempotency_table
- * 第   62 行  函数 re_running_the_migration_is_idempotent
- * 第   72 行  函数 a_response_snapshot_survives_a_round_trip
- * 第   91 行  函数 a_released_key_can_be_reused
- * 第  103 行  函数 an_expired_snapshot_is_not_replayed
- * 第  117 行  函数 writing_a_new_snapshot_purges_expired_rows
- * 第  135 行  函数 the_table_rejects_a_non_success_status
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/GatewayMigrationsTest.kt
+ * @role 持久化幂等台账（`gateway_idempotency`，迁移 800）
+ * @exports GatewayMigrationsTest
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 写 gateway_idempotency（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.gateway

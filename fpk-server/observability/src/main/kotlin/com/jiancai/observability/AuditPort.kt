@@ -1,19 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   48 行  接口 AuditPort
- * 第   51 行  函数 record
- * 第   54 行  函数 record
- * 第   62 行  函数 priceChanged
- * 第   65 行  函数 priceChanged
- * 第   73 行  函数 settleAudited
- * 第   82 行  函数 settleAudited
- * 第   90 行  函数 query
- * 第   93 行  函数 query
- * 第  102 行  函数 entries
- * 第  105 行  函数 entries
- * 第  107 行  对象 ?
- * 第  109 行  函数 priceKey
+ * @file fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditPort.kt
+ * @role 审计 Port：S14 唯一对外入口（留痕写入 + 只读查询）。
+ * @exports AuditPort
+ * @depends db-core, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.observability

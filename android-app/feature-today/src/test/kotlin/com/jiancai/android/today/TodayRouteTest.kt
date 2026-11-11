@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   44 行  类 TodayRouteTest
- * 第   46 行  类 FakeClient
- * 第   51 行  函数 call
- * 第   57 行  函数 serverAddress
- * 第   61 行  函数 the_today_list_comes_from_the_server_endpoint
- * 第   70 行  函数 editing_reuses_the_order_entry_form
- * 第   83 行  函数 saving_sends_the_server_version_unchanged
- * 第   98 行  函数 a_cross_day_rejection_from_the_server_is_shown_as_is
- * 第  110 行  函数 the_module_never_compares_dates_locally
- * 第  121 行  函数 the_today_entry_is_the_second_tab
- * 第  128 行  函数 sampleOrder
+ * @file android-app/feature-today/src/test/kotlin/com/jiancai/android/today/TodayRouteTest.kt
+ * @role C08 验收：复用录入壳；跨日不可改。
+ * @exports TodayRouteTest
+ * @depends core-network, core-ui, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.today

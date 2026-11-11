@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   18 行  类 SettleStatus
+ * @file shared/src/main/kotlin/com/jiancai/shared/enums/SettleStatus.kt
+ * @role 结算单状态（唯一真源，服务端 S11 维护）。
+ * @exports SettleStatus
+ * @depends （无）
+ * @calledBy shared/src/main/kotlin/com/jiancai/shared/dto/SettleDto.kt, fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditService.kt, fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettleRepository.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.enums

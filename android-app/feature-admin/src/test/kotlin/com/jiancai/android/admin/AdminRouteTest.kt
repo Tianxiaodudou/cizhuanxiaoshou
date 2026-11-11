@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   48 行  类 AdminRouteTest
- * 第   50 行  类 FakeClient
- * 第   53 行  函数 call
- * 第   59 行  函数 serverAddress
- * 第   63 行  函数 the_four_sub_pages_are_present
- * 第   74 行  函数 the_category_page_reads_and_saves_through_the_api_catalog
- * 第   94 行  函数 the_settle_audit_page_forwards_the_admin_decision
- * 第  110 行  函数 an_over_permission_rejection_is_echoed_from_the_server
- * 第  120 行  函数 the_admin_module_never_decides_permissions_itself
- * 第  132 行  函数 the_account_page_never_touches_a_password_field
+ * @file android-app/feature-admin/src/test/kotlin/com/jiancai/android/admin/AdminRouteTest.kt
+ * @role C11 验收：4 子页可用；权限由服务端把关。
+ * @exports AdminRouteTest
+ * @depends core-network, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.admin

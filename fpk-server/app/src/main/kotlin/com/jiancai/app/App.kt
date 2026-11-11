@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   55 行  类 App
- * 第   78 行  函数 bootstrapFirstAdmin
- * 第   82 行  函数 close
- * 第   84 行  对象 ?
- * 第   96 行  函数 create
- * 第  122 行  函数 open
+ * @file fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @role 组合根：进程启动时把 S00–S07 唯一装配一次，之后只对外暴露 Port。
+ * @exports App
+ * @depends account, auth, config, db-core, serial, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.app

@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   19 行  类 GatewayException
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayException.kt
+ * @role 网关自身产生的失败（路由 / 鉴权 / 幂等 / 编解码）。
+ * @exports GatewayException
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/AuthGate.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

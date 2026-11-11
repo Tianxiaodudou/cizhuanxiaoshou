@@ -1,22 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   85 行  函数 clockAt
- * 第   88 行  函数 testDb
- * 第  100 行  类 Fixture
- * 第  120 行  函数 returnCheck
- * 第  123 行  函数 customer
- * 第  129 行  函数 category
- * 第  147 行  函数 price
- * 第  164 行  函数 order
- * 第  183 行  函数 close
- * 第  187 行  函数 lineCmd
- * 第  200 行  函数 orderDto
- * 第  229 行  函数 lineDto
- * 第  251 行  函数 assertReturnError
- * 第  258 行  类 CountingTxRunner
- * 第  262 行  函数 reset
- * 第  266 行  函数 run
+ * @file fpk-server/return-check/src/test/kotlin/com/jiancai/returncheck/TestSupport.kt
+ * @role 改价管理员 id。
+ * @exports （无）
+ * @depends category, customer, db-core, order, pricing, serial, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.returncheck

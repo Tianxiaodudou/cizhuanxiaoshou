@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   44 行  对象 SelectOrderPage
- * 第   48 行  函数 search
- * 第   62 行  函数 select
- * 第   66 行  函数 screen
- * 第   82 行  对象 NoteRoute
- * 第   94 行  函数 create
- * 第  120 行  函数 void
- * 第  127 行  函数 screen
- * 第  142 行  函数 invalid
+ * @file android-app/feature-note/src/main/kotlin/com/jiancai/android/note/NoteRoute.kt
+ * @role C09 差异备注单。
+ * @exports SelectOrderPage, NoteRoute
+ * @depends core-network, core-ui, shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.note

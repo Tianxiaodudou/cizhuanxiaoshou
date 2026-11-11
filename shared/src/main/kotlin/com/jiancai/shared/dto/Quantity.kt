@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   36 行  类 Quantity
- * 第   38 行  函数 display
- * 第   40 行  函数 equals
- * 第   42 行  函数 hashCode
- * 第   44 行  函数 toString
- * 第   46 行  对象 ?
- * 第   50 行  函数 ofPlain
- * 第   68 行  对象 QuantitySerializer
- * 第   72 行  函数 serialize
- * 第   76 行  函数 deserialize
+ * @file shared/src/main/kotlin/com/jiancai/shared/dto/Quantity.kt
+ * @role 数量（唯一真源口径）：十进制字符串，必须 > 0，最多 [WireFormat.QUANTITY_MAX_SCALE] 位小数；
+ * @exports Quantity, QuantitySerializer
+ * @depends （无）
+ * @calledBy fpk-server/order/src/main/kotlin/com/jiancai/order/OrderService.kt, fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnRules.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.dto

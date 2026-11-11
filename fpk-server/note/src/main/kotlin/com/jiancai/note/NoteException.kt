@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 NoteException
+ * @file fpk-server/note/src/main/kotlin/com/jiancai/note/NoteException.kt
+ * @role 备注单用例失败（S10）。
+ * @exports NoteException
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.note

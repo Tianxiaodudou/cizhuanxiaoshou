@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   39 行  类 AccountStoreAdapter
- * 第   43 行  函数 list
- * 第   45 行  函数 get
- * 第   47 行  函数 create
- * 第   49 行  函数 update
- * 第   51 行  函数 delete
- * 第   58 行  函数 translate
+ * @file fpk-server/app/src/main/kotlin/com/jiancai/app/AccountStoreAdapter.kt
+ * @role S03 `AccountStore` ↔ S02 `AccountStorePort` 的薄适配器（约 20 行，只做转调 + 错误翻译）。
+ * @exports AccountStoreAdapter
+ * @depends account, auth, db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.app

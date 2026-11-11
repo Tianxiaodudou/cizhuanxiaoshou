@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   20 行  类 AccountDto
- * 第   31 行  类 LoginCmd
- * 第   43 行  类 LoginResultDto
- * 第   52 行  类 CreateAccountCmd
- * 第   61 行  类 UpdateAccountCmd
+ * @file shared/src/main/kotlin/com/jiancai/shared/dto/AccountDto.kt
+ * @role 账号（唯一出参 DTO，S03 account 产出；S02 auth / C11 消费）。密码永不下发。
+ * @exports AccountDto, LoginCmd, LoginResultDto, CreateAccountCmd, UpdateAccountCmd
+ * @depends （无）
+ * @calledBy fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminPort.kt, fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminService.kt, fpk-server/account/src/main/kotlin/com/jiancai/account/AccountStore.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.dto

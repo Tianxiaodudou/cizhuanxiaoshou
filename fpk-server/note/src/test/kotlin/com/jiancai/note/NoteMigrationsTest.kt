@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 NoteMigrationsTest
- * 第   31 行  函数 diff_note_table_is_created_by_the_note_migration
- * 第   40 行  函数 note_no_is_unique_at_the_database_layer
- * 第   60 行  函数 a_voided_note_must_carry_void_metadata
- * 第   75 行  函数 an_active_note_must_not_carry_void_metadata
- * 第   94 行  函数 customer_id_and_remark_are_checked_by_the_database
- * 第  112 行  函数 migration_version_is_in_the_note_segment_and_idempotent
- * 第  127 行  函数 insertNote
+ * @file fpk-server/note/src/test/kotlin/com/jiancai/note/NoteMigrationsTest.kt
+ * @role S10 迁移与库层约束测试。
+ * @exports NoteMigrationsTest
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.note

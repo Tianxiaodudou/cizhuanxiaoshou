@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   36 行  类 PrintStatus
- * 第   47 行  对象 ?
- * 第   49 行  函数 fromServer
- * 第   66 行  对象 SettingsRoute
- * 第   72 行  函数 serverAddress
- * 第   76 行  函数 saveServerAddress
- * 第   80 行  函数 resetServerAddress
- * 第   84 行  函数 printStatus
- * 第   88 行  函数 screen
- * 第  102 行  函数 printStatusText
+ * @file android-app/feature-settings/src/main/kotlin/com/jiancai/android/settings/SettingsRoute.kt
+ * @role C12 设置：客户端配置（服务端地址）+ **只读**打印状态。
+ * @exports PrintStatus, SettingsRoute
+ * @depends core-network, core-ui
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/core-ui/src/main/kotlin/com/jiancai/android/ui/UiKit.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.android.settings

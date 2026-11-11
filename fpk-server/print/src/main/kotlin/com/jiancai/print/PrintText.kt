@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   22 行  对象 PrintText
- * 第   25 行  类 Align
- * 第   33 行  函数 displayWidth
- * 第   49 行  函数 take
- * 第   68 行  函数 fit
- * 第   86 行  函数 wrap
- * 第  111 行  函数 sanitize
- * 第  114 行  函数 isWide
+ * @file fpk-server/print/src/main/kotlin/com/jiancai/print/PrintText.kt
+ * @role 80mm 热敏纸的等宽文本工具。
+ * @exports （无）
+ * @depends （无）
+ * @calledBy fpk-server/print/src/main/kotlin/com/jiancai/print/PrintLayout.kt, fpk-server/print/src/main/kotlin/com/jiancai/print/PrintRenderer.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.print

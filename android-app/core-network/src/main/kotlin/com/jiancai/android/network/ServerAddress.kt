@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 ServerAddress
- * 第   31 行  函数 base
- * 第   33 行  函数 toString
- * 第   35 行  对象 ?
- * 第   42 行  函数 parse
- * 第   56 行  接口 ServerAddressStore
- * 第   58 行  函数 baseUrl
- * 第   61 行  函数 update
- * 第   67 行  类 InMemoryServerAddressStore
- * 第   74 行  函数 baseUrl
- * 第   76 行  函数 update
+ * @file android-app/core-network/src/main/kotlin/com/jiancai/android/network/ServerAddress.kt
+ * @role 服务端地址（客户端可改，见 C04 登录页）。
+ * @exports ServerAddress, ServerAddressStore, InMemoryServerAddressStore
+ * @depends （无）
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt, android-app/feature-login/src/main/kotlin/com/jiancai/android/login/LoginRoute.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.android.network

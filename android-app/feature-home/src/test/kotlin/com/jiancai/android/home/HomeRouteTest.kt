@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  类 HomeRouteTest
- * 第   32 行  函数 the_home_screen_has_exactly_five_buttons
- * 第   39 行  函数 every_button_navigates_to_the_expected_route
- * 第   53 行  函数 all_four_order_types_share_one_entry_route
- * 第   66 行  函数 every_button_is_annotated_for_the_scan_script
- * 第   75 行  函数 the_home_screen_never_contains_business_computation
- * 第   87 行  函数 the_home_entry_belongs_to_the_first_tab
+ * @file android-app/feature-home/src/test/kotlin/com/jiancai/android/home/HomeRouteTest.kt
+ * @role C05 验收：按钮跳转正常。
+ * @exports HomeRouteTest
+ * @depends core-ui
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.home

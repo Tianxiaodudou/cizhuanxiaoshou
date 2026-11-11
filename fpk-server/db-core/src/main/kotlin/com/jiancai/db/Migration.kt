@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   27 行  类 Migration
- * 第   49 行  对象 ?
- * 第   50 行  函数 of
- * 第   53 行  函数 sha256
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/Migration.kt
+ * @role 一条迁移 = 一个版本号 + 一组语句。
+ * @exports Migration
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayMigrations.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.db

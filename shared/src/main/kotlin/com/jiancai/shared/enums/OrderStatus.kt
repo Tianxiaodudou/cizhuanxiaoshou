@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   18 行  类 OrderStatus
+ * @file shared/src/main/kotlin/com/jiancai/shared/enums/OrderStatus.kt
+ * @role 订单状态（唯一真源，服务端 S08 派生，客户端只展示）。
+ * @exports OrderStatus
+ * @depends （无）
+ * @calledBy shared/src/main/kotlin/com/jiancai/shared/dto/OrderDto.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderMath.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderPriceRecalculator.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.enums

@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   19 行  对象 PricingMigrations
+ * @file fpk-server/pricing/src/main/kotlin/com/jiancai/pricing/PricingMigrations.kt
+ * @role S06 的迁移（版本号段 300–399，见 `db-core/module.md`；本模块取 320）。
+ * @exports PricingMigrations
+ * @depends db-core
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.pricing

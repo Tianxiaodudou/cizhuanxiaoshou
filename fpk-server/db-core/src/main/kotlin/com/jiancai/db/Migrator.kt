@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   24 行  接口 Migrator
- * 第   31 行  函数 migrate
- * 第   34 行  函数 currentVersion
- * 第   37 行  函数 pendingVersions
- * 第   40 行  函数 drift
- * 第   51 行  类 MigrationReport
- * 第   69 行  类 MigrationDrift
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/Migrator.kt
+ * @role 迁移 Port：把各模块的 [Migration] 按版本号应用到一个库里，并保证**幂等**。
+ * @exports Migrator, MigrationReport, MigrationDrift
+ * @depends （无）
+ * @calledBy fpk-server/db-core/src/main/kotlin/com/jiancai/db/DbCore.kt, fpk-server/db-core/src/main/kotlin/com/jiancai/db/SqliteMigrator.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.db

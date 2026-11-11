@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   39 行  类 SettleBoundaryTest
- * 第   56 行  函数 the_settle_port_never_receives_a_role_token_or_account_dto
- * 第   77 行  函数 the_settle_port_only_returns_dtos
- * 第   87 行  函数 sql_only_lives_in_the_settle_repository
- * 第  112 行  函数 the_module_never_writes_the_order_tables_or_the_received_amount
- * 第  144 行  函数 the_module_never_composes_a_serial_number_itself
- * 第  169 行  函数 the_module_contains_no_print_rendering
- * 第  183 行  函数 the_module_owns_exactly_one_business_table
- * 第  191 行  函数 mainSources
+ * @file fpk-server/settlement/src/test/kotlin/com/jiancai/settlement/SettleBoundaryTest.kt
+ * @role 硬边界（S11）的结构化守卫
+ * @exports SettleBoundaryTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.settlement

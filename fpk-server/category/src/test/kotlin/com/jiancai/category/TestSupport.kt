@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  函数 testDb
- * 第   41 行  函数 cmd
- * 第   62 行  类 CountingTxRunner
- * 第   66 行  函数 run
- * 第   73 行  函数 queryLong
+ * @file fpk-server/category/src/test/kotlin/com/jiancai/category/TestSupport.kt
+ * @role 打开已迁移的内存库（每个用例独立，天然隔离）。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.category

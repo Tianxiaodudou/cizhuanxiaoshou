@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   25 行  类 SchemaMigrationRepository
- * 第   28 行  函数 ensureTable
- * 第   32 行  函数 find
- * 第   38 行  函数 applied
- * 第   47 行  函数 maxVersion
- * 第   52 行  函数 insert
- * 第   64 行  类 AppliedMigration
- * 第   71 行  函数 toApplied
- * 第   78 行  对象 ?
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/SchemaMigrationRepository.kt
+ * @role `schema_migration` 的读写包 —— db-core **自己的表、自己的 repository**。
+ * @exports （无）
+ * @depends （无）
+ * @calledBy fpk-server/db-core/src/main/kotlin/com/jiancai/db/SqliteMigrator.kt
+ * @sideEffects 写 schema_migration, IF（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.db

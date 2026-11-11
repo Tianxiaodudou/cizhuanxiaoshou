@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   19 行  对象 BatchTagRules
- * 第   21 行  函数 normalize
- * 第   29 行  函数 comparisonKey
- * 第   38 行  函数 same
+ * @file shared/src/main/kotlin/com/jiancai/shared/dto/BatchTag.kt
+ * @role 批号口径（唯一真源）：去首尾空白；比较时 ASCII 大小写不敏感。
+ * @exports BatchTagRules
+ * @depends （无）
+ * @calledBy fpk-server/order/src/main/kotlin/com/jiancai/order/OrderPriceRecalculator.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderService.kt, fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnRules.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.dto

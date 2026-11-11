@@ -1,22 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   27 行  类 HttpMethod
- * 第   41 行  类 ApiRequest
- * 第   49 行  函数 header
- * 第   52 行  函数 header
- * 第   66 行  类 ApiResponse
- * 第   73 行  函数 withHeader
- * 第   76 行  对象 ?
- * 第   90 行  接口 Payload
- * 第   93 行  类 Json
- * 第   96 行  类 Text
- * 第   99 行  对象 Empty
- * 第  109 行  类 RouteOutcome
- * 第  116 行  函数 respondJson
- * 第  124 行  函数 respondCreated
- * 第  128 行  函数 respondNoContent
- * 第  131 行  函数 respondText
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/Http.kt
+ * @role HTTP 方法（只支持网关实际暴露的四种；其它方法一律 404，避免半实现语义）。
+ * @exports HttpMethod, ApiRequest, ApiResponse, Payload, RouteOutcome, respondJson, respondCreated, respondNoContent, respondText
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/AuthGate.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

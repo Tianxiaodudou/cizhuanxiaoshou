@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 AuditMigrationsTest
- * 第   33 行  函数 the_migration_creates_the_audit_table_and_advances_the_version
- * 第   42 行  函数 re_running_the_migration_is_idempotent
- * 第   52 行  函数 the_table_rejects_an_unknown_action
- * 第   62 行  函数 the_table_rejects_a_non_positive_operator
- * 第   69 行  函数 the_table_rejects_a_blank_target
- * 第   76 行  函数 the_table_requires_a_non_empty_details_payload
- * 第   83 行  函数 the_module_owns_exactly_one_table
- * 第   96 行  函数 tables
- * 第  109 行  函数 insertRaw
+ * @file fpk-server/observability/src/test/kotlin/com/jiancai/observability/AuditMigrationsTest.kt
+ * @role 迁移与库层约束（版本 700）
+ * @exports AuditMigrationsTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 写 audit_log（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.observability

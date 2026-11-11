@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   32 行  对象 HomeRoute
- * 第   38 行  函数 purchase
- * 第   41 行  函数 direct
- * 第   44 行  函数 query
- * 第   47 行  函数 note
- * 第   50 行  函数 settle
- * 第   53 行  函数 buttons
- * 第   62 行  函数 screen
+ * @file android-app/feature-home/src/main/kotlin/com/jiancai/android/home/HomeRoute.kt
+ * @role C05 首页：5 个入口按钮。
+ * @exports HomeRoute
+ * @depends core-ui, shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.android.home

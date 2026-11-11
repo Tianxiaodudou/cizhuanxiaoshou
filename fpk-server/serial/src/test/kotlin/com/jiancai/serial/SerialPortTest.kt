@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  类 SerialPortTest
- * 第   35 行  函数 serial_is_prefix_plus_year_month_day_plus_four_digit_sequence
- * 第   49 行  函数 business_date_follows_the_server_time_zone_across_the_year_boundary
- * 第   62 行  函数 sequences_increment_per_type_and_reset_on_a_new_day
- * 第   75 行  函数 sequence_is_persisted_in_the_database_not_in_the_service_instance
- * 第   84 行  函数 note_serial_uses_the_shared_bz_prefix_and_shares_the_note_sequence
- * 第  102 行  函数 caller_transaction_rollback_does_not_consume_the_number
- * 第  120 行  函数 unique_constraint_is_the_fallback_when_a_number_is_already_taken
- * 第  144 行  函数 exhausted_sequence_fails_with_a_retryable_serial_error
+ * @file fpk-server/serial/src/test/kotlin/com/jiancai/serial/SerialPortTest.kt
+ * @role 验收：前缀与年月日正确、序号口径、事务回滚、唯一约束兜底、序号用尽。
+ * @exports SerialPortTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.serial

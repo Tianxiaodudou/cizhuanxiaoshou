@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 CustomerContractTest
- * 第   33 行  函数 customer_dto_roundtrip_keeps_the_shared_wire_shape
- * 第   51 行  函数 create_customer_cmd_decodes_from_the_shared_contract_and_ignores_unknown_fields
- * 第   68 行  函数 an_empty_address_is_encoded_as_null_not_an_empty_string
+ * @file fpk-server/customer/src/test/kotlin/com/jiancai/customer/CustomerContractTest.kt
+ * @role 契约测试（S04）：本模块读写的线格式必须与 `shared` 的唯一真源一致。
+ * @exports CustomerContractTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.customer

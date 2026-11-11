@@ -1,18 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   34 行  类 RouteTableTest
- * 第   71 行  函数 the_route_table_matches_the_contract
- * 第   79 行  函数 only_document_creating_writes_require_an_idempotency_key
- * 第   87 行  函数 the_admin_only_endpoints_are_exactly_the_expected_ones
- * 第  110 行  函数 there_is_no_serial_number_endpoint
- * 第  120 行  函数 there_is_no_client_printing_endpoint
- * 第  128 行  函数 the_gateway_sources_only_touch_its_own_idempotency_table
- * 第  168 行  函数 the_gateway_never_computes_money_or_numbers
- * 第  186 行  函数 the_gateway_does_not_log_with_stdout
- * 第  195 行  函数 e403_is_only_raised_by_the_auth_gate
- * 第  204 行  函数 every_path_parameter_in_a_template_is_actually_extracted
- * 第  221 行  函数 mainSources
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/RouteTableTest.kt
+ * @role 路由表的静态守卫（硬边界「禁止实现业务逻辑」，只转发 / 拦截 / 映射）
+ * @exports RouteTableTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 文件 IO
  */
 
 package com.jiancai.gateway

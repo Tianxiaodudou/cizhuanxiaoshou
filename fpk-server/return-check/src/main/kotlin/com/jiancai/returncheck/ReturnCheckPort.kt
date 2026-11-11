@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   40 行  接口 ReturnCheckPort
- * 第   53 行  函数 availableBatches
- * 第   56 行  函数 availableBatches
- * 第   78 行  函数 validate
- * 第   85 行  函数 validate
+ * @file fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnCheckPort.kt
+ * @role 退单校验 Port：S09 唯一对外入口（可退批次查询、退单申请校验）。
+ * @exports ReturnCheckPort
+ * @depends db-core, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnCheckService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.returncheck

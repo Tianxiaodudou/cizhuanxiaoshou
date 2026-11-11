@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   17 行  类 DbException
- * 第   23 行  类 DbClosedException
- * 第   26 行  类 MigrationFailedException
- * 第   37 行  类 MigrationDriftException
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/DbException.kt
+ * @role db-core 统一异常基类：所有数据库层错误都从这里派生，便于网关（S13）映射成错误响应。
+ * @exports DbException, DbClosedException, MigrationFailedException, MigrationDriftException
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/db-core/src/main/kotlin/com/jiancai/db/SqliteDatabase.kt, fpk-server/db-core/src/main/kotlin/com/jiancai/db/SqliteMigrator.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.db

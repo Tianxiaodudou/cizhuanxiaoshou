@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  类 ReturnCheckException
+ * @file fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnCheckException.kt
+ * @role 退单校验失败（S09）。
+ * @exports ReturnCheckException
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnCheckService.kt, fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnRules.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.returncheck

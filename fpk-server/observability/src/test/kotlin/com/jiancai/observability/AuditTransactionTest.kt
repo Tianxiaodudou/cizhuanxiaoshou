@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 AuditTransactionTest
- * 第   33 行  函数 a_caller_rollback_discards_the_audit_row
- * 第   47 行  函数 a_caller_commit_keeps_the_audit_row
- * 第   57 行  函数 the_convenience_overloads_open_their_own_transaction
- * 第   67 行  函数 nested_writes_reuse_the_outer_transaction
- * 第   81 行  函数 concurrent_reads_are_serialised_by_the_tx_runner
- * 第   96 行  函数 a_closed_database_fails_instead_of_silently_dropping_the_trace
- * 第  110 行  函数 the_port_never_needs_a_role_or_a_token_to_write
+ * @file fpk-server/observability/src/test/kotlin/com/jiancai/observability/AuditTransactionTest.kt
+ * @role 事务与并发口径（铁律 4）
+ * @exports AuditTransactionTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.observability

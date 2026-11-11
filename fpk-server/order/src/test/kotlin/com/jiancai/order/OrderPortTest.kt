@@ -1,38 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   60 行  类 OrderPortTest
- * 第   65 行  函数 create_takes_the_number_from_serial_and_derives_amounts_and_receivable
- * 第  111 行  函数 all_four_order_types_use_the_serial_prefix_and_return_orders_are_negative_receivable
- * 第  139 行  函数 quantity_is_normalized_and_amounts_round_half_up_to_cents
- * 第  165 行  函数 same_client_request_id_returns_the_same_order_without_duplicating_rows_or_serials
- * 第  186 行  函数 update_recomputes_amounts_receivable_and_bumps_version
- * 第  210 行  函数 a_stale_version_is_rejected_with_e2002_and_writes_nothing
- * 第  232 行  函数 only_same_day_orders_can_be_updated
- * 第  250 行  函数 a_settled_or_void_order_cannot_be_updated
- * 第  274 行  函数 update_of_an_unknown_order_is_rejected_with_e2001
- * 第  296 行  函数 empty_lines_fail_with_e2005
- * 第  312 行  函数 quantities_must_be_positive_and_at_most_three_decimals
- * 第  340 行  函数 batch_tag_must_match_the_model_and_is_case_insensitive
- * 第  386 行  函数 the_line_unit_must_match_the_model_unit
- * 第  399 行  函数 a_missing_price_is_reported_with_e1002_and_an_unknown_customer_with_e404
- * 第  416 行  函数 return_orders_persist_source_order_no_and_keep_it_immutable
- * 第  453 行  函数 non_return_orders_cannot_carry_a_source_order_no
- * 第  473 行  函数 return_orders_reject_missing_cross_customer_mistyped_or_void_sources
- * 第  544 行  函数 get_recent_supports_exact_order_no_lookup
- * 第  565 行  函数 today_lists_only_the_server_business_date
- * 第  580 行  函数 get_recent_filters_by_phone_type_dates_and_pages
- * 第  626 行  函数 get_recent_rejects_bad_dates_and_paging_with_e422
- * 第  647 行  函数 a_price_change_recalculates_same_day_orders_and_bumps_the_version
- * 第  669 行  函数 a_price_change_does_not_touch_other_customers_orders
- * 第  691 行  函数 a_price_change_skips_settled_orders
- * 第  711 行  函数 a_price_change_skips_historical_orders
- * 第  731 行  函数 replaying_the_same_price_event_is_idempotent
- * 第  762 行  函数 a_multi_line_order_sums_amounts_and_recalculates_only_the_matching_lines
- * 第  805 行  函数 the_receivable_of_a_void_order_is_zero
- * 第  824 行  函数 note_numbers_use_the_bz_prefix_and_roll_back_with_the_callers_transaction
- * 第  849 行  函数 convenience_overloads_open_one_transaction_and_tx_overloads_reuse_the_caller_transaction
- * 第  889 行  函数 caller_rollback_discards_the_order_the_serial_and_the_idempotency_key
+ * @file fpk-server/order/src/test/kotlin/com/jiancai/order/OrderPortTest.kt
+ * @role S08 订单用例测试（验收：幂等、乐观锁、改当日单、应收派生、改价重算）。
+ * @exports OrderPortTest
+ * @depends pricing, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.order

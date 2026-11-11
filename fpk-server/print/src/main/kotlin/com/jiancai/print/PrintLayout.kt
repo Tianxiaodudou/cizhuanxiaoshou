@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   26 行  对象 PrintLayout
- * 第   53 行  函数 divider
- * 第   56 行  函数 headerRow
- * 第   62 行  函数 detailHeaderRow
- * 第   65 行  函数 itemRow
- * 第   83 行  函数 itemDetailRow
- * 第   95 行  函数 moneyLine
+ * @file fpk-server/print/src/main/kotlin/com/jiancai/print/PrintLayout.kt
+ * @role 80mm 票据版式（S12 唯一真源，不放到 shared：打印排版属本模块）。
+ * @exports （无）
+ * @depends （无）
+ * @calledBy fpk-server/print/src/main/kotlin/com/jiancai/print/PrintRenderer.kt, fpk-server/print/src/main/kotlin/com/jiancai/print/PrintService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.print

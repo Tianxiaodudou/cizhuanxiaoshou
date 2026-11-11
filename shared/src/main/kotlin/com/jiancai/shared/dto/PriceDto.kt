@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   21 行  类 PriceDto
- * 第   35 行  类 ChangePriceCmd
- * 第   49 行  类 PriceChangeLog
+ * @file shared/src/main/kotlin/com/jiancai/shared/dto/PriceDto.kt
+ * @role 恒定价格（唯一出参 DTO，S06 pricing 产出）。
+ * @exports PriceDto, ChangePriceCmd, PriceChangeLog
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayRoutes.kt, fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditPort.kt, fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.dto

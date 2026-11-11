@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   32 行  接口 CustomerPort
- * 第   43 行  函数 findByPhone
- * 第   46 行  函数 findByPhone
- * 第   53 行  函数 get
- * 第   56 行  函数 get
- * 第   66 行  函数 create
- * 第   69 行  函数 create
+ * @file fpk-server/customer/src/main/kotlin/com/jiancai/customer/CustomerPort.kt
+ * @role 客户 Port：S04 唯一对外入口（建档、按电话查询、按主键读取）。
+ * @exports CustomerPort
+ * @depends db-core, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/customer/src/main/kotlin/com/jiancai/customer/CustomerService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.customer

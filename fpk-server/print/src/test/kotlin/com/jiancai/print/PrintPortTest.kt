@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   34 行  类 PrintPortTest
- * 第   37 行  函数 order_renders_the_80mm_five_column_two_line_layout_with_server_produced_values
- * 第  124 行  函数 exact_package_quantities_show_whole_packages_without_a_remainder
- * 第  156 行  函数 a_model_without_packing_spec_prints_without_conversion
- * 第  178 行  函数 print_count_is_persisted_across_service_instances_and_marks_reprints
- * 第  205 行  函数 the_configured_print_limit_returns_e7002_without_writing_a_row
- * 第  226 行  函数 unknown_document_is_e7001_and_does_not_consume_a_print
- * 第  236 行  函数 blank_overlong_and_control_character_document_numbers_are_e422
- * 第  248 行  函数 render_reuses_the_callers_transaction_and_rolls_back_the_print_count
- * 第  284 行  函数 printing_never_changes_the_order_or_consumes_its_version
+ * @file fpk-server/print/src/test/kotlin/com/jiancai/print/PrintPortTest.kt
+ * @role S12 打印用例测试（验收：80mm 渲染、五列双行、装箱换算、打印次数）。
+ * @exports PrintPortTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.print

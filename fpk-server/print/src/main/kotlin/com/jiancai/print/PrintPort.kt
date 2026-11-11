@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  接口 PrintPort
- * 第   48 行  函数 render
- * 第   51 行  函数 render
- * 第   53 行  对象 ?
+ * @file fpk-server/print/src/main/kotlin/com/jiancai/print/PrintPort.kt
+ * @role 打印 Port：S12 唯一对外入口（80mm 渲染 + 打印次数）。
+ * @exports PrintPort
+ * @depends db-core
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/print/src/main/kotlin/com/jiancai/print/PrintService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.print

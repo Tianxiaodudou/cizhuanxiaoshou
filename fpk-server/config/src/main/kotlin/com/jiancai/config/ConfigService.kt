@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 ConfigService
- * 第   39 行  函数 getMerchantName
- * 第   41 行  函数 getConfig
- * 第   43 行  函数 resolve
+ * @file fpk-server/config/src/main/kotlin/com/jiancai/config/ConfigService.kt
+ * @role [ConfigPort] 的唯一实现：启动时把服务端部署配置落到库中，之后只读。
+ * @exports ConfigService
+ * @depends db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.config

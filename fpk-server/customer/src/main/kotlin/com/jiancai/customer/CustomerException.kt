@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   23 行  类 CustomerException
+ * @file fpk-server/customer/src/main/kotlin/com/jiancai/customer/CustomerException.kt
+ * @role 客户用例失败（S04）。
+ * @exports CustomerException
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/customer/src/main/kotlin/com/jiancai/customer/CustomerService.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.customer

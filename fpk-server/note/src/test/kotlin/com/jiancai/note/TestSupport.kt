@@ -1,28 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第  115 行  函数 clockAt
- * 第  119 行  函数 testDb
- * 第  129 行  函数 noteOnlyDb
- * 第  137 行  类 Fixture
- * 第  158 行  函数 ordersAt
- * 第  168 行  函数 notesAt
- * 第  179 行  函数 customer
- * 第  186 行  函数 category
- * 第  210 行  函数 price
- * 第  228 行  函数 newOrder
- * 第  245 行  函数 newNote
- * 第  261 行  函数 order
- * 第  266 行  函数 stored
- * 第  272 行  函数 noteRows
- * 第  274 行  函数 close
- * 第  278 行  函数 assertNoteError
- * 第  284 行  类 CountingTxRunner
- * 第  288 行  函数 reset
- * 第  292 行  函数 run
- * 第  299 行  函数 exec
- * 第  307 行  函数 queryLong
- * 第  314 行  函数 tableNames
+ * @file fpk-server/note/src/test/kotlin/com/jiancai/note/TestSupport.kt
+ * @role 改价管理员 id（S13 已认证后传入 S06）。
+ * @exports （无）
+ * @depends category, customer, db-core, order, pricing, serial, shared
+ * @calledBy （无）
+ * @sideEffects 读 diff_note, sqlite_master（SELECT）
  */
 
 package com.jiancai.note

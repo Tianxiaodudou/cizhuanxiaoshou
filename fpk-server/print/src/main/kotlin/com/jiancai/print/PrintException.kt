@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   25 行  类 PrintException
+ * @file fpk-server/print/src/main/kotlin/com/jiancai/print/PrintException.kt
+ * @role 打印用例失败（S12）。
+ * @exports PrintException
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/print/src/main/kotlin/com/jiancai/print/PrintService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.print

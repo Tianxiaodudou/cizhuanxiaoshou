@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   31 行  类 NotePortTest
- * 第   34 行  函数 create_links_the_source_order_and_records_the_diff
- * 第   64 行  函数 create_never_changes_the_source_order
- * 第   85 行  函数 a_previous_day_order_can_still_be_linked
- * 第  110 行  函数 an_unknown_source_order_is_rejected_with_e4003_and_consumes_no_serial
- * 第  136 行  函数 blank_fields_and_bad_operators_are_rejected_with_e422
- * 第  166 行  函数 the_diff_amount_is_normalized_to_the_shared_money_format
- * 第  181 行  函数 two_notes_may_reference_the_same_order_with_distinct_numbers
- * 第  199 行  函数 a_caller_rollback_discards_the_note_and_the_note_serial
- * 第  230 行  函数 convenience_overloads_open_one_transaction_and_tx_overloads_reuse_the_caller_transaction
+ * @file fpk-server/note/src/test/kotlin/com/jiancai/note/NotePortTest.kt
+ * @role S10 创建用例：关联原单、不改原单、走 S07 取号、事务与校验。
+ * @exports NotePortTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.note

@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  类 PrintNoteTest
- * 第   32 行  函数 a_note_is_rendered_from_the_note_read_port_and_marks_the_source_order
- * 第   71 行  函数 a_voided_note_is_marked_and_keeps_its_void_reason
- * 第   93 行  函数 a_note_without_a_readable_source_order_still_prints_its_own_fields
- * 第  116 行  函数 unknown_note_number_is_e7001
- * 第  126 行  函数 without_a_note_read_port_a_note_number_is_still_reported_as_missing
+ * @file fpk-server/print/src/test/kotlin/com/jiancai/print/PrintNoteTest.kt
+ * @role 备注单打印测试（`PrintPort.render(noteNo)`）。
+ * @exports PrintNoteTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.print

@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  对象 TodayRoute
- * 第   45 行  函数 load
- * 第   53 行  函数 edit
- * 第   61 行  函数 save
- * 第   78 行  函数 screen
+ * @file android-app/feature-today/src/main/kotlin/com/jiancai/android/today/TodayRoute.kt
+ * @role C08 今日改单：当日单列表 + 编辑。
+ * @exports TodayRoute
+ * @depends core-network, feature-order-entry, core-ui, shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.today

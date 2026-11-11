@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 AuthGate
- * 第   38 行  函数 authorize
- * 第   52 行  函数 tokenOf
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/AuthGate.kt
+ * @role 鉴权 + 权限拦截（验收「权限在 API 层拦截」，铁律 7）。
+ * @exports AuthGate
+ * @depends auth, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   71 行  对象 GatewayRoutes
- * 第   74 行  函数 build
- * 第  316 行  函数 isReturn
- * 第  320 行  函数 requireOrder
- * 第  329 行  函数 recordPriceAudit
- * 第  336 行  函数 now
- * 第  340 行  函数 toIdPath
- * 第  344 行  函数 missing
- * 第  347 行  函数 mismatch
- * 第  354 行  函数 mismatchNumber
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayRoutes.kt
+ * @role 全部路由（对客户端暴露的唯一入口；C00 只能看到这里的路径）。
+ * @exports GatewayRoutes
+ * @depends db-core, observability, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.gateway

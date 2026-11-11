@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   17 行  类 DiffType
+ * @file shared/src/main/kotlin/com/jiancai/shared/enums/DiffType.kt
+ * @role 差异类型（唯一真源）：备注单（S10）的差异分类。
+ * @exports DiffType
+ * @depends （无）
+ * @calledBy shared/src/main/kotlin/com/jiancai/shared/dto/NoteDto.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NoteRepository.kt, android-app/feature-note/src/main/kotlin/com/jiancai/android/note/NoteRoute.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.enums

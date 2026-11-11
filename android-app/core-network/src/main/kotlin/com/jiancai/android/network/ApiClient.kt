@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   25 行  类 HttpMethod
- * 第   38 行  类 ApiRequestSpec
- * 第   54 行  接口 ApiResult
- * 第   57 行  类 Success
- * 第   68 行  类 Failure
- * 第   87 行  函数 ApiResult
- * 第  100 行  接口 TokenProvider
- * 第  102 行  函数 token
- * 第  115 行  接口 ApiClient
- * 第  118 行  函数 call
- * 第  121 行  函数 serverAddress
+ * @file android-app/core-network/src/main/kotlin/com/jiancai/android/network/ApiClient.kt
+ * @role 客户端唯一入口。
+ * @exports HttpMethod, ApiRequestSpec, ApiResult, TokenProvider, ApiClient
+ * @depends shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/ApiPaths.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.network

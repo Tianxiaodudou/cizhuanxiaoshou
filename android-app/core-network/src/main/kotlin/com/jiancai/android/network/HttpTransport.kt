@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 TransportRequest
- * 第   36 行  类 TransportResponse
- * 第   43 行  类 TransportFailure
- * 第   50 行  接口 HttpTransport
- * 第   51 行  函数 exchange
- * 第   59 行  类 JdkHttpTransport
- * 第   68 行  函数 exchange
- * 第   92 行  对象 Urls
- * 第   94 行  函数 build
- * 第  104 行  函数 encode
+ * @file android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpTransport.kt
+ * @role 传输层抽象：只做「发字节、收字节」。
+ * @exports TransportRequest, TransportResponse, TransportFailure, HttpTransport, JdkHttpTransport
+ * @depends （无）
+ * @calledBy android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.network

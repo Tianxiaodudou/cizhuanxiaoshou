@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   18 行  类 PricingUnit
+ * @file shared/src/main/kotlin/com/jiancai/shared/units/PricingUnit.kt
+ * @role 计价单位（唯一真源）：件 / 箱 / 袋 / 吨 / 平方 / 米。
+ * @exports PricingUnit
+ * @depends （无）
+ * @calledBy shared/src/main/kotlin/com/jiancai/shared/dto/CategoryDto.kt, shared/src/main/kotlin/com/jiancai/shared/dto/OrderDto.kt, shared/src/main/kotlin/com/jiancai/shared/dto/ReturnCheckDto.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.units

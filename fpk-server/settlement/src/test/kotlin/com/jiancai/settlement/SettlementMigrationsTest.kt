@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   31 行  类 SettlementMigrationsTest
- * 第   34 行  函数 the_settlement_table_is_created_by_the_settlement_migration
- * 第   43 行  函数 settle_no_is_unique_at_the_database_layer
- * 第   63 行  函数 the_client_request_id_is_unique_at_the_database_layer
- * 第   82 行  函数 direction_and_status_are_checked_by_the_database
- * 第   97 行  函数 a_submitted_settlement_must_not_carry_audit_metadata
- * 第  116 行  函数 an_audited_settlement_must_carry_audit_metadata
- * 第  142 行  函数 customer_amount_and_name_are_checked_by_the_database
- * 第  163 行  函数 migration_version_is_in_the_settlement_segment_and_idempotent
- * 第  178 行  函数 insertSettle
+ * @file fpk-server/settlement/src/test/kotlin/com/jiancai/settlement/SettlementMigrationsTest.kt
+ * @role S11 迁移与库层约束测试。
+ * @exports SettlementMigrationsTest
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.settlement

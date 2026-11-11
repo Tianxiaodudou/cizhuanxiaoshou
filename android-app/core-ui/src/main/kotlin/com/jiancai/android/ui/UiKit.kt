@@ -1,23 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   36 行  类 UiButton
- * 第   41 行  接口 ButtonAction
- * 第   44 行  类 Navigate
- * 第   47 行  对象 Submit
- * 第   50 行  对象 Cancel
- * 第   53 行  对象 Refresh
- * 第   64 行  类 ButtonSpec
- * 第   76 行  类 ScreenSpec
- * 第   92 行  类 FieldType
- * 第   99 行  类 FieldSpec
- * 第  115 行  类 ShellTab
- * 第  129 行  类 RouteEntry
- * 第  163 行  对象 ClientDenyPolicy
- * 第  210 行  函数 violations
- * 第  216 行  函数 requireClean
- * 第  228 行  对象 AppRoutes
- * 第  242 行  函数 orderEntry
+ * @file android-app/core-ui/src/main/kotlin/com/jiancai/android/ui/UiKit.kt
+ * @role 按钮注解：给「界面上的可点区域」一个稳定的 id 与文案，供按钮扫描脚本（SCAN）核对。
+ * @exports UiButton, ButtonAction, ButtonSpec, ScreenSpec, FieldType, FieldSpec, ShellTab, RouteEntry, ClientDenyPolicy, AppRoutes
+ * @depends （无）
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/feature-admin/src/main/kotlin/com/jiancai/android/admin/AdminRoute.kt, android-app/feature-home/src/main/kotlin/com/jiancai/android/home/HomeRoute.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.android.ui

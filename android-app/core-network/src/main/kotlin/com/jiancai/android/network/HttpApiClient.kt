@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   40 行  类 HttpApiClient
- * 第   47 行  函数 serverAddress
- * 第   49 行  函数 call
- * 第   93 行  函数 headers
- * 第  102 行  函数 parseFailure
- * 第  128 行  函数 fallbackCode
- * 第  141 行  对象 ?
+ * @file android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt
+ * @role [ApiClient] 的唯一实现：拼请求 → 发传输层 → 统一解析错误码 / DTO。
+ * @exports HttpApiClient
+ * @depends shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.network

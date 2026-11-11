@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   19 行  类 ConfigMigrationsTest
- * 第   22 行  函数 deployment_config_table_is_created_by_the_config_migration
- * 第   38 行  函数 migration_version_is_in_the_config_segment_and_idempotent
+ * @file fpk-server/config/src/test/kotlin/com/jiancai/config/ConfigMigrationsTest.kt
+ * @role 迁移验收：号段归属、建表、重复迁移幂等。
+ * @exports ConfigMigrationsTest
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.config

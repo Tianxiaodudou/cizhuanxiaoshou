@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   25 行  函数 clockAt
- * 第   27 行  函数 exec
- * 第   34 行  函数 queryLong
+ * @file fpk-server/serial/src/test/kotlin/com/jiancai/serial/TestSupport.kt
+ * @role 固定时钟：入参用 UTC `Z` 写法，业务日期按 [TEST_ZONE] 读取本地日期。
+ * @exports （无）
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.serial

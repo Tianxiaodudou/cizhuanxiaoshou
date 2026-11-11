@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   35 行  类 IdempotencyTest
- * 第   43 行  函数 a_write_endpoint_without_an_idempotency_key_is_rejected_before_any_side_effect
- * 第   54 行  函数 a_blank_idempotency_key_is_rejected
- * 第   65 行  函数 the_same_key_and_the_same_request_replays_the_first_response
- * 第   84 行  函数 the_same_key_with_a_different_request_is_rejected_with_e409
- * 第   99 行  函数 a_failed_request_does_not_burn_the_key
- * 第  117 行  函数 notes_and_settlements_are_idempotent_too
- * 第  138 行  函数 a_non_idempotent_route_ignores_the_key
- * 第  150 行  函数 an_over_long_key_is_rejected
- * 第  161 行  函数 the_store_is_bounded_and_keeps_only_successful_responses
- * 第  175 行  函数 returnOrderCmd
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/IdempotencyTest.kt
+ * @role 验收「幂等键校验」。
+ * @exports IdempotencyTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   42 行  类 HttpServerAdapter
- * 第   62 行  函数 start
- * 第   73 行  函数 stop
- * 第   80 行  函数 close
- * 第   85 行  函数 handle
- * 第  104 行  函数 write
- * 第  116 行  函数 readBody
- * 第  128 行  函数 parseQuery
- * 第  140 行  函数 decode
- * 第  147 行  函数 toHttpMethod
- * 第  149 行  对象 ?
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/HttpServerAdapter.kt
+ * @role JDK 自带 HTTP 服务器适配层（唯一与具体服务器绑定的一层）。
+ * @exports HttpServerAdapter
+ * @depends shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

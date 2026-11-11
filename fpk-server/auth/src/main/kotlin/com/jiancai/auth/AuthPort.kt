@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   31 行  接口 AuthPort
- * 第   41 行  函数 login
- * 第   44 行  函数 login
- * 第   53 行  函数 verify
- * 第   56 行  函数 verify
+ * @file fpk-server/auth/src/main/kotlin/com/jiancai/auth/AuthPort.kt
+ * @role 登录 / token 校验 Port：S13 api-gateway 做鉴权、C01 只消费 token（S02 另有 [AccountStorePort] 给 S03）。
+ * @exports AuthPort
+ * @depends db-core, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/AuthGate.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.auth

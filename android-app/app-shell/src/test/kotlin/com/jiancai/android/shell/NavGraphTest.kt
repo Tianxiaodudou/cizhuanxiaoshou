@@ -1,20 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   50 行  类 NavGraphTest
- * 第   52 行  类 FakeClient
- * 第   53 行  函数 call
- * 第   56 行  函数 serverAddress
- * 第   70 行  函数 graph
- * 第   73 行  函数 all_registered_routes_are_assembled
- * 第   92 行  函数 the_bottom_bar_has_exactly_three_tabs
- * 第   97 行  函数 each_tab_owns_its_routes
- * 第  105 行  函数 the_start_destination_is_decided_by_the_session_gate_only
- * 第  116 行  函数 the_shell_never_reads_the_token_itself
- * 第  131 行  函数 features_never_import_each_other_ui
- * 第  167 行  函数 duplicate_or_unknown_routes_are_rejected
- * 第  177 行  函数 the_composition_root_wires_the_client_and_the_session
- * 第  186 行  函数 a_login_round_trip_navigates_to_home_through_the_gate
+ * @file android-app/app-shell/src/test/kotlin/com/jiancai/android/shell/NavGraphTest.kt
+ * @role C03 验收：路由跳转正常。
+ * @exports NavGraphTest
+ * @depends core-network, core-session, core-ui, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.shell

@@ -1,26 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   91 行  函数 clockAt
- * 第   94 行  函数 testDb
- * 第  103 行  函数 orderOnlyDb
- * 第  111 行  类 Fixture
- * 第  131 行  函数 ordersAt
- * 第  141 行  函数 customer
- * 第  148 行  函数 category
- * 第  172 行  函数 price
- * 第  190 行  函数 newOrder
- * 第  213 行  函数 close
- * 第  217 行  函数 createCmd
- * 第  238 行  函数 updateCmd
- * 第  260 行  函数 assertOrderError
- * 第  266 行  类 CountingTxRunner
- * 第  270 行  函数 reset
- * 第  274 行  函数 run
- * 第  281 行  函数 exec
- * 第  289 行  函数 queryLong
- * 第  296 行  函数 queryString
- * 第  303 行  函数 tableNames
+ * @file fpk-server/order/src/test/kotlin/com/jiancai/order/TestSupport.kt
+ * @role 改价管理员 id（S13 已认证后传入 S06）。
+ * @exports （无）
+ * @depends category, customer, db-core, pricing, serial, shared
+ * @calledBy （无）
+ * @sideEffects 读 sqlite_master（SELECT）
  */
 
 package com.jiancai.order

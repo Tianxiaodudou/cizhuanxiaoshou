@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   45 行  类 CustomerService
- * 第   58 行  函数 findByPhone
- * 第   60 行  函数 findByPhone
- * 第   65 行  函数 get
- * 第   67 行  函数 get
- * 第   72 行  函数 create
- * 第   74 行  函数 create
- * 第  111 行  函数 requireCanonicalPhone
- * 第  118 行  函数 isUniquePhoneViolation
- * 第  121 行  对象 ?
+ * @file fpk-server/customer/src/main/kotlin/com/jiancai/customer/CustomerService.kt
+ * @role [CustomerPort] 的唯一实现：客户建档与查询的用例层。
+ * @exports CustomerService
+ * @depends db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.customer

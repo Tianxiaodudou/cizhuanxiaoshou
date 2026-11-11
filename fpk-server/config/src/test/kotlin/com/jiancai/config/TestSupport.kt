@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   26 行  函数 clockAt
- * 第   28 行  函数 exec
- * 第   35 行  函数 queryLong
- * 第   41 行  函数 queryString
+ * @file fpk-server/config/src/test/kotlin/com/jiancai/config/TestSupport.kt
+ * @role 固定时钟：验证写入 / 不写入 `updated_at` 的时机。
+ * @exports （无）
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.config

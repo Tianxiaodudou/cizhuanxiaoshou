@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   27 行  类 DbCoreTest
- * 第   30 行  函数 in_memory_database_accepts_reads_and_writes
- * 第   40 行  函数 one_instance_has_exactly_one_connection
- * 第   49 行  函数 memory_instances_do_not_share_state
- * 第   63 行  函数 foreign_keys_are_enforced
- * 第   80 行  函数 closed_database_rejects_further_work_and_close_is_idempotent
- * 第   91 行  函数 file_database_persists_wal_and_creates_parent_directory
- * 第  116 行  函数 test_database_is_migrated_in_memory_target
+ * @file fpk-server/db-core/src/test/kotlin/com/jiancai/db/DbCoreTest.kt
+ * @role 连接层验收：唯一连接、`:memory:` 可用、PRAGMA 生效、关闭语义、文件库持久化。
+ * @exports DbCoreTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 写 probe_row, parent, child（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.db

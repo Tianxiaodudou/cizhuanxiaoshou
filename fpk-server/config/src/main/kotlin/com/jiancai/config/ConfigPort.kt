@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   22 行  接口 ConfigPort
- * 第   33 行  函数 getMerchantName
- * 第   40 行  函数 getConfig
+ * @file fpk-server/config/src/main/kotlin/com/jiancai/config/ConfigPort.kt
+ * @role 部署配置 Port：S01 唯一对外入口（客户端只能读，不能传）。
+ * @exports ConfigPort
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.config

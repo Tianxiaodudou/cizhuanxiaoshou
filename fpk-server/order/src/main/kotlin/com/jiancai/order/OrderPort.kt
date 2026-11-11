@@ -1,21 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   59 行  接口 OrderPort
- * 第   77 行  函数 create
- * 第   80 行  函数 create
- * 第   91 行  函数 update
- * 第   94 行  函数 update
- * 第  101 行  函数 today
- * 第  104 行  函数 today
- * 第  115 行  函数 getRecent
- * 第  118 行  函数 getRecent
- * 第  128 行  函数 get
- * 第  131 行  函数 get
- * 第  141 行  函数 getReceivable
- * 第  144 行  函数 getReceivable
- * 第  157 行  函数 nextNoteNo
- * 第  160 行  函数 nextNoteNo
+ * @file fpk-server/order/src/main/kotlin/com/jiancai/order/OrderPort.kt
+ * @role 订单 Port：S08 唯一对外入口（建单、改单、当日单、历史查询、应收读取、备注单号代取）。
+ * @exports OrderPort
+ * @depends db-core, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.order

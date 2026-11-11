@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   39 行  接口 AccountAdminPort
- * 第   46 行  函数 list
- * 第   49 行  函数 list
- * 第   56 行  函数 get
- * 第   59 行  函数 get
- * 第   69 行  函数 create
- * 第   72 行  函数 create
- * 第   83 行  函数 update
- * 第   86 行  函数 update
- * 第   95 行  函数 delete
- * 第   98 行  函数 delete
+ * @file fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminPort.kt
+ * @role 账号管理 Port：S03 唯一对外入口（S13 api-gateway 转发管理员请求，C11 feature-admin 消费）。
+ * @exports AccountAdminPort
+ * @depends db-core, shared
+ * @calledBy fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminService.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.account

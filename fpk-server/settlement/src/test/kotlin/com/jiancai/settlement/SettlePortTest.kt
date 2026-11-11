@@ -1,29 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   55 行  类 SettlePortTest
- * 第   60 行  函数 submitting_a_receipt_returns_a_server_generated_settle_no_and_submitted_status
- * 第   83 行  函数 submitting_never_touches_the_orders_received_amount_or_status
- * 第  101 行  函数 a_receipt_over_the_outstanding_balance_is_rejected_with_e5002_and_writes_nothing
- * 第  114 行  函数 a_zero_or_negative_amount_is_rejected_with_e422
- * 第  127 行  函数 approving_a_submitted_settlement_records_the_auditor_and_moves_the_balance
- * 第  149 行  函数 a_settlement_can_only_be_audited_once
- * 第  162 行  函数 a_rejected_settlement_is_not_counted_as_received_and_releases_the_balance
- * 第  180 行  函数 approval_rechecks_the_balance_and_blocks_overlapping_receipts
- * 第  195 行  函数 a_partial_receipt_can_be_followed_by_the_remaining_balance
- * 第  211 行  函数 a_refund_on_a_return_order_reduces_the_customer_balance
- * 第  242 行  函数 a_refund_cannot_exceed_the_amount_owed_to_the_customer
- * 第  266 行  函数 a_refund_on_a_positive_order_is_rejected_with_e5002
- * 第  284 行  函数 the_same_request_id_returns_the_same_settlement_and_consumes_one_serial
- * 第  301 行  函数 reusing_a_request_id_for_a_different_payload_is_rejected_with_e5004
- * 第  314 行  函数 an_unknown_order_settlement_or_operator_is_rejected_with_the_owning_modules_code
- * 第  330 行  函数 invalid_identifiers_are_rejected_with_e422_before_any_write
- * 第  355 行  函数 the_balance_rereads_the_receivable_from_s08_every_time
- * 第  373 行  函数 an_empty_customer_has_a_zero_balance
- * 第  387 行  函数 an_invalid_customer_id_is_rejected_with_e422
- * 第  396 行  函数 the_callers_transaction_rolls_back_the_settlement_and_the_serial
- * 第  423 行  函数 convenience_overloads_open_one_transaction_and_tx_overloads_reuse_the_caller_transaction
- * 第  452 行  函数 the_settle_dto_exposes_only_display_fields_and_never_the_idempotency_key
+ * @file fpk-server/settlement/src/test/kotlin/com/jiancai/settlement/SettlePortTest.kt
+ * @role S11 结算主流程测试
+ * @exports SettlePortTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.settlement

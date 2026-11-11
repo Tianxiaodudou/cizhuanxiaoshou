@@ -1,19 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   35 行  类 CustomerPortTest
- * 第   38 行  函数 create_returns_a_server_generated_dto_and_trims_inputs
- * 第   61 行  函数 find_by_phone_is_exact_and_rejects_non_canonical_input
- * 第   77 行  函数 find_by_phone_returns_only_the_matching_customer
- * 第   89 行  函数 find_by_phone_returns_null_for_an_unknown_number
- * 第   99 行  函数 blank_phone_lookup_is_rejected_with_e422
- * 第  111 行  函数 blank_name_phone_or_address_handling
- * 第  135 行  函数 unknown_customer_id_is_rejected_with_e404
- * 第  144 行  函数 creating_an_existing_phone_returns_the_existing_customer_and_writes_nothing
- * 第  159 行  函数 phone_is_unique_and_digit_only_at_the_database_layer
- * 第  195 行  函数 every_convenience_overload_opens_exactly_one_transaction
- * 第  212 行  函数 tx_overloads_reuse_the_callers_transaction_and_never_open_their_own
- * 第  228 行  函数 creating_in_an_outer_transaction_rolls_back_together_with_the_caller
+ * @file fpk-server/customer/src/test/kotlin/com/jiancai/customer/CustomerPortTest.kt
+ * @role 验收：客户建档、按电话查询、地址快照来源。
+ * @exports CustomerPortTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.customer

@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   46 行  类 ReturnCheckService
- * 第   57 行  函数 availableBatches
- * 第   60 行  函数 availableBatches
- * 第   68 行  函数 validate
- * 第   73 行  函数 validate
- * 第   93 行  函数 requireUsableOrder
- * 第  116 行  函数 loadReturnOrders
+ * @file fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnCheckService.kt
+ * @role 退单校验实现（S09）：只做「读 S08 + 交给规则」的编排，不含任何业务口径。
+ * @exports ReturnCheckService
+ * @depends db-core, order, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.returncheck

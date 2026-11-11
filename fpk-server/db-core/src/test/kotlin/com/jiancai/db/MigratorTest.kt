@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 MigratorTest
- * 第   30 行  函数 probeMigrations
- * 第   36 行  函数 migrate_applies_in_version_order
- * 第   49 行  函数 migrate_is_idempotent
- * 第   63 行  函数 pending_versions_track_unapplied_migrations
- * 第   73 行  函数 failed_migration_rolls_back_only_itself
- * 第  103 行  函数 checksum_drift_is_rejected_and_reported
- * 第  125 行  函数 duplicate_migration_versions_are_rejected
- * 第  137 行  函数 migration_definition_rejects_invalid_input
- * 第  144 行  函数 memory_database_is_a_valid_migration_target
+ * @file fpk-server/db-core/src/test/kotlin/com/jiancai/db/MigratorTest.kt
+ * @role 迁移验收：按序应用、幂等、失败原子性、checksum 漂移拦截、内存库可用。
+ * @exports MigratorTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.db

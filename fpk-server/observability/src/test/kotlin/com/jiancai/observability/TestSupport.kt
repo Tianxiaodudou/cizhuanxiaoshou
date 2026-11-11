@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  类 AuditFixture
- * 第   34 行  函数 close
- * 第   36 行  对象 ?
- * 第   41 行  函数 create
- * 第   47 行  函数 priceLog
- * 第   67 行  函数 settle
+ * @file fpk-server/observability/src/test/kotlin/com/jiancai/observability/TestSupport.kt
+ * @role S14 测试夹具：内存库 + 固定时钟 + 一条改价留痕 / 一条审核留痕的样板数据。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.observability

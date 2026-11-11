@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  类 OrderBoundaryTest
- * 第   60 行  函数 the_order_port_never_receives_a_role_token_or_account_dto
- * 第   81 行  函数 the_order_port_only_returns_dtos
- * 第   91 行  函数 sql_only_lives_in_the_order_repository
- * 第  116 行  函数 the_module_never_composes_a_serial_number_itself
- * 第  141 行  函数 the_module_contains_no_print_rendering
- * 第  155 行  函数 the_module_owns_exactly_two_business_tables
- * 第  167 行  函数 mainSources
+ * @file fpk-server/order/src/test/kotlin/com/jiancai/order/OrderBoundaryTest.kt
+ * @role 硬边界（S08）的结构化守卫
+ * @exports OrderBoundaryTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.order

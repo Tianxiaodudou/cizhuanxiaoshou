@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   45 行  对象 ContractJson
+ * @file shared/src/main/kotlin/com/jiancai/shared/Contract.kt
+ * @role 双端共用的 JSON 配置。
+ * @exports ContractJson
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/Route.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared

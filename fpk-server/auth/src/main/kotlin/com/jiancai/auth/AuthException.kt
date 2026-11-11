@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   19 行  类 AuthException
+ * @file fpk-server/auth/src/main/kotlin/com/jiancai/auth/AuthException.kt
+ * @role 登录 / 校验失败（S02）。
+ * @exports AuthException
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/AccountStoreAdapter.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.auth

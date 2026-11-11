@@ -1,20 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   49 行  类 AppTest
- * 第   54 行  函数 closeApps
- * 第   58 行  函数 newApp
- * 第   74 行  函数 migrations_cover_every_phase_one_module
- * 第   87 行  函数 a_fresh_database_without_deployment_config_fails_fast
- * 第   94 行  函数 account_created_through_s03_can_login_through_s02
- * 第  112 行  函数 duplicate_username_is_translated_to_the_s03_error_code
- * 第  126 行  函数 short_password_is_translated_to_e422
- * 第  138 行  函数 nonexistent_account_maps_to_e6005
- * 第  152 行  函数 the_last_enabled_admin_guard_survives_the_adapter
- * 第  162 行  函数 adapter_participates_in_the_callers_transaction
- * 第  179 行  函数 queryString
- * 第  182 行  函数 queryString
- * 第  188 行  对象 ?
+ * @file fpk-server/app/src/test/kotlin/com/jiancai/app/AppTest.kt
+ * @role 组合根联调用例：真实 SQLite（内存）+ 真实 S02/S03 实现，证明
+ * @exports AppTest
+ * @depends account, auth, config, db-core, shared
+ * @calledBy （无）
+ * @sideEffects 读 auth_account（SELECT）
  */
 
 package com.jiancai.app

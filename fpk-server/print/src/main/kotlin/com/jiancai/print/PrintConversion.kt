@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   34 行  对象 PrintConversion
- * 第   37 行  类 Result
- * 第   45 行  函数 of
- * 第   77 行  函数 parseDecimal
- * 第   81 行  函数 format
+ * @file fpk-server/print/src/main/kotlin/com/jiancai/print/PrintConversion.kt
+ * @role 打印用的装箱换算（只在服务端做，客户端零换算）。
+ * @exports （无）
+ * @depends shared
+ * @calledBy fpk-server/print/src/main/kotlin/com/jiancai/print/PrintRenderer.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.print

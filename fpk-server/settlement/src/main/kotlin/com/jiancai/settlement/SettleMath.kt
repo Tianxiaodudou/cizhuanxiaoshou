@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   32 行  对象 SettleMath
- * 第   38 行  函数 received
- * 第   46 行  函数 sum
- * 第   50 行  函数 subtract
- * 第   54 行  函数 negate
- * 第   57 行  函数 compare
- * 第   61 行  函数 money
- * 第   64 行  函数 signedValue
+ * @file fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettleMath.kt
+ * @role 结算金额派生（内部）：只做「服务端算金额」，不解析单号、不读写表。
+ * @exports （无）
+ * @depends shared
+ * @calledBy fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettleService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.settlement

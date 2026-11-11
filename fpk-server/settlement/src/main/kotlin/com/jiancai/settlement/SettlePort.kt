@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   45 行  接口 SettlePort
- * 第   62 行  函数 submit
- * 第   65 行  函数 submit
- * 第   78 行  函数 audit
- * 第   81 行  函数 audit
- * 第   93 行  函数 getBalance
- * 第   96 行  函数 getBalance
+ * @file fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettlePort.kt
+ * @role 结算 Port：S11 唯一对外入口（提交、审核、已收/未收读模型）。
+ * @exports SettlePort
+ * @depends db-core, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettleService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.settlement

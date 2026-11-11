@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   21 行  类 ErrorResponse
- * 第   32 行  函数 toResponse
- * 第   44 行  函数 toErrorCode
+ * @file shared/src/main/kotlin/com/jiancai/shared/errors/ErrorResponse.kt
+ * @role 统一错误响应体（唯一真源）：S13 产出，C00 统一解析。
+ * @exports ErrorResponse, toResponse, toErrorCode
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.errors

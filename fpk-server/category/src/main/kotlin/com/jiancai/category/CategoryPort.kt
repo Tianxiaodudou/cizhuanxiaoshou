@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   40 行  接口 CategoryPort
- * 第   47 行  函数 list
- * 第   50 行  函数 list
- * 第   57 行  函数 get
- * 第   60 行  函数 get
- * 第   69 行  函数 create
- * 第   72 行  函数 create
- * 第   80 行  函数 update
- * 第   83 行  函数 update
- * 第   93 行  函数 delete
- * 第   96 行  函数 delete
+ * @file fpk-server/category/src/main/kotlin/com/jiancai/category/CategoryPort.kt
+ * @role 品类 / 型号库 Port：S05 唯一对外入口。
+ * @exports CategoryPort
+ * @depends db-core, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/category/src/main/kotlin/com/jiancai/category/CategoryService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.category

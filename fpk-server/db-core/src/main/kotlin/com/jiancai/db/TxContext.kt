@@ -1,8 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   27 行  类 TxContext
- * 第   36 行  函数 toString
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/TxContext.kt
+ * @role 事务上下文：跨模块写操作的唯一事务入口，由 [TxRunner.run] 产生并传给各模块 Port 方法。
+ * @exports TxContext
+ * @depends （无）
+ * @calledBy fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminPort.kt, fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminService.kt, fpk-server/account/src/main/kotlin/com/jiancai/account/AccountStore.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.db

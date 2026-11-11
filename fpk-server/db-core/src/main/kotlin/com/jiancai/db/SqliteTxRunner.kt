@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   22 行  类 SqliteTxRunner
- * 第   27 行  函数 run
- * 第   56 行  函数 begin
- * 第   64 行  函数 finish
- * 第   72 行  函数 abort
- * 第   83 行  函数 execute
- * 第   88 行  函数 savepointName
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/SqliteTxRunner.kt
+ * @role 事务 Port 的唯一实现：单连接 + 可重入锁 + SAVEPOINT 嵌套。
+ * @exports （无）
+ * @depends （无）
+ * @calledBy fpk-server/db-core/src/main/kotlin/com/jiancai/db/DbCore.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.db

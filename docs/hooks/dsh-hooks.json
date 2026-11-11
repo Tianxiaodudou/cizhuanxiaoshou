@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "description": "dsh hooks for the jiancai system. Each hook is a read-only gate; it never edits business code and never crosses module boundaries.",
+  "version": 2,
+  "description": "dsh hooks for the jiancai system. Read-only gates: never edit business code, never cross module boundaries. Code maps are split into docs/CODEMAPS (overview) and per-file @file headers.",
   "hooks": [
     {
       "id": "print-keyword-deny",
@@ -13,18 +13,18 @@
     {
       "id": "button-scan",
       "trigger": "pre-push",
-      "description": "Same scanner, full report: prints every @UiButton / ButtonSpec so新增按钮 能在评审里看见.",
+      "description": "Same scanner, full report: prints every @UiButton / ButtonSpec so new buttons show up in review.",
       "run": { "shell": "powershell", "script": "docs/tools/scan-buttons.ps1" },
       "onFailure": "warn",
       "acceptance": "report lists ButtonSpec / @UiButton counts"
     },
     {
-      "id": "code-map-freshness",
+      "id": "file-header-check",
       "trigger": "pre-push",
-      "description": "Regenerate the code maps and fail when the working tree differs (docs must not drift from code).",
-      "run": { "shell": "powershell", "script": "docs/tools/verify-hooks.ps1", "args": ["-Check", "code-map"] },
+      "description": "Warn when a Kotlin file has no @file code-map header in its first 10 lines.",
+      "run": { "shell": "powershell", "script": "docs/tools/check-file-headers.ps1" },
       "onFailure": "warn",
-      "acceptance": "verification step 'code-map' reports OK"
+      "acceptance": "check-file-headers.ps1 reports checked / missing counts"
     }
   ]
 }

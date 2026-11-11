@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   27 行  类 PricingMigrationsTest
- * 第   30 行  函数 pricing_tables_are_created_by_the_pricing_migration
- * 第   39 行  函数 price_dimension_is_unique_and_rejects_a_second_row
- * 第   58 行  函数 price_change_log_rejects_update_and_delete_at_the_database_layer
- * 第   84 行  函数 migration_version_is_in_the_pricing_segment_and_idempotent
- * 第   99 行  函数 insertPrice
- * 第  120 行  函数 insertLog
+ * @file fpk-server/pricing/src/test/kotlin/com/jiancai/pricing/PricingMigrationsTest.kt
+ * @role S06 迁移与库层硬边界测试。
+ * @exports PricingMigrationsTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.pricing

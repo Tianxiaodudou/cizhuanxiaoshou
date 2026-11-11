@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   21 行  类 NoteDto
- * 第   38 行  类 CreateNoteCmd
- * 第   47 行  类 VoidNoteCmd
+ * @file shared/src/main/kotlin/com/jiancai/shared/dto/NoteDto.kt
+ * @role 差异备注单（唯一出参 DTO，S10 note 产出）。
+ * @exports NoteDto, CreateNoteCmd, VoidNoteCmd
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayRoutes.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NoteException.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NotePort.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.dto

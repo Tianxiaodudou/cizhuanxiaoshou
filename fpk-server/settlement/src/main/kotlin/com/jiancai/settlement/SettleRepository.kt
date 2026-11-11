@@ -1,19 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   33 行  类 StoredSettle
- * 第   50 行  函数 toDto
- * 第   75 行  类 SettleRepository
- * 第   80 行  函数 findByClientRequestId
- * 第   87 行  函数 findBySettleNo
- * 第   98 行  函数 findApprovedByOrder
- * 第  105 行  函数 findApprovedByCustomer
- * 第  112 行  函数 findCustomerName
- * 第  121 行  函数 insert
- * 第  153 行  函数 markAudited
- * 第  171 行  函数 toSettle
- * 第  189 行  函数 getLongOrNull
- * 第  194 行  对象 ?
+ * @file fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettleRepository.kt
+ * @role `settlement` 表的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettleMath.kt, fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettleService.kt
+ * @sideEffects 写 settlement（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.settlement

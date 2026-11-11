@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   43 行  接口 AccountStore
- * 第   46 行  函数 list
- * 第   49 行  函数 get
- * 第   52 行  函数 create
- * 第   55 行  函数 update
- * 第   58 行  函数 delete
+ * @file fpk-server/account/src/main/kotlin/com/jiancai/account/AccountStore.kt
+ * @role S03 需要的**账号存储能力**（由 S02 提供，本模块只声明、不实现）。
+ * @exports AccountStore
+ * @depends db-core, shared
+ * @calledBy fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminService.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/AccountStoreAdapter.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.account

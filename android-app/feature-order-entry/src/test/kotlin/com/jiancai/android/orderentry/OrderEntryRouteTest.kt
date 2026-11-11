@@ -1,21 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   48 行  类 OrderEntryRouteTest
- * 第   50 行  类 FakeClient
- * 第   54 行  函数 call
- * 第   60 行  函数 serverAddress
- * 第   65 行  函数 filledState
- * 第   72 行  函数 all_four_order_types_share_the_same_component
- * 第   86 行  函数 the_command_carries_only_what_the_client_is_allowed_to_send
- * 第  103 行  函数 submission_goes_to_the_server_and_returns_the_server_order
- * 第  118 行  函数 local_validation_stops_an_incomplete_form_before_the_network
- * 第  131 行  函数 the_server_failure_is_returned_verbatim
- * 第  140 行  函数 a_return_order_carries_the_source_order_number
- * 第  151 行  函数 prefill_copies_the_server_values_without_recomputing
- * 第  161 行  函数 the_module_never_computes_amounts_or_numbers
- * 第  176 行  对象 ?
- * 第  177 行  函数 sampleOrder
+ * @file android-app/feature-order-entry/src/test/kotlin/com/jiancai/android/orderentry/OrderEntryRouteTest.kt
+ * @role C06 验收：4 类页共用组件；提交走服务端。
+ * @exports OrderEntryRouteTest
+ * @depends core-network, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.orderentry

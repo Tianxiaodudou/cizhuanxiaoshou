@@ -1,21 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   41 行  类 ReturnBatchKey
- * 第   61 行  类 ReturnRules
- * 第   64 行  函数 canReturn
- * 第   68 行  函数 canReturnType
- * 第   75 行  函数 quantity
- * 第   88 行  函数 returnedQuantities
- * 第  112 行  函数 isLinkedTo
- * 第  119 行  函数 originalBatchKeys
- * 第  127 行  函数 availableBatches
- * 第  169 行  函数 validate
- * 第  239 行  函数 canonical
- * 第  244 行  函数 amount
- * 第  246 行  函数 keyOf
- * 第  252 行  函数 keyOf
- * 第  258 行  对象 ?
+ * @file fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnRules.kt
+ * @role 退单规则（内部）：**纯函数**，不碰数据库、不调 Port、不读时钟。
+ * @exports （无）
+ * @depends shared
+ * @calledBy fpk-server/return-check/src/main/kotlin/com/jiancai/returncheck/ReturnCheckService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.returncheck

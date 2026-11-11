@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   32 行  类 PricingContractTest
- * 第   35 行  函数 price_dto_roundtrip_keeps_the_shared_wire_shape
- * 第   60 行  函数 change_price_cmd_decodes_from_the_shared_contract_and_ignores_unknown_fields
- * 第   73 行  函数 price_change_log_roundtrip_keeps_money_as_decimal_strings
+ * @file fpk-server/pricing/src/test/kotlin/com/jiancai/pricing/PricingContractTest.kt
+ * @role 契约测试（S06）：本模块的线格式必须与 `shared` 的唯一真源一致。
+ * @exports PricingContractTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.pricing

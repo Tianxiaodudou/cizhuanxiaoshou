@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   52 行  类 OrderPriceRecalculator
- * 第   63 行  函数 onPriceChanged
- * 第   68 行  函数 recalculate
- * 第  123 行  对象 ?
+ * @file fpk-server/order/src/main/kotlin/com/jiancai/order/OrderPriceRecalculator.kt
+ * @role `PriceChanged` 的 S08 侧实现：重算受影响的**当日订单**（验收「改价联动重算」）。
+ * @exports OrderPriceRecalculator
+ * @depends db-core, pricing, shared
+ * @calledBy （无）
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.order

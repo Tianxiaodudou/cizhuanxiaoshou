@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   19 行  类 SerialRepository
- * 第   27 行  函数 allocateSequence
- * 第   45 行  函数 record
- * 第   56 行  对象 ?
+ * @file fpk-server/serial/src/main/kotlin/com/jiancai/serial/SerialRepository.kt
+ * @role `serial_counter` / `serial_number` 的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core
+ * @calledBy fpk-server/serial/src/main/kotlin/com/jiancai/serial/SerialService.kt
+ * @sideEffects 写 serial_counter, serial_number（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.serial

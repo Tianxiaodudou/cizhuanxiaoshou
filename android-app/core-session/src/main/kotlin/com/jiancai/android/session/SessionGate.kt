@@ -1,28 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   45 行  接口 SessionState
- * 第   48 行  对象 Anonymous
- * 第   51 行  类 Authenticated
- * 第   57 行  类 LaunchDestination
- * 第   62 行  类 Session
- * 第   73 行  接口 SessionStore
- * 第   74 行  函数 load
- * 第   75 行  函数 save
- * 第   76 行  函数 clear
- * 第   80 行  类 InMemorySessionStore
- * 第   81 行  函数 load
- * 第   83 行  函数 save
- * 第   87 行  函数 clear
- * 第   97 行  类 LoginOutcome
- * 第  118 行  类 SessionGate
- * 第  125 行  函数 token
- * 第  135 行  函数 state
- * 第  145 行  函数 destination
- * 第  153 行  函数 login
- * 第  184 行  函数 logout
- * 第  195 行  函数 onFailure
- * 第  201 行  函数 isExpired
+ * @file android-app/core-session/src/main/kotlin/com/jiancai/android/session/SessionGate.kt
+ * @role 登录态与导航守卫：**全客户端唯一的 token 判断点**（验收「token 判断仅此一处」）。
+ * @exports SessionState, LaunchDestination, Session, SessionStore, InMemorySessionStore, LoginOutcome, SessionGate
+ * @depends core-network, shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/feature-login/src/main/kotlin/com/jiancai/android/login/LoginRoute.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.session

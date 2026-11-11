@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   22 行  类 AuditRepository
- * 第   25 行  函数 insert
- * 第   45 行  函数 query
- * 第   87 行  函数 countByTarget
- * 第   96 行  对象 ?
- * 第  120 行  类 AuditRecordRow
+ * @file fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditRepository.kt
+ * @role `audit_log` 的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core
+ * @calledBy fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditService.kt
+ * @sideEffects 写 audit_log（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.observability

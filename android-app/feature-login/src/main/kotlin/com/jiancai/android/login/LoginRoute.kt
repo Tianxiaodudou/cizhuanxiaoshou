@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  对象 LoginRoute
- * 第   44 行  函数 screen
- * 第   63 行  函数 saveServerAddress
- * 第   72 行  函数 login
+ * @file android-app/feature-login/src/main/kotlin/com/jiancai/android/login/LoginRoute.kt
+ * @role C04 登录页。
+ * @exports LoginRoute
+ * @depends core-network, core-session, core-ui, shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.android.login

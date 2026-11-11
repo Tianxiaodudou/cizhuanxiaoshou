@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   36 行  类 SettleOutcome
- * 第   52 行  对象 SettleRoute
- * 第   64 行  函数 submit
- * 第   94 行  函数 screen
- * 第  107 行  函数 rejected
+ * @file android-app/feature-settle/src/main/kotlin/com/jiancai/android/settle/SettleRoute.kt
+ * @role C10 结算上传：提交后**当场回显**服务端结果。
+ * @exports SettleOutcome, SettleRoute
+ * @depends core-network, core-ui, shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.settle

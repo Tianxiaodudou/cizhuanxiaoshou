@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   35 行  类 QueryRouteTest
- * 第   37 行  类 FakeClient
- * 第   39 行  函数 call
- * 第   45 行  函数 serverAddress
- * 第   49 行  函数 a_phone_query_uses_the_single_aggregate_endpoint
- * 第   61 行  函数 an_empty_phone_is_rejected_without_a_request
- * 第   70 行  函数 the_page_is_passed_through_for_pagination
- * 第   77 行  函数 the_feature_contains_no_local_storage_or_sql
- * 第   89 行  函数 the_screen_only_needs_a_phone_and_a_search_button
+ * @file android-app/feature-query/src/test/kotlin/com/jiancai/android/query/QueryRouteTest.kt
+ * @role C07 验收：只调聚合接口。
+ * @exports QueryRouteTest
+ * @depends core-network, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.query

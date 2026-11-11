@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   25 行  类 StoredNote
- * 第   39 行  函数 toDto
- * 第   62 行  类 NoteRepository
- * 第   65 行  函数 findByNoteNo
- * 第   72 行  函数 insert
- * 第   96 行  函数 void
- * 第  105 行  函数 toNote
- * 第  121 行  函数 getLongOrNull
- * 第  126 行  对象 ?
+ * @file fpk-server/note/src/main/kotlin/com/jiancai/note/NoteRepository.kt
+ * @role `diff_note` 的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt
+ * @sideEffects 写 diff_note（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.note

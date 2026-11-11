@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   67 行  类 NoteService
- * 第   81 行  函数 create
- * 第   84 行  函数 create
- * 第  115 行  函数 void
- * 第  118 行  函数 void
- * 第  149 行  函数 findSourceOrder
- * 第  155 行  函数 nextNoteNo
- * 第  163 行  函数 normalizeIdentifier
- * 第  176 行  函数 normalizeRequiredText
- * 第  188 行  函数 now
- * 第  190 行  对象 ?
+ * @file fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt
+ * @role [NotePort] 的唯一实现：差异备注单用例层。
+ * @exports NoteService
+ * @depends db-core, order, serial, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.note

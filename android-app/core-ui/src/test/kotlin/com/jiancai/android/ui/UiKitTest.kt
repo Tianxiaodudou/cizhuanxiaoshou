@@ -1,17 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   34 行  类 UiKitTest
- * 第   37 行  函数 the_same_screen_component_describes_three_different_features
- * 第   67 行  函数 duplicate_button_ids_are_rejected
- * 第   81 行  函数 a_read_only_field_cannot_be_required
- * 第   88 行  函数 the_ui_button_annotation_is_retained_at_runtime_for_the_scan_script
- * 第   97 行  函数 print_related_keywords_are_denied_everywhere
- * 第  108 行  函数 the_theme_centralises_spacing_and_typography
- * 第  115 行  函数 the_component_library_does_not_import_any_business_module
- * 第  129 行  函数 a_screen_spec_can_carry_a_route_entry_for_the_shell
- * 第  137 行  类 SampleScreen
- * 第  139 行  函数 submit
+ * @file android-app/core-ui/src/test/kotlin/com/jiancai/android/ui/UiKitTest.kt
+ * @role C02 验收：组件可复用。
+ * @exports UiKitTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 文件 IO
  */
 
 package com.jiancai.android.ui

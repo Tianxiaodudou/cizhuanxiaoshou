@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  接口 NotePort
- * 第   50 行  函数 create
- * 第   53 行  函数 create
- * 第   64 行  函数 void
- * 第   67 行  函数 void
+ * @file fpk-server/note/src/main/kotlin/com/jiancai/note/NotePort.kt
+ * @role 差异备注单 Port：S10 唯一对外入口（创建、作废）。
+ * @exports NotePort
+ * @depends db-core, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.note

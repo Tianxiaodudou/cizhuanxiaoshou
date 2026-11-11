@@ -1,31 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   48 行  类 StoredOrderHeader
- * 第   70 行  函数 toDto
- * 第   93 行  类 StoredOrderLine
- * 第  105 行  函数 toDto
- * 第  120 行  类 OrderFilter
- * 第  136 行  类 OrderRepository
- * 第  141 行  函数 findByClientRequestId
- * 第  148 行  函数 findByOrderNo
- * 第  155 行  函数 findLines
- * 第  169 行  函数 findLinesByOrderNos
- * 第  189 行  函数 findByOrderDate
- * 第  196 行  函数 count
- * 第  206 行  函数 findPage
- * 第  224 行  函数 findSameDayOrderNosByPrice
- * 第  249 行  函数 insertHeader
- * 第  274 行  函数 insertLine
- * 第  296 行  函数 updateHeader
- * 第  319 行  函数 deleteLines
- * 第  327 行  函数 updateLinePricing
- * 第  339 行  函数 toHeader
- * 第  360 行  函数 toLine
- * 第  376 行  函数 buildFilter
- * 第  403 行  函数 bind
- * 第  412 行  类 FilterQuery
- * 第  414 行  对象 ?
+ * @file fpk-server/order/src/main/kotlin/com/jiancai/order/OrderRepository.kt
+ * @role `order_header` / `order_line` 的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy fpk-server/order/src/main/kotlin/com/jiancai/order/OrderPriceRecalculator.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderService.kt
+ * @sideEffects 写 order_header, order_line（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.order

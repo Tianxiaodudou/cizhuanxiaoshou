@@ -1,20 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  类 ErrorMappingTest
- * 第   41 行  函数 every_error_code_maps_to_its_own_http_status
- * 第   50 行  函数 a_business_exception_keeps_its_code_and_message
- * 第   61 行  函数 an_unknown_failure_becomes_e500_without_leaking_internals
- * 第   70 行  函数 a_database_failure_becomes_e503_retryable
- * 第   77 行  函数 an_illegal_argument_becomes_e422
- * 第   82 行  函数 a_malformed_body_becomes_e400
- * 第   91 行  函数 an_unknown_route_is_404_and_a_wrong_method_is_404_too
- * 第  104 行  函数 a_major_contract_mismatch_is_rejected_with_e409
- * 第  118 行  函数 a_minor_contract_mismatch_is_allowed
- * 第  129 行  函数 an_oversized_body_is_rejected_with_e413_before_any_side_effect
- * 第  148 行  函数 every_response_carries_the_contract_version_and_a_trace_id
- * 第  162 行  函数 a_gateway_exception_keeps_its_field_level_details
- * 第  172 行  函数 a_print_failure_from_s12_keeps_its_own_code
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/ErrorMappingTest.kt
+ * @role 验收「错误码统一」。
+ * @exports ErrorMappingTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

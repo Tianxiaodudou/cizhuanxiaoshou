@@ -1,39 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   66 行  类 ReturnCheckPortTest
- * 第   71 行  函数 available_batches_subtract_returns_of_the_same_customer_and_batch
- * 第  101 行  函数 available_batches_aggregate_repeated_batch_lines_on_the_original_order
- * 第  121 行  函数 returns_of_another_customer_do_not_consume_the_returnable_quantity
- * 第  143 行  函数 a_return_order_itself_offers_no_returnable_batches
- * 第  161 行  函数 validate_accepts_a_return_within_the_available_quantity
- * 第  181 行  函数 validate_rejects_a_batch_that_is_not_on_the_original_order_with_e3005
- * 第  196 行  函数 validate_rejects_a_voided_original_with_e3004
- * 第  213 行  函数 validate_rejects_a_fully_returned_batch_with_e3002
- * 第  232 行  函数 validate_counts_previous_returns_before_rejecting_with_e3003
- * 第  254 行  函数 a_missing_original_order_is_reported_as_e3001
- * 第  269 行  函数 validate_and_availability_never_create_or_change_an_order
- * 第  287 行  函数 convenience_overloads_open_one_transaction_and_tx_overloads_reuse_the_caller_transaction
- * 第  317 行  函数 return_orders_are_read_page_by_page_until_the_total_is_reached
- * 第  347 行  函数 runaway_paging_is_stopped_with_e413_instead_of_looping_forever
- * 第  369 行  函数 returns_linked_to_another_order_do_not_consume_the_returnable_quantity
- * 第  397 行  函数 returns_linked_to_this_order_are_subtracted_even_when_strict
- * 第  433 行  类 FakeOrderPort
- * 第  438 行  函数 pick
- * 第  449 行  函数 getRecent
- * 第  454 行  函数 getRecent
- * 第  457 行  函数 get
- * 第  460 行  函数 get
- * 第  463 行  函数 getReceivable
- * 第  465 行  函数 getReceivable
- * 第  467 行  函数 today
- * 第  469 行  函数 today
- * 第  471 行  函数 create
- * 第  474 行  函数 create
- * 第  477 行  函数 update
- * 第  480 行  函数 update
- * 第  484 行  函数 nextNoteNo
- * 第  487 行  函数 nextNoteNo
+ * @file fpk-server/return-check/src/test/kotlin/com/jiancai/returncheck/ReturnCheckPortTest.kt
+ * @role 集成用例：真实 S04 / S05 / S06 / S07 / S08（同一内存库），本模块只经 `OrderPort` 读取。
+ * @exports ReturnCheckPortTest
+ * @depends db-core, order, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.returncheck

@@ -1,37 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第  117 行  函数 clockAt
- * 第  121 行  函数 testDb
- * 第  131 行  函数 settlementOnlyDb
- * 第  139 行  类 InMemoryAccountStore
- * 第  160 行  函数 list
- * 第  162 行  函数 get
- * 第  164 行  函数 create
- * 第  167 行  函数 update
- * 第  170 行  函数 delete
- * 第  175 行  类 SeededPurchase
- * 第  185 行  类 Fixture
- * 第  207 行  函数 customer
- * 第  214 行  函数 category
- * 第  238 行  函数 price
- * 第  256 行  函数 newOrder
- * 第  274 行  函数 seedPurchase
- * 第  288 行  函数 submit
- * 第  306 行  函数 approve
- * 第  310 行  函数 reject
- * 第  313 行  函数 balance
- * 第  316 行  函数 order
- * 第  321 行  函数 stored
- * 第  327 行  函数 settleRows
- * 第  329 行  函数 close
- * 第  333 行  函数 assertSettleError
- * 第  339 行  类 CountingTxRunner
- * 第  343 行  函数 reset
- * 第  347 行  函数 run
- * 第  354 行  函数 exec
- * 第  362 行  函数 queryLong
- * 第  369 行  函数 tableNames
+ * @file fpk-server/settlement/src/test/kotlin/com/jiancai/settlement/TestSupport.kt
+ * @role 改价管理员 id（S13 已认证后传入 S06）。
+ * @exports （无）
+ * @depends account, category, customer, db-core, order, pricing, serial, shared
+ * @calledBy （无）
+ * @sideEffects 读 settlement, sqlite_master（SELECT）
  */
 
 package com.jiancai.settlement

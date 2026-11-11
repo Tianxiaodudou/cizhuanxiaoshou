@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   65 行  函数 main
- * 第  115 行  对象 AllMigrations
- * 第  130 行  函数 wire
- * 第  167 行  函数 requireEnv
+ * @file fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @role 常驻 HTTP 服务入口（组合根）：打开库 → 迁移 → 装配 S00–S14 → 启动 S13 网关。
+ * @exports main, AllMigrations
+ * @depends account, auth, category, config, customer, db-core, api-gateway, note, observability, order, pricing, print, return-check, serial, settlement, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.app

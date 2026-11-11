@@ -1,21 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   35 行  类 AuthRepository
- * 第   38 行  函数 findByUsernameKey
- * 第   42 行  函数 findById
- * 第   46 行  函数 findAll
- * 第   56 行  函数 update
- * 第   87 行  函数 deleteById
- * 第   94 行  函数 countAccounts
- * 第  108 行  函数 insert
- * 第  139 行  函数 touchLastLogin
- * 第  148 行  函数 queryOne
- * 第  160 行  函数 toStoredAccount
- * 第  173 行  函数 roleOf
- * 第  177 行  对象 ?
- * 第  220 行  类 StoredAccount
- * 第  232 行  函数 toDto
+ * @file fpk-server/auth/src/main/kotlin/com/jiancai/auth/AuthRepository.kt
+ * @role `auth_account` 的唯一 SQL 出口（铁律 10）：SQL 只出现在这里，其它模块禁止读写本表。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy fpk-server/auth/src/main/kotlin/com/jiancai/auth/AuthService.kt
+ * @sideEffects 写 auth_account（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.auth

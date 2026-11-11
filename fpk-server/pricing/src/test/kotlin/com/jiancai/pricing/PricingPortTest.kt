@@ -1,29 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   44 行  类 PricingPortTest
- * 第   47 行  函数 first_pricing_creates_an_unlocked_price_and_resolve_returns_it
- * 第   70 行  函数 resolve_without_a_configured_price_is_rejected_with_e1002
- * 第   82 行  函数 same_day_change_updates_the_price_and_appends_an_audit_log
- * 第  117 行  函数 second_change_appends_another_log_without_losing_history
- * 第  144 行  函数 cross_day_change_is_rejected_with_e1001_and_writes_nothing
- * 第  166 行  函数 resolve_reports_a_price_locked_after_the_pricing_day
- * 第  184 行  函数 a_new_dimension_can_be_priced_on_a_later_day
- * 第  204 行  函数 change_price_requires_a_non_blank_reason
- * 第  222 行  函数 non_positive_price_and_invalid_admin_are_rejected_with_e422
- * 第  244 行  函数 unknown_customer_or_category_is_rejected_with_e404
- * 第  262 行  函数 batch_tag_must_match_the_category_and_is_case_insensitive
- * 第  287 行  函数 optional_batch_tag_can_be_empty_when_the_category_allows_it
- * 第  309 行  函数 same_price_is_an_idempotent_no_op_without_log_or_event
- * 第  327 行  函数 price_changed_is_published_once_with_old_and_new_price
- * 第  354 行  函数 a_failing_listener_rolls_back_the_price_change_and_the_log
- * 第  375 行  函数 history_is_readable_after_master_data_is_deleted
- * 第  394 行  函数 a_caller_rollback_discards_both_the_price_change_and_the_log
- * 第  418 行  函数 convenience_overloads_open_exactly_one_transaction_and_tx_overloads_reuse_the_caller_transaction
- * 第  451 行  函数 history_is_case_insensitive_and_validates_ids
- * 第  473 行  函数 logCount
- * 第  476 行  函数 assertPricingError
- * 第  481 行  对象 ?
+ * @file fpk-server/pricing/src/test/kotlin/com/jiancai/pricing/PricingPortTest.kt
+ * @role S06 定价用例测试（验收：跨日锁、改价留痕、PriceChanged 触发重算）。
+ * @exports PricingPortTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.pricing

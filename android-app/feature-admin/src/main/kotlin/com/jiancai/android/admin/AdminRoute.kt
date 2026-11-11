@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   43 行  对象 AdminRoute
- * 第   49 行  类 SubPage
- * 第   58 行  函数 categories
- * 第   62 行  函数 saveCategory
- * 第   71 行  函数 changePrice
- * 第   76 行  函数 auditSettlement
- * 第   81 行  函数 accounts
- * 第   84 行  函数 createAccount
- * 第   88 行  函数 screens
+ * @file android-app/feature-admin/src/main/kotlin/com/jiancai/android/admin/AdminRoute.kt
+ * @role C11 管理后台：型号库 / 价格 / 结算审核 / 账号 四个子页。
+ * @exports AdminRoute
+ * @depends core-network, core-ui, shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.admin

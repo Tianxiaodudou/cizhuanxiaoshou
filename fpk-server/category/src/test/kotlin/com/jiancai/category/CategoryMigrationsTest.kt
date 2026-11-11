@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   19 行  类 CategoryMigrationsTest
- * 第   22 行  函数 category_tables_are_created_by_the_category_migration
- * 第   38 行  函数 migration_version_is_in_the_category_segment_and_idempotent
+ * @file fpk-server/category/src/test/kotlin/com/jiancai/category/CategoryMigrationsTest.kt
+ * @role 迁移验收：号段归属、建表、重复迁移幂等。
+ * @exports CategoryMigrationsTest
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.category

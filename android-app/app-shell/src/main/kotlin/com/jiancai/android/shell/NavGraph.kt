@@ -1,20 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   50 行  类 NavGraph
- * 第   62 行  函数 tabs
- * 第   65 行  函数 routesOf
- * 第   68 行  函数 route
- * 第   72 行  函数 routeIds
- * 第   79 行  函数 startDestination
- * 第   85 行  对象 ?
- * 第   87 行  函数 assemble
- * 第  108 行  类 AppShell
- * 第  117 行  函数 startDestination
- * 第  125 行  类 TokenBridge
- * 第  130 行  函数 token
- * 第  134 行  对象 ClientAssembly
- * 第  136 行  函数 create
+ * @file android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt
+ * @role 导航图：把各 feature 登记的路由装配起来（验收「路由跳转正常」）。
+ * @exports NavGraph, AppShell, TokenBridge, ClientAssembly
+ * @depends core-network, core-session, core-ui, feature-login, feature-home, feature-order-entry, feature-query, feature-today, feature-note, feature-settle, feature-admin, feature-settings
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.shell

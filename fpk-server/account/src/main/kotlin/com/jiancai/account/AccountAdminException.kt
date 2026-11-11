@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   22 行  类 AccountAdminException
+ * @file fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminException.kt
+ * @role 账号管理用例失败（S03）。
+ * @exports AccountAdminException
+ * @depends shared
+ * @calledBy fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminService.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/AccountStoreAdapter.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.account

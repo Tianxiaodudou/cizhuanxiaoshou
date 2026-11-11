@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 OrderMigrationsTest
- * 第   33 行  函数 order_tables_are_created_by_the_order_migration
- * 第   42 行  函数 client_request_id_is_unique_at_the_database_layer
- * 第   61 行  函数 order_lines_cascade_when_the_header_is_deleted
- * 第   75 行  函数 order_line_requires_an_existing_header
- * 第   87 行  函数 order_date_must_match_the_wire_date_shape
- * 第   99 行  函数 source_order_no_is_nullable_for_legacy_rows_and_persisted_when_present
- * 第  123 行  函数 migration_version_is_in_the_order_segment_and_idempotent
- * 第  138 行  函数 insertHeader
- * 第  170 行  函数 insertLine
+ * @file fpk-server/order/src/test/kotlin/com/jiancai/order/OrderMigrationsTest.kt
+ * @role S08 迁移与库层约束测试。
+ * @exports OrderMigrationsTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.order

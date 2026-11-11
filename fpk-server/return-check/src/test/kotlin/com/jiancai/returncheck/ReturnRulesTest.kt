@@ -1,30 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   54 行  类 ReturnRulesTest
- * 第   58 行  函数 batches
- * 第   64 行  函数 available_batches_aggregate_lines_per_batch_and_subtract_returns
- * 第   91 行  函数 fully_returned_batches_disappear_from_the_available_list
- * 第  101 行  函数 different_model_or_unit_is_not_subtracted_from_the_batch
- * 第  131 行  函数 return_orders_and_void_orders_are_not_returnable
- * 第  140 行  函数 voided_return_orders_only_consume_quantity_when_the_policy_says_so
- * 第  161 行  函数 returns_linked_to_another_order_are_not_counted
- * 第  178 行  函数 a_return_linked_to_this_order_is_counted_even_in_strict_mode
- * 第  192 行  函数 strict_mode_ignores_returns_without_a_source_order_link
- * 第  215 行  函数 batch_matching_uses_the_shared_batch_tag_rules
- * 第  230 行  函数 quantity_validation_uses_the_shared_quantity_caliber
- * 第  243 行  函数 returnable_order_types_are_policy_driven
- * 第  259 行  函数 validate_rejects_a_batch_that_is_not_on_the_original_order_with_e3005
- * 第  272 行  函数 validate_rejects_a_fully_returned_batch_with_e3002
- * 第  284 行  函数 validate_rejects_quantities_above_the_returnable_amount
- * 第  296 行  函数 validate_merges_duplicate_batch_lines_before_comparing
- * 第  311 行  函数 validate_rejects_bad_quantities_with_e422
- * 第  323 行  函数 validate_requires_at_least_one_line_and_a_legal_model_id
- * 第  334 行  函数 too_many_lines_are_rejected_with_e413
- * 第  348 行  函数 validate_rejects_voided_originals_with_e3004_and_return_orders_with_e3002
- * 第  361 行  函数 validate_echoes_server_side_batch_wording_and_quantity_caliber
- * 第  378 行  函数 remaining_quantity_is_computed_per_batch_across_lines
- * 第  393 行  函数 a_batch_fully_used_by_this_request_reports_zero_remaining
+ * @file fpk-server/return-check/src/test/kotlin/com/jiancai/returncheck/ReturnRulesTest.kt
+ * @role 规则单测（无数据库）：[ReturnRules] 是纯函数。
+ * @exports ReturnRulesTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.returncheck

@@ -1,26 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   84 行  类 SettleService
- * 第   99 行  函数 submit
- * 第  102 行  函数 submit
- * 第  160 行  函数 audit
- * 第  163 行  函数 audit
- * 第  198 行  函数 getBalance
- * 第  201 行  函数 getBalance
- * 第  227 行  函数 findOrder
- * 第  233 行  函数 loadOrders
- * 第  249 行  函数 requireOperator
- * 第  265 行  函数 ensureWithinOutstanding
- * 第  301 行  函数 nextSettleNo
- * 第  309 行  函数 normalizeRequestId
- * 第  322 行  函数 normalizeIdentifier
- * 第  335 行  函数 normalizeOptionalText
- * 第  348 行  函数 normalizeAmount
- * 第  360 行  函数 now
- * 第  363 行  函数 matches
- * 第  376 行  函数 isUniqueViolation
- * 第  383 行  对象 ?
+ * @file fpk-server/settlement/src/main/kotlin/com/jiancai/settlement/SettleService.kt
+ * @role [SettlePort] 的唯一实现：结算用例层。
+ * @exports SettleService
+ * @depends account, db-core, order, serial, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.settlement

@@ -1,8 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  接口 TxRunner
- * 第   35 行  函数 run
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/TxRunner.kt
+ * @role 事务 Port：**所有**写操作的唯一入口（铁律 4）。
+ * @exports TxRunner
+ * @depends （无）
+ * @calledBy fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminService.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/SqliteIdempotencyStore.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.db

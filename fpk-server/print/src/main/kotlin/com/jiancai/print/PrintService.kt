@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   49 行  类 PrintService
- * 第   67 行  函数 render
- * 第   70 行  函数 render
- * 第  134 行  函数 findOrder
- * 第  147 行  函数 findSourceOrder
- * 第  154 行  函数 findNote
- * 第  156 行  函数 normalizeDocNo
- * 第  168 行  对象 ?
+ * @file fpk-server/print/src/main/kotlin/com/jiancai/print/PrintService.kt
+ * @role [PrintPort] 的唯一实现：查单据 → 判打印次数 → 渲染 → 落台账，全部在一个事务里。
+ * @exports PrintService
+ * @depends config, db-core, order, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.print

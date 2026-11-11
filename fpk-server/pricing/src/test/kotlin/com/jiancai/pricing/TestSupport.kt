@@ -1,24 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   74 行  函数 clockAt
- * 第   77 行  函数 testDb
- * 第   82 行  函数 pricingOnlyDb
- * 第   90 行  类 Fixture
- * 第  101 行  函数 pricingAt
- * 第  113 行  函数 customer
- * 第  119 行  函数 category
- * 第  135 行  函数 close
- * 第  139 行  函数 priceCmd
- * 第  154 行  类 RecordingListener
- * 第  157 行  函数 onPriceChanged
- * 第  163 行  类 CountingTxRunner
- * 第  167 行  函数 reset
- * 第  171 行  函数 run
- * 第  178 行  函数 exec
- * 第  186 行  函数 queryLong
- * 第  193 行  函数 queryString
- * 第  200 行  函数 tableNames
+ * @file fpk-server/pricing/src/test/kotlin/com/jiancai/pricing/TestSupport.kt
+ * @role 次日同一时刻的线格式时间戳。
+ * @exports （无）
+ * @depends category, customer, db-core, shared
+ * @calledBy （无）
+ * @sideEffects 读 sqlite_master（SELECT）
  */
 
 package com.jiancai.pricing

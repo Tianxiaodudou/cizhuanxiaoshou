@@ -1,19 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   42 行  类 AccountAdminService
- * 第   49 行  函数 list
- * 第   51 行  函数 list
- * 第   53 行  函数 get
- * 第   55 行  函数 get
- * 第   60 行  函数 create
- * 第   62 行  函数 create
- * 第   72 行  函数 update
- * 第   74 行  函数 update
- * 第   94 行  函数 delete
- * 第   98 行  函数 delete
- * 第  114 行  函数 isLastEnabledAdmin
- * 第  118 行  函数 isEnabledAdmin
+ * @file fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminService.kt
+ * @role [AccountAdminPort] 的唯一实现：管理员账号 CRUD 的用例层。
+ * @exports AccountAdminService
+ * @depends db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.account

@@ -1,27 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第  108 行  函数 clockAt
- * 第  111 行  函数 testDb
- * 第  122 行  函数 printOnlyDb
- * 第  130 行  类 Fixture
- * 第  174 行  函数 printService
- * 第  184 行  函数 customer
- * 第  191 行  函数 category
- * 第  215 行  函数 price
- * 第  233 行  函数 newOrder
- * 第  252 行  函数 order
- * 第  257 行  函数 note
- * 第  286 行  函数 printRows
- * 第  290 行  函数 printedByOf
- * 第  298 行  函数 close
- * 第  302 行  函数 assertPrintError
- * 第  308 行  类 CountingTxRunner
- * 第  312 行  函数 reset
- * 第  316 行  函数 run
- * 第  323 行  函数 exec
- * 第  331 行  函数 queryLong
- * 第  338 行  函数 tableNames
+ * @file fpk-server/print/src/test/kotlin/com/jiancai/print/TestSupport.kt
+ * @role 部署级商家名称（S01 测试值）。
+ * @exports （无）
+ * @depends category, config, customer, db-core, order, pricing, serial, shared
+ * @calledBy （无）
+ * @sideEffects 读 print_job, sqlite_master（SELECT）
  */
 
 package com.jiancai.print

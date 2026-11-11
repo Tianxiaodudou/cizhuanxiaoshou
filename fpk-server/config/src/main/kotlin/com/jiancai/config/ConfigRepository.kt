@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   20 行  类 ConfigRepository
- * 第   23 行  函数 findMerchantName
- * 第   31 行  函数 save
- * 第   39 行  对象 ?
+ * @file fpk-server/config/src/main/kotlin/com/jiancai/config/ConfigRepository.kt
+ * @role `deployment_config` 的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core
+ * @calledBy fpk-server/config/src/main/kotlin/com/jiancai/config/ConfigService.kt
+ * @sideEffects 写 deployment_config（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.config

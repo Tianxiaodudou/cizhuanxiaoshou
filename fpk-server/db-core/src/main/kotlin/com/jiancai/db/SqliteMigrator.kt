@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 SqliteMigrator
- * 第   46 行  函数 migrate
- * 第   78 行  函数 currentVersion
- * 第   83 行  函数 pendingVersions
- * 第   89 行  函数 drift
- * 第  107 行  函数 requireSameContent
- * 第  119 行  函数 executeStatements
+ * @file fpk-server/db-core/src/main/kotlin/com/jiancai/db/SqliteMigrator.kt
+ * @role [Migrator] 的唯一实现。
+ * @exports （无）
+ * @depends （无）
+ * @calledBy fpk-server/db-core/src/main/kotlin/com/jiancai/db/DbCore.kt
+ * @sideEffects 写 IF（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.db

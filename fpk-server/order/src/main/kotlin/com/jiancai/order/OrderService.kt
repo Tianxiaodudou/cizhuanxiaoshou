@@ -1,4 +1,13 @@
 ﻿/*
+ * @file fpk-server/order/src/main/kotlin/com/jiancai/order/OrderService.kt
+ * @role [OrderPort] 的唯一实现：订单用例层。
+ * @exports OrderService
+ * @depends category, customer, db-core, pricing, serial, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
+ */
+
+/*
  * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
  * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
  * 第  116 行  类 OrderService

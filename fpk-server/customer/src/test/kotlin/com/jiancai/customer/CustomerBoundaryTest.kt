@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  类 CustomerBoundaryTest
- * 第   45 行  函数 the_customer_port_never_receives_the_callers_identity_or_role
- * 第   58 行  函数 the_customer_port_only_returns_dtos
- * 第   68 行  函数 the_customer_dto_does_not_leak_persistence_only_columns
- * 第   77 行  函数 sql_only_lives_in_the_customer_repository
- * 第  104 行  函数 the_module_owns_exactly_one_business_table
+ * @file fpk-server/customer/src/test/kotlin/com/jiancai/customer/CustomerBoundaryTest.kt
+ * @role 硬边界（S04）的结构化守卫
+ * @exports CustomerBoundaryTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 读 sqlite_master（SELECT）
  */
 
 package com.jiancai.customer

@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   25 行  类 DeploymentConfig
- * 第   30 行  对象 ?
- * 第   42 行  函数 of
- * 第   55 行  函数 fromEnvironment
+ * @file fpk-server/config/src/main/kotlin/com/jiancai/config/DeploymentConfig.kt
+ * @role 服务端部署配置（当前只有商家名称）。
+ * @exports DeploymentConfig
+ * @depends （无）
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/Main.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.config

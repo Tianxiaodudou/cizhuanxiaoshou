@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   19 行  对象 SerialMigrations
+ * @file fpk-server/serial/src/main/kotlin/com/jiancai/serial/SerialMigrations.kt
+ * @role S07 的迁移（版本号段 100–199，见 `db-core/module.md`）。
+ * @exports SerialMigrations
+ * @depends db-core
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.serial

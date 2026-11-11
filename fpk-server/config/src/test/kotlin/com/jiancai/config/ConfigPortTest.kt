@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  类 ConfigPortTest
- * 第   32 行  函数 merchant_name_comes_from_the_server_side_deployment_config
- * 第   45 行  函数 merchant_name_is_persisted_and_reused_when_the_deployment_config_is_absent
- * 第   56 行  函数 deployment_config_overrides_the_persisted_name_on_restart
- * 第   73 行  函数 restarting_with_the_same_deployment_config_does_not_rewrite_the_row
- * 第   99 行  函数 missing_deployment_config_and_empty_database_fails_fast
- * 第  113 行  函数 config_table_holds_one_deployment_row_and_rejects_a_second
- * 第  130 行  函数 blank_merchant_name_is_rejected
- * 第  141 行  函数 deployment_config_comes_only_from_server_side_process_settings
+ * @file fpk-server/config/src/test/kotlin/com/jiancai/config/ConfigPortTest.kt
+ * @role 验收：商家名称由服务端部署配置生效，客户端无法传入 / 改写；配置持久化且可重启复用。
+ * @exports ConfigPortTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.config

@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   18 行  函数 decode
- * 第   22 行  函数 errorCode
- * 第   26 行  函数 errorResponse
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/TestSupport.kt
+ * @role 断言辅助：把响应体按契约反序列化（线格式一定来自 shared）。
+ * @exports （无）
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

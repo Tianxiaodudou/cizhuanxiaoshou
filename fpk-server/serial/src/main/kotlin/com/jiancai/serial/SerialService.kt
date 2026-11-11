@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  类 SerialService
- * 第   44 行  函数 next
- * 第   47 行  函数 nextNote
- * 第   49 行  函数 nextNote
- * 第   51 行  函数 next
- * 第   77 行  函数 compose
- * 第   84 行  函数 isUniqueViolation
- * 第   91 行  对象 ?
+ * @file fpk-server/serial/src/main/kotlin/com/jiancai/serial/SerialService.kt
+ * @role [SerialPort] 的唯一实现：事务内取号 + 唯一约束兜底。
+ * @exports SerialService
+ * @depends db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.serial

@@ -1,19 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   43 行  类 ReturnCheckBoundaryTest
- * 第   57 行  函数 the_port_never_receives_a_role_token_or_account_dto
- * 第   78 行  函数 the_port_only_returns_dtos_defined_in_shared
- * 第   95 行  函数 the_module_defines_no_wire_dto_of_its_own
- * 第  106 行  函数 the_module_has_no_table_no_migration_and_no_sql
- * 第  135 行  函数 only_the_order_port_is_used_and_only_its_read_methods
- * 第  152 行  函数 the_module_depends_on_no_module_other_than_shared_db_core_and_order
- * 第  176 行  函数 the_module_never_composes_serial_numbers_or_prints
- * 第  196 行  函数 quantities_and_batch_tags_come_from_the_shared_caliber
- * 第  218 行  函数 the_available_batch_dto_carries_only_server_produced_quantities
- * 第  235 行  函数 the_error_codes_used_by_this_module_live_in_the_contract_bands
- * 第  253 行  函数 the_port_exposes_exactly_the_two_use_cases
- * 第  265 行  函数 mainSources
+ * @file fpk-server/return-check/src/test/kotlin/com/jiancai/returncheck/ReturnCheckBoundaryTest.kt
+ * @role 硬边界（S09）的结构化守卫
+ * @exports ReturnCheckBoundaryTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.returncheck

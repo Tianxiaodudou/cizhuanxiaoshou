@@ -1,23 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  类 RouteAccess
- * 第   52 行  类 Route
- * 第   71 行  函数 match
- * 第   98 行  类 RouteContext
- * 第  105 行  函数 path
- * 第  109 行  函数 callerId
- * 第  112 行  函数 query
- * 第  115 行  函数 requireQuery
- * 第  119 行  函数 queryLong
- * 第  125 行  函数 queryInt
- * 第  131 行  函数 queryBoolean
- * 第  141 行  函数 ?
- * 第  148 行  函数 decode
- * 第  164 行  类 MatchedRoute
- * 第  171 行  类 Router
- * 第  184 行  函数 match
- * 第  194 行  函数 normalize
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/Route.kt
+ * @role 一条路由（方法 + 路径模板 + 权限 + 幂等要求 + handler）。
+ * @exports RouteAccess, Route, RouteContext, Router
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/AuthGate.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayRoutes.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

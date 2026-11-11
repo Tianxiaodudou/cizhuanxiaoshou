@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   26 行  对象 CustomerMigrations
+ * @file fpk-server/customer/src/main/kotlin/com/jiancai/customer/CustomerMigrations.kt
+ * @role S04 的迁移（db-core 分配给业务主链 300–399，见 `db-core/module.md`）。
+ * @exports CustomerMigrations
+ * @depends db-core
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.customer

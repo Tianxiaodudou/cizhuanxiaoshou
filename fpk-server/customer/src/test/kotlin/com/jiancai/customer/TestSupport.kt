@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   39 行  函数 clockAt
- * 第   42 行  函数 testDb
- * 第   45 行  类 CountingTxRunner
- * 第   49 行  函数 run
- * 第   55 行  函数 exec
- * 第   62 行  函数 queryLong
- * 第   68 行  函数 queryString
+ * @file fpk-server/customer/src/test/kotlin/com/jiancai/customer/TestSupport.kt
+ * @role 固定时钟：断言 `created_at` 由服务端产出且可复现。
+ * @exports （无）
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.customer

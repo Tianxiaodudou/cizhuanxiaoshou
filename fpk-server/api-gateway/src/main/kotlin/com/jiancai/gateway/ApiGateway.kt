@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   38 行  类 ApiGateway
- * 第   47 行  函数 routes
- * 第   55 行  函数 handle
- * 第   96 行  函数 decorate
- * 第  102 行  函数 checkContractVersion
- * 第  120 行  函数 render
- * 第  143 行  函数 encodeJson
- * 第  151 行  函数 errorResponse
- * 第  160 行  对象 ?
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt
+ * @role 网关核心：请求 → 路由 → 鉴权 → 幂等 → handler → 统一响应。
+ * @exports ApiGateway
+ * @depends shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/HttpServerAdapter.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

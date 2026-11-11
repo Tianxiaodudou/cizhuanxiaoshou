@@ -1,26 +1,11 @@
-# Code map · docs
+# 代码地图
 
-> 本目录代码地图（阶段 5：DOCS / SCAN / HOOKS）。`tools/` 与 `hooks/` 各自有 `code-map.md`。
+代码地图分两部分，本文件只是入口：
 
-## 本目录职责
+- **总览**：`docs/CODEMAPS/` —— [README](CODEMAPS/README.md)、[architecture](CODEMAPS/architecture.md)、
+  [backend](CODEMAPS/backend.md)、[frontend](CODEMAPS/frontend.md)、[conventions](CODEMAPS/conventions.md)。
+- **文件头**：每个 `.kt` 源码文件顶部 `@file / @role / @exports / @depends / @calledBy / @sideEffects`，
+  由 `docs/tools/gen-code-map.ps1` 生成（幂等，改代码后重跑）。
 
-docs 是「阶段 5 收尾模块」的落点：说明文档、按钮扫描、dsh hooks 配置，以及各模块代码地图的入口。
-
-## 文件
-
-| 文件 | 说明 |
-| --- | --- |
-| `module.md` | 阶段 5 职责、扫描口径、hooks 口径、验收对照 |
-| `routes.md` | 服务端 S13 路由表 + 客户端 13 个模块入口（与 `RouteTableTest` 一致） |
-| `features.md` | 22 个模块职责 / 验收 / 状态 + 真机联调记录 |
-| `进度-单agent.md` | 每模块一行的断点续跑记录 + 全量验证结果 |
-| `code-map.md` | 本目录地图（手写；`docs` 不在生成器扫描根内，避免覆盖） |
-| `任务卡-剩余模块汇总.md` | 上游任务卡（只读输入） |
-| `单Agent总任务-剩余模块.md` | 上游总任务说明（只读输入） |
-
-## 子目录
-
-| 子目录 | 职责 |
-| --- | --- |
-| `tools/` | 代码地图生成器、按钮扫描脚本、hooks 自检脚本、真机联调脚本、文案模板 |
-| `hooks/` | `dsh-hooks.json` |
+约定：总览只讲"系统怎么运转"，文件头只讲"这个文件在系统里的位置"；行号、签名、调用顺序不写进文件头。
+完整性检查：`powershell -File docs/tools/check-file-headers.ps1`（前 10 行必须有 `@file`，默认只警告）。

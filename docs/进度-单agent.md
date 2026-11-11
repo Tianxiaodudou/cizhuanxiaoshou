@@ -38,15 +38,17 @@
 | `powershell -File docs/tools/verify-hooks.ps1` | HOOKS OK（扫描 + 394 份代码地图齐全） |
 | 真机联调 `docs/tools/device-e2e.sh` | Redmi K40 / Android 11：契约、登录、建档、建单、幂等重放、结算审核、备注单、审计、80mm 票据、401 全部通过 |
 
-## 代码地图约定（第二轮新增）
+## 代码地图约定（第三轮定稿：总览 + 文件头）
 
-1. **目录级**：仓库里每个目录都有 `code-map.md`（中文，递归到所有层级，文件名 / 子目录 / 职责）。
-   生成：`powershell -File docs/tools/gen-code-map.ps1`（可重复执行，内容覆盖写）。
-2. **文件级**：每个 `.kt` 源码文件顶部有「本文件代码地图」注释块，列出
-   `第 N 行 / 种类 / 名称`，行号是该符号在**当前文件里的真实起始行**。
-3. **改了代码就要重跑生成器**，否则行号会漂移；`verify-hooks.ps1 -Check code-map` 可查目录地图是否齐全。
-4. 生成器本体保持 ASCII（PowerShell 5.1 会把无 BOM 的 UTF-8 当 ANSI），中文文案全在
-   `docs/tools/code-map-template.json`。
+1. **总览地图** `docs/CODEMAPS/`：按领域拆分，`architecture.md`（分层 / 数据流 / 四条硬边界）、
+   `backend.md`（路由 ↔ Port ↔ 表 / 迁移段位 / 错误码 / 事务）、`frontend.md`（页面树 / 状态流 / 客户端边界）、
+   `conventions.md`（铁律 / 验证 / 已知限制）、`README.md`（字段规范与分工）。
+2. **文件头**：每个 `.kt` 顶部六项——`@file` 仓库相对路径、`@role` 一句话职责、`@exports` 对外类型/函数、
+   `@depends` 直接依赖的内部模块、`@calledBy` 已知主要调用方（≤3）、`@sideEffects` 数据库/文件/网络副作用。
+   不再写行号与逐行摘要（易变、必然过期）。
+3. **生成与检查**：`gen-code-map.ps1` 幂等写文件头；`check-file-headers.ps1` 检查前 10 行 `@file`，
+   默认只警告，`-Strict` 才失败（已作为 `file-header-check` hook 接入）。
+4. 已取消逐目录的 `code-map.md`（与总览重复且易过期）；模块职责仍由各模块 `module.md` 承担。
 
 ## 中断续跑要点
 

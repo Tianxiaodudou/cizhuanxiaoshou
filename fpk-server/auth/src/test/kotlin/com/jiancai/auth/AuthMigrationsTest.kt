@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   20 行  类 AuthMigrationsTest
- * 第   23 行  函数 auth_account_table_is_created_by_the_auth_migration
- * 第   39 行  函数 migration_version_is_in_the_auth_segment_and_idempotent
- * 第   50 行  函数 account_table_enforces_unique_usernames_and_known_roles
+ * @file fpk-server/auth/src/test/kotlin/com/jiancai/auth/AuthMigrationsTest.kt
+ * @role 迁移验收：号段归属、建表、重复迁移幂等。
+ * @exports AuthMigrationsTest
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.auth

@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   25 行  类 SerialType
- * 第   44 行  对象 ?
- * 第   46 行  函数 of
+ * @file shared/src/main/kotlin/com/jiancai/shared/serial/SerialType.kt
+ * @role 单号前缀表（唯一真源）：PS 采购单 / PT 采购退货 / ZS 直送单 / ZT 直送退货 / BZ 备注单 / JS 结算单。
+ * @exports SerialType
+ * @depends （无）
+ * @calledBy fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderService.kt, fpk-server/serial/src/main/kotlin/com/jiancai/serial/SerialPort.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.serial

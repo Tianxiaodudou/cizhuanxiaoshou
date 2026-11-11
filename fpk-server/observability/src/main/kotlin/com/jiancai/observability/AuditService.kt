@@ -1,23 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   51 行  类 AuditService
- * 第   59 行  函数 record
- * 第   61 行  函数 record
- * 第   79 行  函数 priceChanged
- * 第   82 行  函数 priceChanged
- * 第  104 行  函数 settleAudited
- * 第  111 行  函数 settleAudited
- * 第  145 行  函数 query
- * 第  148 行  函数 query
- * 第  155 行  函数 entries
- * 第  158 行  函数 entries
- * 第  175 行  函数 normalize
- * 第  197 行  函数 encodeDetails
- * 第  200 行  函数 decodeDetails
- * 第  207 行  函数 toDto
- * 第  220 行  函数 invalid
- * 第  222 行  对象 ?
+ * @file fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditService.kt
+ * @role [AuditPort] 的唯一实现：校验 → 组装留痕 → 追加一行 → 返回 DTO。
+ * @exports AuditService
+ * @depends db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.observability

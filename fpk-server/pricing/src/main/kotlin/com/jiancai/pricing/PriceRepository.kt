@@ -1,18 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 StoredPrice
- * 第   41 行  函数 toDto
- * 第   57 行  类 PriceChangeRecord
- * 第   79 行  类 PriceRepository
- * 第   82 行  函数 find
- * 第   93 行  函数 findById
- * 第  107 行  函数 insert
- * 第  141 行  函数 updatePrice
- * 第  151 行  函数 insertChangeLog
- * 第  167 行  函数 findChangeLogs
- * 第  196 行  函数 toStoredPrice
- * 第  207 行  对象 ?
+ * @file fpk-server/pricing/src/main/kotlin/com/jiancai/pricing/PriceRepository.kt
+ * @role `price` / `price_change_log` 的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy fpk-server/pricing/src/main/kotlin/com/jiancai/pricing/PriceService.kt
+ * @sideEffects 写 price, price_change_log（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.pricing

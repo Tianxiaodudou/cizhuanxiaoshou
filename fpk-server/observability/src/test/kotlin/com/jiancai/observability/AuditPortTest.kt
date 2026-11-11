@@ -1,22 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  类 AuditPortTest
- * 第   40 行  函数 a_price_change_is_traced_with_the_old_and_the_new_price
- * 第   58 行  函数 a_settlement_audit_is_traced_with_the_audited_amount
- * 第   78 行  函数 a_rejected_settlement_is_traced_as_rejected
- * 第   91 行  函数 query_filters_by_target_action_and_operator
- * 第  108 行  函数 query_returns_the_newest_first_and_honours_the_limit
- * 第  121 行  函数 audit_ids_are_strictly_increasing_and_rows_are_never_rewritten
- * 第  134 行  函数 details_round_trip_through_storage
- * 第  152 行  函数 a_trace_id_is_kept_for_troubleshooting
- * 第  160 行  函数 record_rejects_invalid_inputs_with_e422_and_writes_nothing
- * 第  162 行  函数 assertRejected
- * 第  181 行  函数 query_rejects_an_out_of_range_limit
- * 第  191 行  函数 settle_audit_requires_an_audited_settlement
- * 第  204 行  函数 settle_audit_rejects_a_conclusion_that_contradicts_the_settlement_status
- * 第  218 行  函数 price_audit_requires_an_admin_id
- * 第  227 行  函数 event
+ * @file fpk-server/observability/src/test/kotlin/com/jiancai/observability/AuditPortTest.kt
+ * @role 验收「改价 / 审核有留痕」的正面用例 + 留痕模型的负向用例。
+ * @exports AuditPortTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.observability

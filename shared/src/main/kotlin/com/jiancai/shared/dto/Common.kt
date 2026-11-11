@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   36 行  类 ContractInfoDto
- * 第   44 行  类 ConfigDto
- * 第   50 行  类 PageDto
- * 第   62 行  对象 WireFormat
+ * @file shared/src/main/kotlin/com/jiancai/shared/dto/Common.kt
+ * @role 契约 / 服务握手信息（C00 启动校验，S13 提供）。
+ * @exports ContractInfoDto, ConfigDto, PageDto, WireFormat
+ * @depends （无）
+ * @calledBy shared/src/main/kotlin/com/jiancai/shared/dto/BatchTag.kt, shared/src/main/kotlin/com/jiancai/shared/dto/Quantity.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayRoutes.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.dto

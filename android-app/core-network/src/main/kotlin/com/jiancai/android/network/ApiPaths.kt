@@ -1,41 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   85 行  对象 ApiPaths
- * 第   88 行  函数 contract
- * 第   93 行  函数 login
- * 第  100 行  函数 me
- * 第  103 行  函数 accounts
- * 第  108 行  函数 account
- * 第  110 行  函数 createAccount
- * 第  117 行  函数 updateAccount
- * 第  124 行  函数 deleteAccount
- * 第  127 行  函数 customerByPhone
- * 第  133 行  函数 createCustomer
- * 第  141 行  函数 categories
- * 第  147 行  函数 createCategory
- * 第  154 行  函数 updateCategory
- * 第  161 行  函数 deleteCategory
- * 第  164 行  函数 price
- * 第  174 行  函数 changePrice
- * 第  182 行  函数 todayOrders
- * 第  187 行  函数 orders
- * 第  202 行  函数 orderReceivable
- * 第  207 行  函数 createOrder
- * 第  215 行  函数 updateOrder
- * 第  223 行  函数 returnableBatches
- * 第  228 行  函数 returnCheck
- * 第  236 行  函数 createNote
- * 第  244 行  函数 voidNote
- * 第  252 行  函数 submitSettlement
- * 第  260 行  函数 auditSettlement
- * 第  267 行  函数 balance
- * 第  274 行  函数 printTicket
- * 第  281 行  函数 getRaw
- * 第  289 行  函数 get
- * 第  300 行  函数 post
- * 第  314 行  函数 put
- * 第  326 行  函数 delete
+ * @file android-app/core-network/src/main/kotlin/com/jiancai/android/network/ApiPaths.kt
+ * @role 客户端唯一的接口清单（路径 + 方法 + 序列化器 + 幂等键来源）。
+ * @exports ApiPaths
+ * @depends shared
+ * @calledBy android-app/core-session/src/main/kotlin/com/jiancai/android/session/SessionGate.kt, android-app/feature-admin/src/main/kotlin/com/jiancai/android/admin/AdminRoute.kt, android-app/feature-note/src/main/kotlin/com/jiancai/android/note/NoteRoute.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.android.network

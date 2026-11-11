@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   18 行  类 Role
+ * @file shared/src/main/kotlin/com/jiancai/shared/enums/Role.kt
+ * @role 账号角色（唯一真源）。
+ * @exports Role
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.enums

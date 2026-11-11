@@ -1,8 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   52 行  类 GatewayDeps
- * 第   70 行  对象 ?
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayDeps.kt
+ * @role 网关的全部依赖（组合根装配时一次性注入）。
+ * @exports GatewayDeps
+ * @depends account, auth, category, config, customer, db-core, note, observability, order, pricing, print, return-check, settlement
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayRoutes.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.gateway

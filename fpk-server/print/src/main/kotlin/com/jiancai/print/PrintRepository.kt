@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   23 行  类 PrintRepository
- * 第   33 行  函数 insertIfUnderLimit
- * 第   52 行  函数 count
- * 第   61 行  对象 ?
- * 第   73 行  类 PrintRecord
+ * @file fpk-server/print/src/main/kotlin/com/jiancai/print/PrintRepository.kt
+ * @role `print_job` 的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy fpk-server/print/src/main/kotlin/com/jiancai/print/PrintService.kt
+ * @sideEffects 写 print_job（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.print

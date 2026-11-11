@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   30 行  类 OrderDto
- * 第   58 行  类 LineDto
- * 第   79 行  类 CreateOrderCmd
- * 第   90 行  类 UpdateOrderCmd
- * 第   99 行  类 OrderLineCmd
- * 第  108 行  类 OrderQuery
+ * @file shared/src/main/kotlin/com/jiancai/shared/dto/OrderDto.kt
+ * @role 订单抬头（唯一出参 DTO，S08 order 产出；S09/S10/S11/S12 与 C06/C07/C08 消费）。
+ * @exports OrderDto, LineDto, CreateOrderCmd, UpdateOrderCmd, OrderLineCmd, OrderQuery
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayRoutes.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt, fpk-server/order/src/main/kotlin/com/jiancai/order/OrderPort.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.dto

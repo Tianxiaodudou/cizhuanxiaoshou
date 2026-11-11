@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   31 行  接口 SerialPort
- * 第   42 行  函数 next
- * 第   49 行  函数 next
- * 第   61 行  函数 nextNote
- * 第   67 行  函数 nextNote
+ * @file fpk-server/serial/src/main/kotlin/com/jiancai/serial/SerialPort.kt
+ * @role 单号 Port：S07 唯一对外入口（铁律 8：业务模块只能通过本 Port 取号，禁止自行拼单号）。
+ * @exports SerialPort
+ * @depends db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt, fpk-server/note/src/main/kotlin/com/jiancai/note/NoteService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.serial

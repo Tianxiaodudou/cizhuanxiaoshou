@@ -1,10 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   24 行  类 SettleDto
- * 第   41 行  类 SubmitSettleCmd
- * 第   51 行  类 AuditSettleCmd
- * 第   63 行  类 ReceivableDto
+ * @file shared/src/main/kotlin/com/jiancai/shared/dto/SettleDto.kt
+ * @role 结算单（唯一出参 DTO，S11 settlement 产出）。
+ * @exports SettleDto, SubmitSettleCmd, AuditSettleCmd, ReceivableDto
+ * @depends （无）
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/GatewayRoutes.kt, fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditPort.kt, fpk-server/observability/src/main/kotlin/com/jiancai/observability/AuditService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.dto

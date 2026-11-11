@@ -1,21 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   43 行  类 AccountAdminPortTest
- * 第   46 行  函数 admin_can_create_read_list_update_and_delete_an_account
- * 第   71 行  函数 list_is_ordered_by_id_so_the_admin_screen_is_stable
- * 第   84 行  函数 a_duplicate_username_is_rejected_with_e6001
- * 第  100 行  函数 blank_username_or_display_name_is_rejected_with_e422_and_writes_nothing
- * 第  116 行  函数 unknown_account_is_rejected_with_e6005
- * 第  133 行  函数 the_last_enabled_admin_cannot_be_deleted_demoted_or_disabled
- * 第  166 行  函数 renaming_the_last_admin_is_still_allowed
- * 第  181 行  函数 an_admin_can_be_demoted_while_another_enabled_admin_remains
- * 第  196 行  函数 a_disabled_admin_does_not_count_as_an_available_admin
- * 第  211 行  函数 a_staff_account_can_always_be_disabled_or_deleted
- * 第  227 行  函数 a_blank_password_means_keep_the_current_password
- * 第  250 行  函数 every_convenience_overload_opens_exactly_one_transaction
- * 第  268 行  函数 tx_overloads_reuse_the_callers_transaction_and_never_open_their_own
- * 第  294 行  函数 account_dtos_never_carry_the_password
+ * @file fpk-server/account/src/test/kotlin/com/jiancai/account/AccountAdminPortTest.kt
+ * @role 验收（S03 · 账号 CRUD）
+ * @exports AccountAdminPortTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.account

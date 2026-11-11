@@ -1,13 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   48 行  对象 ErrorMapping
- * 第   51 行  函数 codeOf
- * 第   76 行  函数 toResponse
- * 第   87 行  函数 encode
- * 第   95 行  函数 responseOf
- * 第  106 行  函数 messageOf
- * 第  116 行  类 MappedError
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ErrorMapping.kt
+ * @role 错误码统一映射（验收「错误码统一」）。
+ * @exports ErrorMapping, MappedError
+ * @depends account, auth, category, customer, db-core, note, observability, order, pricing, print, return-check, serial, settlement, shared
+ * @calledBy fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/ApiGateway.kt, fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/HttpServerAdapter.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

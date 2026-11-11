@@ -1,26 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   53 行  类 OrderFormLine
- * 第   65 行  类 OrderFormState
- * 第   85 行  对象 OrderFormComponent
- * 第   88 行  函数 empty
- * 第   91 行  函数 withCustomer
- * 第   98 行  函数 addLine
- * 第  101 行  函数 replaceLine
- * 第  104 行  函数 removeLine
- * 第  107 行  函数 withRemark
- * 第  110 行  函数 localValidationFailure
- * 第  122 行  函数 toCommand
- * 第  150 行  函数 prefillFrom
- * 第  162 行  函数 screen
- * 第  183 行  函数 toFormLine
- * 第  190 行  函数 failure
- * 第  203 行  类 OrderEntryRoute
- * 第  208 行  函数 form
- * 第  211 行  函数 lookupCustomer
- * 第  219 行  函数 submit
- * 第  232 行  对象 ?
+ * @file android-app/feature-order-entry/src/main/kotlin/com/jiancai/android/orderentry/OrderEntryRoute.kt
+ * @role C06 下单录入页：4 类单据共用，只传 [orderType]（验收「4 类页共用组件；提交走服务端」）。
+ * @exports OrderFormLine, OrderFormState, OrderFormComponent, OrderEntryRoute
+ * @depends core-network, core-ui, shared
+ * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/feature-today/src/main/kotlin/com/jiancai/android/today/TodayRoute.kt
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.orderentry

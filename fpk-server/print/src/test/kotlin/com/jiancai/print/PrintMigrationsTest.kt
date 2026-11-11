@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   26 行  类 PrintMigrationsTest
- * 第   29 行  函数 print_job_table_is_created_by_the_print_migration
- * 第   38 行  函数 migration_version_is_in_the_print_segment_and_idempotent
- * 第   54 行  函数 doc_no_index_exists_for_count_queries
- * 第   67 行  函数 database_checks_reject_invalid_print_job_rows
- * 第   82 行  函数 insertJob
+ * @file fpk-server/print/src/test/kotlin/com/jiancai/print/PrintMigrationsTest.kt
+ * @role S12 迁移与库层约束测试。
+ * @exports PrintMigrationsTest
+ * @depends db-core
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.print

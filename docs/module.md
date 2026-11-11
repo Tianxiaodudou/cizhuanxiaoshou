@@ -22,7 +22,8 @@
 | `features.md` | 22 个模块（S09–S14、C00–C12）职责与验收要点 |
 | `进度-单agent.md` | 每模块一行的断点续跑记录（完成时间 / 测试结果 / 遗留） |
 | `module.md`、`code-map.md` | 本模块（docs）的职责与目录地图 |
-| `tools/gen-code-map.ps1` | 生成各模块 ``code-map.md``（**全层级目录**，中文）+ 每个 `.kt` 文件头部的行号级代码地图 |
+| `tools/gen-code-map.ps1` | 给每个 `.kt` 写文件头代码地图（`@file/@role/@exports/@depends/@calledBy/@sideEffects`） |
+| `tools/check-file-headers.ps1` | 检查文件头 `@file`（前 10 行，默认只警告，`-Strict` 失败） |
 | `tools/scan-buttons.ps1` | 按钮 / 打印关键词扫描（关键词真源来自 C02 `ClientDenyPolicy`） |
 | `tools/verify-hooks.ps1` | hooks 自检：跑扫描 + 校验代码地图齐全 |
 | `tools/device-e2e.sh` | 真机联调脚本（手机 shell 里 curl 打真实网关，配合 `adb reverse`） |
@@ -47,25 +48,30 @@
 | --- | --- | --- | --- |
 | `print-keyword-deny` | pre-commit | `docs/tools/scan-buttons.ps1` | block（退出码 1） |
 | `button-scan` | pre-push | `docs/tools/scan-buttons.ps1` | warn（只报告） |
-| `code-map-freshness` | pre-push | `docs/tools/verify-hooks.ps1 -Check code-map` | warn |
+| `file-header-check` | pre-push | `docs/tools/check-file-headers.ps1` | warn（只警告，不卡构建） |
 
 `docs/tools/verify-hooks.ps1` 会读取同一份配置语义并实际执行，因此「hooks 生效」可本地验证
 （不需要 dsh 运行时）：`powershell -File docs/tools/verify-hooks.ps1` → `HOOKS OK`。
 
-## 代码地图口径（2026-11-11 追加）
+## 代码地图口径（2026-11-11 定稿）
 
-任务要求「所有文件夹层级都要有代码地图、所有源码文件头部都要有本文件的代码地图、中文、精确到行」：
+代码地图分**两部分**，分工明确：
 
-1. **目录级**：`docs/tools/gen-code-map.ps1` 递归遍历 `shared/`、`fpk-server/`、`android-app/` 与仓库根，
-   给**每一个目录**生成 `code-map.md`（中文：本目录职责 + 文件清单 + 子目录清单）。
-   实测生成 **394 份**目录地图（`docs/` 自身的地图手写，避免与生成器互相覆盖）。
-2. **文件级**：同一脚本给每个 `.kt` 文件顶部写「本文件代码地图」注释块，逐条列出
-   `第 N 行 / 种类（函数/类/对象/接口）/ 名称`；行号是该符号在文件里的真实起始行。
-   实测写入 **236 个**源码文件。
-3. **可重跑**：脚本对已有文件头是幂等的（先剥旧头再生成），改代码后重跑即可；
-   `verify-hooks.ps1 -Check code-map` 会检查每个源码包目录都有地图（缺一份即失败）。
-4. **脚本自身 ASCII**：PowerShell 5.1 会把无 BOM 的 UTF-8 当 ANSI，中文文案集中在
-   `tools/code-map-template.json`（`-Encoding UTF8` 读取），脚本里不写中文。
+1. **总览地图** `docs/CODEMAPS/`（按领域拆分，不写巨型文件）：
+   [README](../CODEMAPS/README.md)（约定与字段规范）、[architecture](../CODEMAPS/architecture.md)（分层 / 数据流 / 四条硬边界）、
+   [backend](../CODEMAPS/backend.md)（路由 ↔ Port ↔ 表、迁移段位、错误码、事务）、
+   [frontend](../CODEMAPS/frontend.md)（页面树 / 状态流 / 客户端硬边界）、
+   [conventions](../CODEMAPS/conventions.md)（铁律、验证方式、已知限制）。
+2. **文件头注释**：每个 `.kt` 顶部写
+   `@file / @role / @exports / @depends / @calledBy / @sideEffects` 六项（中文职责，只放低变更频率信息）。
+   行号、接口签名、逐行摘要**不写**——它们在代码里，复制必然过期。
+
+维护规则：
+- `docs/tools/gen-code-map.ps1` 生成文件头（幂等，先剥旧头再写新头）；改代码后重跑；
+- `docs/tools/check-file-headers.ps1` 检查前 10 行是否有 `@file`：默认只警告（不卡构建），`-Strict` 才失败；
+- 逐目录的 `code-map.md` 已取消（与总览重复且易过期），模块职责仍由各模块 `module.md` 承担；
+- 脚本本体保持 ASCII：PowerShell 5.1 会把无 BOM 的 UTF-8 当 ANSI，中文文案集中在
+  `tools/code-map-template.json`（`-Encoding UTF8` 读取）。
 
 ## 硬边界
 

@@ -1,4 +1,13 @@
 ﻿/*
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/TestFakes.kt
+ * @role 网关测试用的「假世界」：所有 Port 的内存替身 + 调用计数。
+ * @exports （无）
+ * @depends account, auth, category, config, customer, db-core, note, observability, order, pricing, print, return-check, settlement, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
+ */
+
+/*
  * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
  * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
  * 第  211 行  类 FakeWorld

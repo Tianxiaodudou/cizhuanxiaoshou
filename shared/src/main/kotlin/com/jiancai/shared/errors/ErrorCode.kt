@@ -1,9 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  类 ErrorCode
- * 第  101 行  对象 ?
- * 第  103 行  函数 fromWire
+ * @file shared/src/main/kotlin/com/jiancai/shared/errors/ErrorCode.kt
+ * @role 全量错误码（唯一真源）。
+ * @exports ErrorCode
+ * @depends （无）
+ * @calledBy shared/src/main/kotlin/com/jiancai/shared/errors/ErrorResponse.kt, fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminException.kt, fpk-server/account/src/main/kotlin/com/jiancai/account/AccountAdminService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.errors

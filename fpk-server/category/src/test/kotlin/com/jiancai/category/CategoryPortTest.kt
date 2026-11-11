@@ -1,23 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   40 行  类 CategoryPortTest
- * 第   45 行  函数 admin_can_create_read_list_update_and_delete_a_category
- * 第  114 行  函数 list_is_ordered_by_category_name_and_model
- * 第  129 行  函数 list_can_filter_to_enabled_models_for_the_entry_screen
- * 第  143 行  函数 duplicate_category_and_model_is_rejected_with_e409_and_writes_nothing
- * 第  164 行  函数 blank_names_are_rejected_with_e422_and_write_nothing
- * 第  181 行  函数 create_requires_an_empty_id_and_update_requires_an_id
- * 第  200 行  函数 unknown_category_is_rejected_with_e404
- * 第  216 行  函数 batch_tags_are_trimmed_deduped_and_fully_replaced_on_update
- * 第  233 行  函数 required_batch_tags_need_at_least_one_non_blank_value
- * 第  274 行  函数 invalid_packing_spec_is_rejected_with_e422_before_writing
- * 第  279 行  函数 spec
- * 第  310 行  函数 blank_optional_packing_values_become_null_instead_of_empty_strings
- * 第  335 行  函数 deleting_a_category_also_removes_its_batch_tags
- * 第  350 行  函数 every_convenience_overload_opens_exactly_one_transaction
- * 第  373 行  函数 tx_overloads_reuse_the_callers_transaction_and_never_open_their_own
- * 第  391 行  函数 a_failed_caller_transaction_rolls_back_the_category_write
+ * @file fpk-server/category/src/test/kotlin/com/jiancai/category/CategoryPortTest.kt
+ * @role S05 用例验收：管理员 CRUD、服务端规范化、唯一性、批号类型、装箱规格校验、事务口径。
+ * @exports CategoryPortTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.category

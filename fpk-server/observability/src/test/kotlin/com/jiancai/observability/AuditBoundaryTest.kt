@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   34 行  类 AuditBoundaryTest
- * 第   55 行  函数 the_audit_port_never_receives_a_role_token_or_account_dto
- * 第   75 行  函数 the_audit_port_only_returns_dtos
- * 第   85 行  函数 sql_only_lives_in_the_audit_repository
- * 第  102 行  函数 the_ledger_is_append_only
- * 第  124 行  函数 the_module_does_not_import_any_business_module
- * 第  152 行  函数 the_module_never_makes_a_permission_decision
- * 第  168 行  函数 mainSources
+ * @file fpk-server/observability/src/test/kotlin/com/jiancai/observability/AuditBoundaryTest.kt
+ * @role 硬边界的结构化守卫（S14）
+ * @exports AuditBoundaryTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.observability

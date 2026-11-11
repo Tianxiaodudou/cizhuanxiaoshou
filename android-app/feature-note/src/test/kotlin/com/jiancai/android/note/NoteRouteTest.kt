@@ -1,18 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   46 行  类 NoteRouteTest
- * 第   48 行  类 FakeClient
- * 第   52 行  函数 call
- * 第   58 行  函数 serverAddress
- * 第   62 行  函数 a_note_is_created_with_the_source_order_number
- * 第   75 行  函数 the_source_order_can_be_selected_from_the_aggregate_query
- * 第   84 行  函数 an_empty_phone_is_rejected_without_a_request
- * 第   93 行  函数 voiding_only_targets_the_note_itself
- * 第  103 行  函数 bad_input_is_rejected_before_the_network
- * 第  121 行  函数 the_module_never_modifies_the_source_order
- * 第  135 行  函数 sampleOrder
- * 第  155 行  函数 sampleNote
+ * @file android-app/feature-note/src/test/kotlin/com/jiancai/android/note/NoteRouteTest.kt
+ * @role C09 验收：备注单正确关联原单；不修改原单。
+ * @exports NoteRouteTest
+ * @depends core-network, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.note

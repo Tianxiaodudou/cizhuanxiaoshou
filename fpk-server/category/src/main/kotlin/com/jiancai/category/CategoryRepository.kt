@@ -1,24 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  类 CategoryWriteModel
- * 第   51 行  类 StoredCategory
- * 第   63 行  函数 toDto
- * 第   84 行  类 CategoryRepository
- * 第   87 行  函数 findAll
- * 第  103 行  函数 findById
- * 第  118 行  函数 existsByNameAndModel
- * 第  132 行  函数 insert
- * 第  152 行  函数 update
- * 第  161 行  函数 deleteById
- * 第  168 行  函数 replaceTags
- * 第  183 行  函数 deleteTags
- * 第  190 行  函数 loadAllTags
- * 第  202 行  函数 loadTags
- * 第  213 行  函数 bindCommon
- * 第  230 行  函数 toStoredCategory
- * 第  257 行  函数 pricingUnitOf
- * 第  261 行  对象 ?
+ * @file fpk-server/category/src/main/kotlin/com/jiancai/category/CategoryRepository.kt
+ * @role `category` / `category_batch_tag` 的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy fpk-server/category/src/main/kotlin/com/jiancai/category/CategoryService.kt
+ * @sideEffects 写 category, category_batch_tag（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.category

@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   39 行  类 HttpAdapterTest
- * 第   46 行  函数 a_login_round_trip_returns_a_token_and_the_contract_version
- * 第   65 行  函数 a_request_without_a_token_gets_a_unified_error_body
- * 第   81 行  函数 query_parameters_are_decoded_and_forwarded
- * 第   97 行  函数 a_utf8_request_body_survives_the_round_trip
- * 第  117 行  函数 an_unsupported_method_is_404_and_an_unknown_path_is_404
- * 第  140 行  函数 every_http_response_carries_a_trace_header
- * 第  149 行  函数 the_server_can_be_stopped_and_started_again
- * 第  164 行  函数 withServer
- * 第  176 行  函数 send
+ * @file fpk-server/api-gateway/src/test/kotlin/com/jiancai/gateway/HttpAdapterTest.kt
+ * @role HTTP 适配层（真起一个 JDK HTTP 服务器，用真实 `HttpClient` 打请求）。
+ * @exports HttpAdapterTest
+ * @depends shared
+ * @calledBy （无）
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.gateway

@@ -1,11 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   28 行  类 AccountBoundaryTest
- * 第   45 行  函数 the_admin_port_never_receives_the_callers_identity_or_role
- * 第   58 行  函数 the_account_store_contract_never_asks_for_permission_inputs
- * 第   70 行  函数 the_admin_port_only_returns_dtos
- * 第   80 行  函数 the_account_dto_has_no_password_field
+ * @file fpk-server/account/src/test/kotlin/com/jiancai/account/AccountBoundaryTest.kt
+ * @role 硬边界（S03）的结构化守卫
+ * @exports AccountBoundaryTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.account

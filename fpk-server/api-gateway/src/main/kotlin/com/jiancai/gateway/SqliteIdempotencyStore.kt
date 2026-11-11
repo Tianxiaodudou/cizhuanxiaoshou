@@ -1,22 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  类 GatewayIdempotencyRepository
- * 第   40 行  函数 find
- * 第   58 行  函数 upsert
- * 第   73 行  函数 delete
- * 第   81 行  函数 purgeExpired
- * 第   89 行  函数 count
- * 第   97 行  对象 ?
- * 第  132 行  类 StoredIdempotency
- * 第  153 行  类 SqliteIdempotencyStore
- * 第  161 行  函数 get
- * 第  177 行  函数 put
- * 第  193 行  函数 remove
- * 第  198 行  函数 size
- * 第  200 行  函数 encodeHeaders
- * 第  203 行  函数 decodeHeaders
- * 第  211 行  对象 ?
+ * @file fpk-server/api-gateway/src/main/kotlin/com/jiancai/gateway/SqliteIdempotencyStore.kt
+ * @role SQLite 版幂等键存储：重启 / 多进程仍能重放（验收「幂等键校验」的持久化版本）。
+ * @exports SqliteIdempotencyStore
+ * @depends db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/GatewayMain.kt
+ * @sideEffects 写 gateway_idempotency（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.gateway

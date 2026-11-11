@@ -1,7 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   13 行  类 ErrorCategory
+ * @file shared/src/main/kotlin/com/jiancai/shared/errors/ErrorCategory.kt
+ * @role 错误分类（唯一真源）：S13 api-gateway 按分类统一映射 HTTP 状态、日志级别与客户端动作。
+ * @exports ErrorCategory
+ * @depends （无）
+ * @calledBy shared/src/main/kotlin/com/jiancai/shared/errors/ErrorCode.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.shared.errors

@@ -1,12 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  接口 AccountStorePort
- * 第   40 行  函数 list
- * 第   43 行  函数 get
- * 第   50 行  函数 create
- * 第   58 行  函数 update
- * 第   65 行  函数 delete
+ * @file fpk-server/auth/src/main/kotlin/com/jiancai/auth/AccountStorePort.kt
+ * @role 账号存储 Port：S02 对外的**第二个** Port，供 S03 account（管理员用例层）取账号数据。
+ * @exports AccountStorePort
+ * @depends db-core, shared
+ * @calledBy fpk-server/app/src/main/kotlin/com/jiancai/app/AccountStoreAdapter.kt, fpk-server/app/src/main/kotlin/com/jiancai/app/App.kt, fpk-server/auth/src/main/kotlin/com/jiancai/auth/AuthService.kt
+ * @sideEffects 经 TxRunner / Port 间接读写数据库
  */
 
 package com.jiancai.auth

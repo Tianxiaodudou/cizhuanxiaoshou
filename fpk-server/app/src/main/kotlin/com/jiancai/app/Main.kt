@@ -1,8 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  函数 main
- * 第   57 行  函数 requireEnv
+ * @file fpk-server/app/src/main/kotlin/com/jiancai/app/Main.kt
+ * @role 启动自检入口：打开库 → 迁移 → 装配 Port → （可选）创建初始管理员，然后退出。
+ * @exports main
+ * @depends auth, config, db-core, shared
+ * @calledBy （无）
+ * @sideEffects 文件 IO
  */
 
 package com.jiancai.app

@@ -1,25 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   71 行  类 ContractTest
- * 第   74 行  函数 contract_version_matches_mirror_file
- * 第   86 行  函数 money_serializes_as_decimal_string
- * 第  105 行  函数 order_dto_roundtrip_keeps_wire_shape
- * 第  146 行  函数 unknown_fields_and_missing_defaults_are_forward_compatible
- * 第  155 行  函数 category_dto_carries_packing_spec
- * 第  180 行  函数 order_type_covers_four_entry_pages_and_maps_to_serial_prefix
- * 第  190 行  函数 serial_prefixes_are_unique_and_cover_all_doc_types
- * 第  209 行  函数 error_codes_are_well_formed_and_map_to_http
- * 第  227 行  函数 order_type_and_doc_type_share_the_same_wire_value
- * 第  239 行  函数 page_dto_roundtrip
- * 第  252 行  函数 error_code_wire_values_are_frozen
- * 第  262 行  函数 return_check_dtos_roundtrip
- * 第  299 行  函数 order_dto_carries_source_order_no_for_returns
- * 第  332 行  函数 order_query_supports_order_no_filter
- * 第  340 行  函数 quantity_normalizes_and_validates
- * 第  358 行  函数 batch_tag_rules_are_single_source
- * 第  369 行  函数 v1_1_0_error_codes_are_available
- * 第  379 行  函数 enum_wire_values_are_stable
+ * @file shared/src/test/kotlin/com/jiancai/shared/ContractTest.kt
+ * @role 契约层自检：保证「唯一真源」在 CI 中真的成立，而不是靠人工约定。
+ * @exports ContractTest
+ * @depends （无）
+ * @calledBy （无）
+ * @sideEffects 文件 IO
  */
 
 package com.jiancai.shared

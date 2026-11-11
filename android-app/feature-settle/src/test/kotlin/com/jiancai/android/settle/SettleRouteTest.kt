@@ -1,16 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  类 SettleRouteTest
- * 第   39 行  类 FakeClient
- * 第   41 行  函数 call
- * 第   47 行  函数 serverAddress
- * 第   51 行  函数 a_successful_upload_is_echoed_from_the_server_response
- * 第   63 行  函数 a_server_rejection_is_echoed_verbatim_with_its_code
- * 第   75 行  函数 obvious_input_errors_are_stopped_locally
- * 第   84 行  函数 the_client_never_decides_whether_the_settlement_is_valid
- * 第   97 行  函数 the_amount_is_shown_read_only_and_comes_from_the_server
- * 第  103 行  函数 sampleSettle
+ * @file android-app/feature-settle/src/test/kotlin/com/jiancai/android/settle/SettleRouteTest.kt
+ * @role C10 验收：上传与回显正确。
+ * @exports SettleRouteTest
+ * @depends core-network, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.settle

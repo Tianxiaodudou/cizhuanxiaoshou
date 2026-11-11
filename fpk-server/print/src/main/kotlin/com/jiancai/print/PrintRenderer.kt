@@ -1,14 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   27 行  类 PrintRenderer
- * 第   29 行  函数 renderOrder
- * 第   68 行  函数 renderNote
- * 第  109 行  函数 document
- * 第  139 行  函数 compose
- * 第  196 行  函数 label
- * 第  209 行  函数 toItem
- * 第  227 行  对象 ?
+ * @file fpk-server/print/src/main/kotlin/com/jiancai/print/PrintRenderer.kt
+ * @role 票据渲染器：把 S08 / S10 的 DTO 变成 80mm 文本与结构化打印视图。
+ * @exports （无）
+ * @depends shared
+ * @calledBy fpk-server/print/src/main/kotlin/com/jiancai/print/PrintService.kt
+ * @sideEffects 无（纯计算 / 转发）
  */
 
 package com.jiancai.print

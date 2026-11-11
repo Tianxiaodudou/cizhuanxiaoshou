@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   29 行  类 CustomerRepository
- * 第   32 行  函数 findByPhone
- * 第   36 行  函数 findById
- * 第   47 行  函数 insert
- * 第   70 行  函数 queryOne
- * 第   82 行  函数 toStoredCustomer
- * 第   91 行  对象 ?
- * 第  111 行  类 StoredCustomer
- * 第  119 行  函数 toDto
+ * @file fpk-server/customer/src/main/kotlin/com/jiancai/customer/CustomerRepository.kt
+ * @role `customer` 表的唯一 SQL 出口（铁律 10）。
+ * @exports （无）
+ * @depends db-core, shared
+ * @calledBy fpk-server/customer/src/main/kotlin/com/jiancai/customer/CustomerService.kt
+ * @sideEffects 写 customer（INSERT / UPDATE / DELETE）
  */
 
 package com.jiancai.customer

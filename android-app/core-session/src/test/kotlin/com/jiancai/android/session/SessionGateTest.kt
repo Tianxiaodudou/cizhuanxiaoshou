@@ -1,20 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   46 行  类 SessionGateTest
- * 第   57 行  类 FakeClient
- * 第   59 行  函数 call
- * 第   65 行  函数 serverAddress
- * 第   68 行  函数 success
- * 第   75 行  函数 a_guest_lands_on_the_login_page
- * 第   83 行  函数 a_successful_login_stores_the_server_token_and_lands_on_home
- * 第   95 行  函数 a_failed_login_keeps_the_user_on_the_login_page_with_the_server_message
- * 第  112 行  函数 a_blank_username_is_rejected_without_touching_the_network
- * 第  123 行  函数 an_expired_session_is_treated_as_logged_out_and_cleared
- * 第  136 行  函数 a_401_clears_the_session_and_asks_the_caller_to_go_to_login
- * 第  150 行  函数 a_non_auth_failure_is_left_to_the_feature
- * 第  158 行  函数 logout_clears_everything
- * 第  169 行  函数 token_judgement_exists_only_in_c00_and_c01
+ * @file android-app/core-session/src/test/kotlin/com/jiancai/android/session/SessionGateTest.kt
+ * @role C01 验收：token 判断仅此一处。
+ * @exports SessionGateTest
+ * @depends core-network, shared
+ * @calledBy （无）
+ * @sideEffects 网络请求（HTTP）
  */
 
 package com.jiancai.android.session

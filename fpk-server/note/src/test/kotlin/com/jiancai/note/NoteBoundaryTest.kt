@@ -1,15 +1,10 @@
 ﻿/*
- * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
- * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
- * 第   37 行  类 NoteBoundaryTest
- * 第   54 行  函数 the_note_port_never_receives_a_role_token_or_account_dto
- * 第   75 行  函数 the_note_port_only_returns_dtos
- * 第   85 行  函数 sql_only_lives_in_the_note_repository
- * 第  110 行  函数 the_module_never_composes_a_serial_number_itself
- * 第  135 行  函数 the_module_contains_no_print_rendering
- * 第  149 行  函数 the_module_never_touches_the_order_tables_or_deletes_notes
- * 第  163 行  函数 the_module_owns_exactly_one_business_table
- * 第  171 行  函数 mainSources
+ * @file fpk-server/note/src/test/kotlin/com/jiancai/note/NoteBoundaryTest.kt
+ * @role 硬边界（S10）的结构化守卫
+ * @exports NoteBoundaryTest
+ * @depends db-core, shared
+ * @calledBy （无）
+ * @sideEffects 经本模块 repository 读写（SQL 收口在 repository）
  */
 
 package com.jiancai.note
