@@ -338,6 +338,8 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		ok(w, a.available(cid, cat))
 	case p == "/orders" && r.Method == "POST":
 		a.createOrder(w, r, id)
+	case p == "/orders/all" && r.Method == "GET":
+		ok(w, a.orders(`1=1`, nil))
 	case p == "/orders/today":
 		ok(w, a.orders(`date(o.created_at)=date('now','localtime')`, nil))
 	case p == "/orders/recent":
@@ -369,6 +371,8 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		ok(w, a.printJobs())
 	case p == "/settlement":
 		ok(w, a.settlement())
+	case p == "/accounts" && r.Method == "POST":
+		a.accountCreate(w, r)
 	case p == "/accounts" && r.Method == "GET":
 		ok(w, a.accounts())
 	case strings.HasPrefix(p, "/accounts/"):
@@ -803,40 +807,101 @@ func (a *App) accounts() []map[string]any {
 	return out
 }
 
+func (a *App) activeAdminCount() int {
+	var n int
+	_ = a.db.QueryRow(`SELECT COUNT(*) FROM accounts WHERE role='admin' AND status='active'`).Scan(&n)
+	return n
+}
+
+func (a *App) accountCreate(w http.ResponseWriter, r *http.Request) {
+	var in struct{ Username, Name, Password, Role, Status string }
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	if in.Username == "" || in.Name == "" || in.Password == "" {
+		fail(w, 400, "FIELD_REQUIRED", "账号、姓名、密码必填")
+		return
+	}
+	if in.Role == "" {
+		in.Role = "staff"
+	}
+	if in.Status == "" {
+		in.Status = "active"
+	}
+	_, err := a.db.Exec(`INSERT INTO accounts(username,name,password_hash,role,status,created_at) VALUES(?,?,?,?,?,?)`,
+		in.Username, in.Name, hash(in.Password), in.Role, in.Status, now())
+	if err != nil {
+		fail(w, 409, "ACCOUNT_EXISTS", "账号已存在")
+		return
+	}
+	a.log(nil, "ACCOUNT_CREATE", in.Username)
+	ok(w, map[string]any{"created": true})
+}
+
 func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 	parts := strings.Split(rest, "/")
 	id, _ := strconv.ParseInt(parts[0], 10, 64)
-	if len(parts) > 1 {
-		switch parts[1] {
-		case "status":
-			v := r.URL.Query().Get("value")
-			_, _ = a.db.Exec(`UPDATE accounts SET status=? WHERE id=?`, v, id)
-			ok(w, map[string]any{"id": id, "status": v})
-			return
-		case "password":
-			var in struct{ Password string }
-			_ = json.NewDecoder(r.Body).Decode(&in)
-			_, _ = a.db.Exec(`UPDATE accounts SET password_hash=? WHERE id=?`, hash(in.Password), id)
-			ok(w, map[string]any{"reset": true})
-			return
-		}
-	}
-	if r.Method == "POST" {
-		var in struct{ Username, Name, Password, Role string }
-		_ = json.NewDecoder(r.Body).Decode(&in)
-		if in.Role == "" {
-			in.Role = "staff"
-		}
-		_, err := a.db.Exec(`INSERT INTO accounts(username,name,password_hash,role,status,created_at) VALUES(?,?,?,?,'active',?)`,
-			in.Username, in.Name, hash(in.Password), in.Role, now())
-		if err != nil {
-			fail(w, 409, "ACCOUNT_EXISTS", "账号已存在")
-			return
-		}
-		ok(w, map[string]any{"created": true})
+	if id <= 0 {
+		fail(w, 400, "ID", "id 非法")
 		return
 	}
-	fail(w, 400, "BAD", "非法操作")
+	switch {
+	case len(parts) > 1 && parts[1] == "status":
+		v := r.URL.Query().Get("value")
+		if v != "active" && v != "disabled" {
+			fail(w, 400, "STATUS", "状态非法")
+			return
+		}
+		var role, old string
+		_ = a.db.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &old)
+		if role == "admin" && old == "active" && v == "disabled" && a.activeAdminCount() <= 1 {
+			fail(w, 400, "LAST_ADMIN", "至少保留一个启用状态的管理员")
+			return
+		}
+		_, _ = a.db.Exec(`UPDATE accounts SET status=? WHERE id=?`, v, id)
+		ok(w, map[string]any{"id": id, "status": v})
+	case len(parts) > 1 && parts[1] == "password":
+		var in struct{ Password string }
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		if len(in.Password) < 6 {
+			fail(w, 400, "PASSWORD", "密码至少 6 位")
+			return
+		}
+		_, _ = a.db.Exec(`UPDATE accounts SET password_hash=? WHERE id=?`, hash(in.Password), id)
+		ok(w, map[string]any{"reset": true})
+	case r.Method == "PUT":
+		var in struct{ Name, Role, Status, Password string }
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		var role, status string
+		if err := a.db.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &status); err != nil {
+			fail(w, 404, "NOT_FOUND", "账号不存在")
+			return
+		}
+		if in.Role == "" {
+			in.Role = role
+		}
+		if in.Status == "" {
+			in.Status = status
+		}
+		if role == "admin" && status == "active" && (in.Role != "admin" || in.Status != "active") && a.activeAdminCount() <= 1 {
+			fail(w, 400, "LAST_ADMIN", "至少保留一个启用状态的管理员")
+			return
+		}
+		_, _ = a.db.Exec(`UPDATE accounts SET name=?,role=?,status=? WHERE id=?`, in.Name, in.Role, in.Status, id)
+		if in.Password != "" {
+			_, _ = a.db.Exec(`UPDATE accounts SET password_hash=? WHERE id=?`, hash(in.Password), id)
+		}
+		ok(w, map[string]any{"id": id})
+	case r.Method == "DELETE":
+		var role, status string
+		_ = a.db.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &status)
+		if role == "admin" && status == "active" && a.activeAdminCount() <= 1 {
+			fail(w, 400, "LAST_ADMIN", "至少保留一个启用状态的管理员")
+			return
+		}
+		_, _ = a.db.Exec(`DELETE FROM accounts WHERE id=?`, id)
+		ok(w, map[string]any{"deleted": true})
+	default:
+		fail(w, 405, "METHOD", "不支持的方法")
+	}
 }
 
 func (a *App) settings(w http.ResponseWriter, r *http.Request) {
