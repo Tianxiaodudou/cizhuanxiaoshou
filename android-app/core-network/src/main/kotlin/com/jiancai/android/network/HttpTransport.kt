@@ -3,7 +3,7 @@
  * @role 传输层抽象：只做「发字节、收字节」。
  * @exports TransportRequest, TransportResponse, TransportFailure, HttpTransport, JdkHttpTransport
  * @depends （无）
- * @calledBy android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt
+ * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/AndroidTransport.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt
  * @sideEffects 网络请求（HTTP）
  */
 

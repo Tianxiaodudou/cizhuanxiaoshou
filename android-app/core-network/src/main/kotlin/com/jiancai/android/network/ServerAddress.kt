@@ -3,7 +3,7 @@
  * @role 服务端地址（客户端可改，见 C04 登录页）。
  * @exports ServerAddress, ServerAddressStore, InMemoryServerAddressStore
  * @depends （无）
- * @calledBy android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt, android-app/feature-login/src/main/kotlin/com/jiancai/android/login/LoginRoute.kt
+ * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/data/AppContainer.kt, android-app/app-shell/src/main/kotlin/com/jiancai/android/shell/NavGraph.kt, android-app/core-network/src/main/kotlin/com/jiancai/android/network/HttpApiClient.kt
  * @sideEffects 无（纯计算 / 转发）
  */
 

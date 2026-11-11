@@ -3,7 +3,7 @@
  * @role 客户端唯一的接口清单（路径 + 方法 + 序列化器 + 幂等键来源）。
  * @exports ApiPaths
  * @depends shared
- * @calledBy android-app/core-session/src/main/kotlin/com/jiancai/android/session/SessionGate.kt, android-app/feature-admin/src/main/kotlin/com/jiancai/android/admin/AdminRoute.kt, android-app/feature-note/src/main/kotlin/com/jiancai/android/note/NoteRoute.kt
+ * @calledBy android-app/app/src/main/kotlin/com/jiancai/android/app/ui/note/NotePage.kt, android-app/app/src/main/kotlin/com/jiancai/android/app/ui/note/SelectOrderPage.kt, android-app/app/src/main/kotlin/com/jiancai/android/app/ui/order/OrderFormComponent.kt
  * @sideEffects 无（纯计算 / 转发）
  */
 

@@ -49,6 +49,18 @@
 | APK 安装（Redmi K40） | `adb install -r` 成功，包名 `com.jiancai.android.app`，MainActivity 已启动（设备锁屏，界面操作待解锁后补验） |
 | 两端连通 | 手机 `curl 127.0.0.1:8080/contract`（adb reverse → PC Node 转发 → fnOS）拿到 1.2.0 契约响应 |
 
+## 客户端 Compose 重写与新测试服务器（第六轮）
+
+| 项目 | 结果 |
+| --- | --- |
+| 客户端 UI | 全量改为 **Jetpack Compose + Material 3**（单 Activity + navigation-compose），12 个页面按预览页一一落文件 |
+| 规范文档 | 新增 [docs/specs/fnos-fpk.md](specs/fnos-fpk.md)（飞牛 FPK 官方规范 + 本项目约束）、[docs/specs/android-compose.md](specs/android-compose.md)（Google Android/Compose 规范 + 页面映射） |
+| 共用表单 | 3–6 四类录入共用 `ui/order/OrderFormComponent.kt`，差异只通过 `OrderKind` 传入 |
+| 新测试服务器 | fnOS `192.168.1.20`（Debian 12 / x86_64），FPK 1.0.8 安装运行，`:8080/contract` 返回 1.2.0 |
+| 真机联调（Redmi K40） | APK 改为 Compose 后重装：登录 `192.168.1.20:8080` 成功 → 首页 → 配送送货查客户「李四」→ 选品类「800×800 浅灰」→ 批号「浅灰A12」→ 单价 45.00（服务端）→ 提交成功 `PS202611110001`、总额 900.00 |
+| 其他页面 | 查询页（余额 900 / 明细行）、改当日单（列表 + 编辑页）、设置页（账号 / 服务端 / 打印只读）均实测打开 |
+| 服务端核对 | `/orders/today` = 1 单：`PS202611110001 purchase 900.00 900.00`，行 20 件 × 45.00 |
+
 ## 代码地图约定（第三轮定稿：总览 + 文件头）
 
 1. **总览地图** `docs/CODEMAPS/`：按领域拆分，`architecture.md`（分层 / 数据流 / 四条硬边界）、
