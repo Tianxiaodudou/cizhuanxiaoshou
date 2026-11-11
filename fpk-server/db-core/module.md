@@ -85,7 +85,9 @@ db.txRunner.run { tx ->              // 跨模块写 = 一次调用、一个事�
 | 300–399 | S04 customer、S05 category、S06 pricing |
 | 400–499 | S08 order、S09 return-check |
 | 500–599 | S10 note、S11 settlement |
-| 600–699 | S12 print、S14 observability |
+| 600–699 | S12 print |
+| 700–799 | S14 observability（审计台账，迁移 700） |
+| 800–899 | S13 api-gateway（幂等台账，迁移 800） |
 
 版本号重复在 `SqliteMigrator` 构造期直接 `require` 失败（不会跑到线上才发现）。
 

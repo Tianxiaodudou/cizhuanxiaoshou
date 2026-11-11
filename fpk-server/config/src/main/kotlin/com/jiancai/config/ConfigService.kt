@@ -1,3 +1,12 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   28 行  类 ConfigService
+ * 第   39 行  函数 getMerchantName
+ * 第   41 行  函数 getConfig
+ * 第   43 行  函数 resolve
+ */
+
 package com.jiancai.config
 
 import com.jiancai.db.TxRunner

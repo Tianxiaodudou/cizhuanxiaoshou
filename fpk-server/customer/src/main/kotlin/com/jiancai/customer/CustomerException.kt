@@ -1,3 +1,9 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   23 行  类 CustomerException
+ */
+
 package com.jiancai.customer
 
 import com.jiancai.shared.errors.ErrorCode
@@ -9,7 +15,8 @@ import com.jiancai.shared.errors.ErrorCode
  * 统一响应体，本模块不另写映射表（铁律 9）。
  *
  * 共享错误码里没有客户专属段位（`shared/errors/ErrorCode.kt` 只到 E1xxx–E7xxx、E9xxx），
- * 本模块因此复用通用码：`E422` 入参不合法、`E404` 客户不存在、`E409` 电话已建档。
+ * 本模块因此复用通用码：`E422` 入参不合法、`E404` 客户不存在。
+ * 电话重复建档不是错误：按「电话 = 客户唯一 id」幂等返回已有客户。
  * 需要客户专属码时必须先在 `shared` 追加（契约只增不改），不能在本模块自造字符串。
  *
  * @property code 共享错误码

@@ -1,3 +1,20 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   35 行  类 TokenSignerTest
+ * 第   46 行  函数 issued_token_round_trips_with_the_expected_layout_and_claims
+ * 第   59 行  函数 token_is_opaque_url_safe_text_and_leaks_no_raw_fields
+ * 第   70 行  函数 tampering_with_payload_or_mac_is_rejected
+ * 第   82 行  函数 expired_tokens_are_rejected_at_and_after_the_expiry_instant
+ * 第   91 行  函数 tokens_issued_in_the_future_beyond_the_clock_skew_allowance_are_rejected
+ * 第  100 行  函数 a_token_signed_with_another_secret_is_rejected
+ * 第  108 行  函数 malformed_or_client_forged_tokens_are_rejected
+ * 第  127 行  函数 version_downgrade_is_rejected_even_with_a_valid_mac
+ * 第  135 行  函数 oversized_tokens_are_rejected_before_parsing
+ * 第  142 行  函数 short_secrets_are_rejected_at_construction_but_32_bytes_is_accepted
+ * 第  149 行  函数 flipFirstChar
+ */
+
 package com.jiancai.auth
 
 import java.time.Instant

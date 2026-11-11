@@ -5,7 +5,8 @@
 ## 职责
 
 单号生成：**前缀 + 年 + 月日 + 全局序号**，统一在事务内取号，唯一约束兜底。
-单号只由服务端产出，客户端只展示；服务端只有 S08 通过 `SerialPort` 获取（铁律 8）。
+单号只由服务端产出，客户端只展示；S08 订单与 S10 备注单都通过 `SerialPort` 获取
+（铁律 8：业务模块禁止自行拼单号）。
 
 写入范围：`fpk-server/serial/**`（本模块独占 `serial_counter` / `serial_number` 两张表）。
 
@@ -13,7 +14,7 @@
 
 | 文件 | 内容 |
 | --- | --- |
-| `SerialPort.kt` | **Port**：取号入口（事务内 / 独立两种重载） |
+| `SerialPort.kt` | **Port**：取号入口（通用 / 备注单，各有事务内、独立两种重载） |
 | `SerialService.kt` | 实现：业务日期、序号分配、唯一约束重试，返回单号值 |
 | `SerialRepository.kt` | 内部：两张表的**唯一** SQL 出口（UPSERT 计数器 + 写账本） |
 | `SerialMigrations.kt` | 迁移：版本 100 建表（交给 db-core 的 `Migrator`） |
@@ -23,15 +24,22 @@
 
 ```kotlin
 interface SerialPort {
-    // 跨模块写：与业务写入同一个事务（S08 建单用这个）
+    // 跨模块写：与业务写入同一个事务（S08 / S10 建单用这个）
     fun next(tx: TxContext, type: SerialType): String
     // 独立取号：内部仍走 TxRunner.run {}，不存在非事务路径
     fun next(type: SerialType): String
+    // 备注单专用（S10）：等价于 next(..., SerialType.NOTE)，前缀 BZ
+    fun nextNote(tx: TxContext): String
+    fun nextNote(): String
 }
 ```
 
 `type` 是共享契约的 `SerialType`（前缀唯一真源，`SerialType.of(docType)` 解析）；
 调用方不得传入前缀字符串，也不得自己拼接 / 截取单号。
+
+`nextNote` 是 `SerialType.NOTE`（BZ）的显式入口，供 S10 创建备注单使用；
+它与 `next(NOTE)` 共用同一条 BZ 序列（不是第二套计数），也不占用其它类型的序号。
+需要与备注单写入同事务时用 `nextNote(tx)`，独立取号用 `nextNote()`。
 
 ## 单号格式与序号口径
 
@@ -100,6 +108,8 @@ val serial: SerialPort = SerialService(db.txRunner)   // 注入给 S08
       （+08:00 跨年 23:30 → 00:30）、`sequences_increment_per_type_and_reset_on_a_new_day`。
 - [x] 序号持久化：`sequence_is_persisted_in_the_database_not_in_the_service_instance`
       （新实例/重启后接着库里的序号继续，不回到 1）。
+- [x] 备注单号：`note_serial_uses_the_shared_bz_prefix_and_shares_the_note_sequence`
+      （`nextNote` / `next(NOTE)` 共用 BZ 序列、两个重载都可用、不占其它类型序号）。
 - [x] 事务取号：`caller_transaction_rollback_does_not_consume_the_number`（回滚后序号可复用）。
 - [x] 唯一约束兜底：`unique_constraint_is_the_fallback_when_a_number_is_already_taken`（占号后自动跳号重试）。
 - [x] 序号用尽：`exhausted_sequence_fails_with_a_retryable_serial_error`（`E9001`）。
@@ -130,3 +140,5 @@ include(":shared", ":fpk-server", ":fpk-server:db-core", ":fpk-server:serial")
    （任务卡签名的独立取号便捷重载）；后者内部仍是 `TxRunner.run {}`，不构成非事务路径。
 6. 单号以 `String` 返回：它是契约层的标量值，不含实体字段；账本表只做唯一性兜底与审计，
    不对外提供读取 Port。
+7. `nextNote` 是备注单（BZ）的显式入口，等价于 `next(..., SerialType.NOTE)`；
+   不改变序号口径（仍与 NOTE 共用 BZ 序列），也不新增错误码。

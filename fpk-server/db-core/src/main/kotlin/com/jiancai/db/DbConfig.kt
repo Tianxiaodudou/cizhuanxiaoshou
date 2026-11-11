@@ -1,3 +1,13 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   24 行  类 DbConfig
+ * 第   38 行  对象 ?
+ * 第   46 行  函数 inMemory
+ * 第   49 行  函数 file
+ * 第   58 行  类 JournalMode
+ */
+
 package com.jiancai.db
 
 /**

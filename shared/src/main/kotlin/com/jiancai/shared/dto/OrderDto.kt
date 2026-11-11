@@ -1,3 +1,14 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   30 行  类 OrderDto
+ * 第   58 行  类 LineDto
+ * 第   79 行  类 CreateOrderCmd
+ * 第   90 行  类 UpdateOrderCmd
+ * 第   99 行  类 OrderLineCmd
+ * 第  108 行  类 OrderQuery
+ */
+
 package com.jiancai.shared.dto
 
 import com.jiancai.shared.enums.OrderStatus
@@ -13,6 +24,7 @@ import kotlinx.serialization.Serializable
  * 金额（总额 / 应收 / 已收）与状态全部由服务端派生，客户端只展示。
  * [customerAddress] 是下单时的地址快照，不随客户资料修改而变化。
  * [version] 用于乐观锁，客户端改单时必须原样回传（见 [UpdateOrderCmd]）。
+ * [sourceOrderNo] 仅退货单有值（1.1.0 追加）：指向被退的原单号，非退货单为 null；改单不可变更。
  */
 @Serializable
 data class OrderDto(
@@ -33,6 +45,7 @@ data class OrderDto(
     @SerialName("created_at") val createdAt: String,
     @SerialName("created_by") val createdBy: Long,
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("source_order_no") val sourceOrderNo: String? = null,
 )
 
 /**
@@ -60,6 +73,7 @@ data class LineDto(
  *
  * [clientRequestId] 是幂等键：S08 按它去重，重复提交返回同一张订单；
  * 客户端不得上传单价 / 金额 / 单号 / 日期，这些一律由服务端产出。
+ * [sourceOrderNo] 1.1.0 追加：退货单必须带原单号（S09 校验批次归属），非退货单为 null。
  */
 @Serializable
 data class CreateOrderCmd(
@@ -68,6 +82,7 @@ data class CreateOrderCmd(
     @SerialName("customer_id") val customerId: Long,
     @SerialName("lines") val lines: List<OrderLineCmd>,
     @SerialName("remark") val remark: String? = null,
+    @SerialName("source_order_no") val sourceOrderNo: String? = null,
 )
 
 /** 改单入参（S08，仅当日单；[version] 为乐观锁版本）。 */
@@ -98,4 +113,6 @@ data class OrderQuery(
     @SerialName("to_date") val toDate: String? = null,
     @SerialName("page") val page: Int = DEFAULT_PAGE,
     @SerialName("page_size") val pageSize: Int = DEFAULT_PAGE_SIZE,
+    /** 1.1.0 追加：按单号精确读（S09 / S10 / S11 免去翻页探测存在性）。 */
+    @SerialName("order_no") val orderNo: String? = null,
 )

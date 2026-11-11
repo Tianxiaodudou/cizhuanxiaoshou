@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "description": "dsh hooks for the jiancai system. Each hook is a read-only gate; it never edits business code and never crosses module boundaries.",
+  "hooks": [
+    {
+      "id": "print-keyword-deny",
+      "trigger": "pre-commit",
+      "description": "Client must never contain print buttons / print wording (printing lives on the server, S12).",
+      "run": { "shell": "powershell", "script": "docs/tools/scan-buttons.ps1" },
+      "onFailure": "block",
+      "acceptance": "scan-buttons.ps1 exits 0"
+    },
+    {
+      "id": "button-scan",
+      "trigger": "pre-push",
+      "description": "Same scanner, full report: prints every @UiButton / ButtonSpec so新增按钮 能在评审里看见.",
+      "run": { "shell": "powershell", "script": "docs/tools/scan-buttons.ps1" },
+      "onFailure": "warn",
+      "acceptance": "report lists ButtonSpec / @UiButton counts"
+    },
+    {
+      "id": "code-map-freshness",
+      "trigger": "pre-push",
+      "description": "Regenerate the code maps and fail when the working tree differs (docs must not drift from code).",
+      "run": { "shell": "powershell", "script": "docs/tools/verify-hooks.ps1", "args": ["-Check", "code-map"] },
+      "onFailure": "warn",
+      "acceptance": "verification step 'code-map' reports OK"
+    }
+  ]
+}

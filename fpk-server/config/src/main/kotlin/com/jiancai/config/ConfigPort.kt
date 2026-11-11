@@ -1,3 +1,11 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   22 行  接口 ConfigPort
+ * 第   33 行  函数 getMerchantName
+ * 第   40 行  函数 getConfig
+ */
+
 package com.jiancai.config
 
 import com.jiancai.shared.dto.ConfigDto

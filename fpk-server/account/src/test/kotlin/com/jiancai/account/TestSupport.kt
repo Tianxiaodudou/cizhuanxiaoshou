@@ -1,3 +1,21 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   40 行  函数 testDb
+ * 第   43 行  类 CountingTxRunner
+ * 第   47 行  函数 run
+ * 第   56 行  类 FakeAccountStore
+ * 第   58 行  类 FakeAccount
+ * 第   68 行  函数 toDto
+ * 第   97 行  函数 seed
+ * 第  121 行  函数 storedPassword
+ * 第  123 行  函数 list
+ * 第  128 行  函数 get
+ * 第  133 行  函数 create
+ * 第  156 行  函数 update
+ * 第  170 行  函数 delete
+ */
+
 package com.jiancai.account
 
 import com.jiancai.db.DbCore

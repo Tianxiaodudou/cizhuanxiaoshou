@@ -1,12 +1,44 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   71 行  类 ContractTest
+ * 第   74 行  函数 contract_version_matches_mirror_file
+ * 第   86 行  函数 money_serializes_as_decimal_string
+ * 第  105 行  函数 order_dto_roundtrip_keeps_wire_shape
+ * 第  146 行  函数 unknown_fields_and_missing_defaults_are_forward_compatible
+ * 第  155 行  函数 category_dto_carries_packing_spec
+ * 第  180 行  函数 order_type_covers_four_entry_pages_and_maps_to_serial_prefix
+ * 第  190 行  函数 serial_prefixes_are_unique_and_cover_all_doc_types
+ * 第  209 行  函数 error_codes_are_well_formed_and_map_to_http
+ * 第  227 行  函数 order_type_and_doc_type_share_the_same_wire_value
+ * 第  239 行  函数 page_dto_roundtrip
+ * 第  252 行  函数 error_code_wire_values_are_frozen
+ * 第  262 行  函数 return_check_dtos_roundtrip
+ * 第  299 行  函数 order_dto_carries_source_order_no_for_returns
+ * 第  332 行  函数 order_query_supports_order_no_filter
+ * 第  340 行  函数 quantity_normalizes_and_validates
+ * 第  358 行  函数 batch_tag_rules_are_single_source
+ * 第  369 行  函数 v1_1_0_error_codes_are_available
+ * 第  379 行  函数 enum_wire_values_are_stable
+ */
+
 package com.jiancai.shared
 
+import com.jiancai.shared.dto.BatchTagRules
 import com.jiancai.shared.dto.CategoryDto
 import com.jiancai.shared.dto.ContractInfoDto
+import com.jiancai.shared.dto.CreateOrderCmd
 import com.jiancai.shared.dto.DEFAULT_PAGE_SIZE
 import com.jiancai.shared.dto.LineDto
 import com.jiancai.shared.dto.Money
 import com.jiancai.shared.dto.OrderDto
+import com.jiancai.shared.dto.OrderQuery
 import com.jiancai.shared.dto.PageDto
+import com.jiancai.shared.dto.Quantity
+import com.jiancai.shared.dto.ReturnableBatchDto
+import com.jiancai.shared.dto.ReturnCheckLineDto
+import com.jiancai.shared.dto.ReturnCheckResultDto
+import com.jiancai.shared.dto.WireFormat
 import com.jiancai.shared.enums.DiffType
 import com.jiancai.shared.enums.DocType
 import com.jiancai.shared.enums.OrderStatus
@@ -26,6 +58,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -223,6 +256,123 @@ class ContractTest {
         assertEquals("\"E404\"", ContractJson.json.encodeToString(ErrorCode.E404))
         assertEquals("\"E409\"", ContractJson.json.encodeToString(ErrorCode.E409))
         assertEquals("\"E422\"", ContractJson.json.encodeToString(ErrorCode.E422))
+    }
+
+    @Test
+    fun return_check_dtos_roundtrip() {
+        val batch = ReturnableBatchDto(
+            orderNo = "PS202611100001",
+            categoryId = 2L,
+            categoryName = "瓷砖",
+            model = "800×800",
+            batchTag = "A1",
+            unit = PricingUnit.PIECE,
+            orderedQuantity = "10",
+            returnedQuantity = "2",
+            returnableQuantity = "8",
+        )
+        val batchJson = ContractJson.json.encodeToString(batch)
+        assertEquals(batch, ContractJson.json.decodeFromString<ReturnableBatchDto>(batchJson))
+        assertTrue(batchJson.contains("\"returnable_quantity\":\"8\""), batchJson)
+
+        val result = ReturnCheckResultDto(
+            orderNo = "PS202611100001",
+            lines = listOf(
+                ReturnCheckLineDto(
+                    categoryId = 2L,
+                    categoryName = "瓷砖",
+                    model = "800×800",
+                    batchTag = "A1",
+                    unit = PricingUnit.PIECE,
+                    requestedQuantity = "3",
+                    returnableQuantity = "8",
+                    remainingQuantity = "5",
+                ),
+            ),
+        )
+        val resultJson = ContractJson.json.encodeToString(result)
+        assertEquals(result, ContractJson.json.decodeFromString<ReturnCheckResultDto>(resultJson))
+        assertTrue(resultJson.contains("\"remaining_quantity\":\"5\""), resultJson)
+    }
+
+    @Test
+    fun order_dto_carries_source_order_no_for_returns() {
+        val returnOrder = OrderDto(
+            orderNo = "PT202611100001",
+            orderType = OrderType.PURCHASE_RETURN,
+            status = OrderStatus.CREATED,
+            customerId = 1L,
+            customerName = "张三",
+            customerPhone = "13800000000",
+            orderDate = "2026-11-10",
+            lines = emptyList(),
+            totalAmount = Money.ofPlain("1250.00"),
+            receivableAmount = Money.ofPlain("1250.00"),
+            receivedAmount = Money.ofPlain("0.00"),
+            version = 1L,
+            createdAt = "2026-11-10T15:30:00+08:00",
+            createdBy = 9L,
+            sourceOrderNo = "PS202611100001",
+        )
+        val encoded = ContractJson.json.encodeToString(returnOrder)
+        assertEquals(returnOrder, ContractJson.json.decodeFromString<OrderDto>(encoded))
+        assertTrue(encoded.contains("\"source_order_no\":\"PS202611100001\""), encoded)
+
+        val cmd = CreateOrderCmd(
+            clientRequestId = "req-return-1",
+            orderType = OrderType.PURCHASE_RETURN,
+            customerId = 1L,
+            lines = emptyList(),
+            sourceOrderNo = "PS202611100001",
+        )
+        assertTrue(ContractJson.json.encodeToString(cmd).contains("\"source_order_no\""))
+    }
+
+    @Test
+    fun order_query_supports_order_no_filter() {
+        val query = OrderQuery(orderNo = "PS202611100001")
+        val encoded = ContractJson.json.encodeToString(query)
+        assertEquals(query, ContractJson.json.decodeFromString<OrderQuery>(encoded))
+        assertTrue(encoded.contains("\"order_no\":\"PS202611100001\""), encoded)
+    }
+
+    @Test
+    fun quantity_normalizes_and_validates() {
+        assertEquals("1.5", Quantity.ofPlain("1.500").value)
+        assertEquals("10", Quantity.ofPlain(" 10.0 ").value)
+        assertEquals("0.25", Quantity.ofPlain("0.25").value)
+        assertEquals("\"1.5\"", ContractJson.json.encodeToString(Quantity.ofPlain("1.50")))
+        assertEquals(Quantity.ofPlain("1.5"), ContractJson.json.decodeFromString<Quantity>("\"1.500\""))
+
+        listOf("-1", "0", "0.0001", "1.2345", "abc", "").forEach { invalid ->
+            assertFailsWith<IllegalArgumentException>("非法数量应被拒绝：$invalid") {
+                Quantity.ofPlain(invalid)
+            }
+        }
+        assertFailsWith<IllegalArgumentException> {
+            ContractJson.json.decodeFromString<Quantity>("\"0\"")
+        }
+    }
+
+    @Test
+    fun batch_tag_rules_are_single_source() {
+        assertEquals("A1", BatchTagRules.normalize("  A1 "))
+        assertTrue(BatchTagRules.same("a1 ", " A1"))
+        assertEquals("ab", BatchTagRules.comparisonKey("AB"))
+        assertEquals("批次a", BatchTagRules.comparisonKey("批次A"))
+        assertFalse(BatchTagRules.same("A1", "A2"))
+        assertTrue(WireFormat.BATCH_TAG_IGNORE_CASE)
+        assertEquals(3, WireFormat.QUANTITY_MAX_SCALE)
+    }
+
+    @Test
+    fun v1_1_0_error_codes_are_available() {
+        assertEquals(413, ErrorCode.E413.httpStatus)
+        assertEquals(409, ErrorCode.E3004.httpStatus)
+        assertEquals(422, ErrorCode.E3005.httpStatus)
+        assertEquals("\"E413\"", ContractJson.json.encodeToString(ErrorCode.E413))
+        assertEquals("\"E3004\"", ContractJson.json.encodeToString(ErrorCode.E3004))
+        assertEquals("\"E3005\"", ContractJson.json.encodeToString(ErrorCode.E3005))
     }
 
     @Test

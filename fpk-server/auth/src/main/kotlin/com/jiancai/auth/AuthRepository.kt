@@ -1,3 +1,23 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   35 行  类 AuthRepository
+ * 第   38 行  函数 findByUsernameKey
+ * 第   42 行  函数 findById
+ * 第   46 行  函数 findAll
+ * 第   56 行  函数 update
+ * 第   87 行  函数 deleteById
+ * 第   94 行  函数 countAccounts
+ * 第  108 行  函数 insert
+ * 第  139 行  函数 touchLastLogin
+ * 第  148 行  函数 queryOne
+ * 第  160 行  函数 toStoredAccount
+ * 第  173 行  函数 roleOf
+ * 第  177 行  对象 ?
+ * 第  220 行  类 StoredAccount
+ * 第  232 行  函数 toDto
+ */
+
 package com.jiancai.auth
 
 import com.jiancai.db.TxContext

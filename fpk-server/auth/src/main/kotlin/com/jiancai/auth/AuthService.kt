@@ -1,3 +1,23 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   57 行  类 AuthService
+ * 第   82 行  函数 login
+ * 第   84 行  函数 login
+ * 第  117 行  函数 verify
+ * 第  119 行  函数 verify
+ * 第  133 行  函数 list
+ * 第  135 行  函数 get
+ * 第  137 行  函数 create
+ * 第  140 行  函数 update
+ * 第  165 行  函数 delete
+ * 第  176 行  函数 bootstrapFirstAdmin
+ * 第  186 行  函数 create
+ * 第  238 行  函数 normalizeUsername
+ * 第  241 行  函数 isUniqueViolation
+ * 第  252 行  对象 ?
+ */
+
 package com.jiancai.auth
 
 import com.jiancai.db.TxContext

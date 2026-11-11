@@ -1,3 +1,15 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   39 行  函数 clockAt
+ * 第   42 行  函数 testDb
+ * 第   45 行  类 CountingTxRunner
+ * 第   49 行  函数 run
+ * 第   55 行  函数 exec
+ * 第   62 行  函数 queryLong
+ * 第   68 行  函数 queryString
+ */
+
 package com.jiancai.customer
 
 import com.jiancai.db.DbCore
@@ -14,14 +26,17 @@ import java.time.ZoneId
  * 验证库层约束与「本模块只拥有 customer 一张表」。
  */
 
-/** 固定时钟对应的创建时间（UTC ISO-8601）。 */
-internal const val CREATED_AT: String = "2026-11-11T02:00:00Z"
+/** 固定时钟的瞬间（UTC，测试输入）。 */
+internal const val NOW_INSTANT: String = "2026-11-11T02:00:00Z"
+
+/** 固定时钟按服务端时区（Asia/Shanghai）产出的线格式 `created_at`。 */
+internal const val CREATED_AT: String = "2026-11-11T10:00:00+08:00"
 
 /** 服务端业务时区：与部署环境一致。 */
 internal val TEST_ZONE: ZoneId = ZoneId.of("Asia/Shanghai")
 
 /** 固定时钟：断言 `created_at` 由服务端产出且可复现。 */
-internal fun clockAt(instant: String = CREATED_AT): Clock = Clock.fixed(Instant.parse(instant), TEST_ZONE)
+internal fun clockAt(instant: String = NOW_INSTANT): Clock = Clock.fixed(Instant.parse(instant), TEST_ZONE)
 
 /** 每个测试一个独立内存库，并已迁移到 S04 的最新版本。 */
 internal fun testDb(): DbCore = DbCore.testDatabase(CustomerMigrations.all)

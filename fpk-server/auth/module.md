@@ -156,7 +156,7 @@ authService.bootstrapFirstAdmin(
 
 // 对 S13 / 其它模块只暴露 Port：引导方法不属于 AuthPort，只有组合根能碰到 AuthService
 val auth: AuthPort = authService
-// S03 的 AccountStoreAdapter 用这个 Port（适配器在组合根，S03 不依赖本模块实现类）
+// S03 的 AccountStoreAdapter 用这个 Port（适配器在组合根 fpk-server/app，S03 不依赖本模块实现类）
 val accountStore: AccountStorePort = authService
 ```
 

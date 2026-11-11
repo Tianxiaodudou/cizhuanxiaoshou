@@ -72,7 +72,7 @@ interface AccountAdminPort {
 
 因此本模块只声明所需能力 `AccountStore`（`list` / `get` / `create` / `update` / `delete`），
 真实数据由 S02 提供。S02 已按 `auth/module.md` 交付 `AccountStorePort`（`fpk-server/auth`），
-两者方法签名一一对应。落地时在**组合根**（不属于任何业务模块）放一个薄适配器：
+两者方法签名一一对应。适配器已落地在**组合根** `fpk-server/app`（`AccountStoreAdapter`，不属于任何业务模块）：
 
 ```kotlin
 // S02 已提供的账号存储 Port（方法签名与 AccountStore 一一对应）
@@ -95,7 +95,8 @@ val accountAdmin: AccountAdminPort = AccountAdminService(db.txRunner, AccountSto
 > `com.jiancai.auth.AccountStorePort` / `AuthException`。两侧 `module.md` 都约定
 > 「S03 只声明 `AccountStore`，适配器在组合根，S03 不依赖 S02 实现类」，
 > 这样 S03 与 S02 都不引入反向依赖。适配器约 25 行，只做转调 + 错误码翻译，
-> 由装配方（组合根）编写；本模块的 Service / Port / 测试都无需改动。
+> 已由组合根 `fpk-server:app` 编写并接入（`App.accountAdmin`），联调由 `fpk-server/app` 的
+> `AppTest` 覆盖；本模块的 Service / Port / 测试都无需改动。
 
 ## 错误码口径
 
@@ -187,8 +188,9 @@ val accountAdmin: AccountAdminPort = AccountAdminService(db.txRunner, AccountSto
    `jvmToolchain(17)` 需要 JDK 17。本机用便携 JDK / Gradle（`.tools/`，已 gitignore）从根工程
    跑通 `:fpk-server:account:test`（18/18），全仓 `test` 共 123 个用例全绿。
 2. ~~S02 需补账号存储 Port~~ **已就绪**：`fpk-server/auth` 已交付 `AccountStorePort`
-   （`list` / `get` / `create` / `update` / `delete`，签名与本模块 `AccountStore` 一致），
-   组合根只需加薄适配器（见上节）；S03 的 Service / Port / 测试无需改动。
+   （`list` / `get` / `create` / `update` / `delete`，签名与本模块 `AccountStore` 一致）；
+   ~~组合根只需加薄适配器~~ **已落地**：组合根 `fpk-server:app` 的 `AccountStoreAdapter` 已接上
+   （`App.accountAdmin`），联调测试见 `fpk-server/app/src/test/.../AppTest.kt`；S03 的 Service / Port / 测试无需改动。
 3. S13 路由需把 `/admin/accounts/**` 标为管理员专属，并在转发前做 `verify → ADMIN` 拦截（`E403`）。
 
 ## 待确认的落地假设（v1.0.0 基线）

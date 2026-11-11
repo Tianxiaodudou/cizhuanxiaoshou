@@ -1,3 +1,12 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   25 行  类 DeploymentConfig
+ * 第   30 行  对象 ?
+ * 第   42 行  函数 of
+ * 第   55 行  函数 fromEnvironment
+ */
+
 package com.jiancai.config
 
 import java.util.Properties

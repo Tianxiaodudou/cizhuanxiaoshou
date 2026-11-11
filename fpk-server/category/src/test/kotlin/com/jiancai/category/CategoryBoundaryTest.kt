@@ -1,3 +1,11 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   26 行  类 CategoryBoundaryTest
+ * 第   43 行  函数 the_category_port_never_receives_the_callers_identity_or_role
+ * 第   56 行  函数 the_category_port_only_returns_dtos
+ */
+
 package com.jiancai.category
 
 import com.jiancai.db.TxContext

@@ -1,3 +1,11 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   37 行  类 ErrorCode
+ * 第  101 行  对象 ?
+ * 第  103 行  函数 fromWire
+ */
+
 package com.jiancai.shared.errors
 
 import kotlinx.serialization.Serializable
@@ -38,6 +46,7 @@ enum class ErrorCode(
     E403(403, ErrorCategory.PERMISSION, "无权限"),
     E404(404, ErrorCategory.NOT_FOUND, "资源不存在"),
     E409(409, ErrorCategory.CONFLICT, "请求重复，已处理过"),
+    E413(413, ErrorCategory.VALIDATION, "数据量超过允许上限"),
     E422(422, ErrorCategory.VALIDATION, "参数校验失败"),
     E429(429, ErrorCategory.INTERNAL, "请求过于频繁，请稍后重试", retryable = true),
     E500(500, ErrorCategory.INTERNAL, "服务器内部错误"),
@@ -61,6 +70,8 @@ enum class ErrorCode(
     E3001(404, ErrorCategory.NOT_FOUND, "原订单不存在"),
     E3002(422, ErrorCategory.BUSINESS, "该批次不可退"),
     E3003(422, ErrorCategory.BUSINESS, "可退数量不足"),
+    E3004(409, ErrorCategory.BUSINESS, "原单已作废，不可退货"),
+    E3005(422, ErrorCategory.BUSINESS, "退货批次与原单不符"),
 
     // —— S10 note ——
     E4001(404, ErrorCategory.NOT_FOUND, "备注单不存在"),

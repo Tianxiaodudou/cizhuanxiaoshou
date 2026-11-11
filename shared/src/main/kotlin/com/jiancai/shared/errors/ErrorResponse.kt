@@ -1,3 +1,11 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   21 行  类 ErrorResponse
+ * 第   32 行  函数 toResponse
+ * 第   44 行  函数 toErrorCode
+ */
+
 package com.jiancai.shared.errors
 
 import kotlinx.serialization.SerialName

@@ -1,3 +1,15 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   22 行  类 SqliteTxRunner
+ * 第   27 行  函数 run
+ * 第   56 行  函数 begin
+ * 第   64 行  函数 finish
+ * 第   72 行  函数 abort
+ * 第   83 行  函数 execute
+ * 第   88 行  函数 savepointName
+ */
+
 package com.jiancai.db
 
 import java.sql.Connection

@@ -1,3 +1,29 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   49 行  类 AuthPortTest
+ * 第   54 行  函数 login_returns_a_token_and_the_account_without_the_password
+ * 第   80 行  函数 verify_accepts_a_freshly_issued_token_and_returns_the_account
+ * 第   95 行  函数 verify_is_stable_across_service_instances_with_the_same_secret
+ * 第  109 行  函数 unknown_username_and_wrong_password_share_the_same_error
+ * 第  128 行  函数 blank_credentials_are_rejected_with_the_same_login_error
+ * 第  143 行  函数 username_is_trimmed_and_case_insensitive
+ * 第  153 行  函数 disabled_account_cannot_log_in
+ * 第  172 行  函数 verify_rejects_a_tampered_token
+ * 第  190 行  函数 verify_rejects_tokens_that_are_not_server_issued
+ * 第  206 行  函数 verify_rejects_a_token_signed_with_another_secret
+ * 第  223 行  函数 verify_rejects_an_expired_token_but_honours_the_one_issued_before_expiry
+ * 第  241 行  函数 verify_rejects_a_token_whose_account_was_deleted
+ * 第  257 行  函数 verify_rejects_a_token_once_the_account_is_disabled
+ * 第  273 行  函数 token_is_only_accepted_inside_a_fresh_transaction
+ * 第  287 行  函数 login_joins_the_callers_transaction
+ * 第  323 行  函数 password_is_persisted_only_as_a_pbkdf2_hash
+ * 第  339 行  函数 default_hasher_uses_the_documented_cost
+ * 第  350 行  函数 database_rejects_a_plaintext_password
+ * 第  371 行  函数 bootstrap_only_creates_the_first_admin
+ * 第  389 行  函数 weak_or_blank_input_is_rejected_at_account_creation
+ */
+
 package com.jiancai.auth
 
 import com.jiancai.db.DbCore

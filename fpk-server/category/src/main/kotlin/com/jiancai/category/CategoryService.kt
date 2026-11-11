@@ -1,3 +1,28 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   65 行  类 CategoryService
+ * 第   77 行  函数 list
+ * 第   80 行  函数 list
+ * 第   83 行  函数 get
+ * 第   85 行  函数 get
+ * 第   91 行  函数 create
+ * 第   93 行  函数 create
+ * 第  110 行  函数 update
+ * 第  112 行  函数 update
+ * 第  132 行  函数 delete
+ * 第  136 行  函数 delete
+ * 第  152 行  函数 normalize
+ * 第  187 行  函数 normalizeBatchTags
+ * 第  208 行  函数 normalizePackingSpec
+ * 第  241 行  函数 normalizeDecimal
+ * 第  256 行  函数 ensureUnique
+ * 第  266 行  函数 translate
+ * 第  273 行  函数 now
+ * 第  282 行  函数 isUniqueViolation
+ * 第  288 行  对象 ?
+ */
+
 package com.jiancai.category
 
 import com.jiancai.db.TxContext

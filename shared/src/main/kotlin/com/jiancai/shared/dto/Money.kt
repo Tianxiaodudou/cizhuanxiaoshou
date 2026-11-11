@@ -1,3 +1,19 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   37 行  类 Money
+ * 第   39 行  函数 display
+ * 第   41 行  函数 equals
+ * 第   43 行  函数 hashCode
+ * 第   45 行  函数 toString
+ * 第   47 行  对象 ?
+ * 第   51 行  函数 ofPlain
+ * 第   53 行  函数 normalize
+ * 第   75 行  对象 MoneySerializer
+ * 第   79 行  函数 serialize
+ * 第   83 行  函数 deserialize
+ */
+
 package com.jiancai.shared.dto
 
 import kotlinx.serialization.KSerializer

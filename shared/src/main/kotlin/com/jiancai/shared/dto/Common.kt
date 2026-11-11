@@ -1,3 +1,12 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   36 行  类 ContractInfoDto
+ * 第   44 行  类 ConfigDto
+ * 第   50 行  类 PageDto
+ * 第   62 行  对象 WireFormat
+ */
+
 package com.jiancai.shared.dto
 
 import com.jiancai.shared.CONTRACT_VERSION
@@ -46,7 +55,7 @@ data class PageDto<T>(
 )
 
 /**
- * 线格式日期 / 时间常量（唯一真源）：两端与网关统一使用，禁止各自写格式串。
+ * 线格式常量（唯一真源）：两端与网关统一使用，禁止各自写格式串 / 口径。
  *
  * 服务端产出规范字符串，客户端只解析展示；业务日期以服务端本地日期为准。
  */
@@ -56,4 +65,19 @@ object WireFormat {
 
     /** 时间戳（含时区偏移），如 `2026-11-10T15:30:00+08:00`。 */
     const val TIMESTAMP: String = "yyyy-MM-dd'T'HH:mm:ssXXX"
+
+    /**
+     * 数量线格式：十进制字符串（可带负号，合法性/符号由 [Quantity] 校验）。
+     * 服务端归一化、`> 0`、小数位上限见 [QUANTITY_MAX_SCALE]。
+     */
+    const val QUANTITY_PATTERN: String = """^-?\d+(\.\d+)?$"""
+
+    /** 数量允许的最大小数位（按去尾零后的 scale 计算，与 S08 / S09 规则一致）。 */
+    const val QUANTITY_MAX_SCALE: Int = 3
+
+    /** 批号是否裁剪首尾空白（与 S05 配置、S08 校验口径一致）。 */
+    const val BATCH_TAG_TRIM_WHITESPACE: Boolean = true
+
+    /** 批号比较是否忽略 ASCII 大小写（与 S08 的 SQLite `COLLATE NOCASE` 一致）。 */
+    const val BATCH_TAG_IGNORE_CASE: Boolean = true
 }

@@ -1,3 +1,9 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   26 行  对象 CustomerMigrations
+ */
+
 package com.jiancai.customer
 
 import com.jiancai.db.Migration
@@ -25,11 +31,10 @@ object CustomerMigrations {
 
     /**
      * 客户表（S04 独占）：
-     * - `phone` 保存用户输入的展示值（仅 trim），`phone_key` 保存规范化键
-     *   （去掉空白与连字符），唯一约束保证「一个电话只对应一个客户」；
-     * - 名称 / 电话 / 地址在库层再挡一次空白：即使绕过 Port 也写不进空客户；
-     * - `address` 可空（客户可以只留电话），但非空时必须非空白；
-     * - `created_at` 为服务端 UTC ISO-8601（`Instant.toString()`）；
+     * - `phone` 就是客户的唯一 id，直接加 UNIQUE；只允许纯数字（无空格、无划线），
+     *   库层用 `NOT GLOB '*[^0-9]*'` 再挡一次非数字输入；
+     * - 名称非空白，地址可空但非空时必须非空白；
+     * - `created_at` 为服务端线格式时间戳（`shared` 的 `WireFormat.TIMESTAMP`）；
      *   `updated_at` 可空——v1.0.0 没有修改客户的 Port，建档时为 null 表示「从未修改」。
      */
     val all: List<Migration> = listOf(
@@ -40,8 +45,8 @@ object CustomerMigrations {
                 CREATE TABLE customer (
                     id         INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     name       TEXT    NOT NULL CHECK (length(trim(name)) > 0),
-                    phone      TEXT    NOT NULL CHECK (length(trim(phone)) > 0),
-                    phone_key  TEXT    NOT NULL UNIQUE CHECK (length(trim(phone_key)) > 0),
+                    phone      TEXT    NOT NULL UNIQUE
+                               CHECK (length(phone) > 0 AND phone NOT GLOB '*[^0-9]*'),
                     address    TEXT    CHECK (address IS NULL OR length(trim(address)) > 0),
                     created_at TEXT    NOT NULL,
                     updated_at TEXT

@@ -1,3 +1,9 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   45 行  对象 ContractJson
+ */
+
 package com.jiancai.shared
 
 import kotlinx.serialization.json.Json
@@ -14,7 +20,7 @@ import kotlinx.serialization.json.Json
  * - 删除字段、改字段名 / 枚举线值 / 金额格式、改已有语义 → 主版本号 +1；
  * - 已有字段签名只增不改，废弃用 `@Deprecated` + 新旧双通。
  */
-const val CONTRACT_VERSION: String = "1.0.0"
+const val CONTRACT_VERSION: String = "1.2.0"
 
 /** 网关响应头：当前契约版本（C00 握手校验 / S13 输出共用，两端禁止另写字符串）。 */
 const val HEADER_CONTRACT_VERSION: String = "X-Contract-Version"

@@ -1,3 +1,18 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   30 行  接口 PasswordHasher
+ * 第   36 行  函数 hash
+ * 第   39 行  函数 verify
+ * 第   48 行  类 Pbkdf2PasswordHasher
+ * 第   63 行  函数 hash
+ * 第   70 行  函数 verify
+ * 第   86 行  函数 derive
+ * 第   95 行  对象 ?
+ * 第  127 行  函数 encode
+ * 第  129 行  函数 decode
+ */
+
 package com.jiancai.auth
 
 import java.security.MessageDigest

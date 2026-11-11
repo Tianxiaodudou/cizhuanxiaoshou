@@ -1,3 +1,16 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   37 行  类 SerialService
+ * 第   44 行  函数 next
+ * 第   47 行  函数 nextNote
+ * 第   49 行  函数 nextNote
+ * 第   51 行  函数 next
+ * 第   77 行  函数 compose
+ * 第   84 行  函数 isUniqueViolation
+ * 第   91 行  对象 ?
+ */
+
 package com.jiancai.serial
 
 import com.jiancai.db.TxContext
@@ -29,6 +42,11 @@ class SerialService(
     private val repository = SerialRepository()
 
     override fun next(type: SerialType): String = txRunner.run { tx -> next(tx, type) }
+
+    /** 备注单专用入口：与通用入口共用同一条 BZ 序列，不做第二套计数。 */
+    override fun nextNote(tx: TxContext): String = next(tx, SerialType.NOTE)
+
+    override fun nextNote(): String = next(SerialType.NOTE)
 
     override fun next(tx: TxContext, type: SerialType): String {
         // 一次取号只认一个业务日期，避免重试过程中跨过午夜。

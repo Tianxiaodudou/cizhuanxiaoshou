@@ -1,3 +1,13 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   28 行  类 AccountBoundaryTest
+ * 第   45 行  函数 the_admin_port_never_receives_the_callers_identity_or_role
+ * 第   58 行  函数 the_account_store_contract_never_asks_for_permission_inputs
+ * 第   70 行  函数 the_admin_port_only_returns_dtos
+ * 第   80 行  函数 the_account_dto_has_no_password_field
+ */
+
 package com.jiancai.account
 
 import com.jiancai.db.TxContext

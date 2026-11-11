@@ -1,3 +1,20 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   36 行  类 TxRunnerTest
+ * 第   39 行  函数 commit_persists_writes
+ * 第   48 行  函数 run_returns_the_block_value
+ * 第   55 行  函数 failure_rolls_back_the_whole_transaction
+ * 第   74 行  函数 nested_run_uses_a_savepoint_and_keeps_outer_writes
+ * 第  102 行  函数 outer_rollback_discards_inner_joined_work
+ * 第  119 行  函数 cross_module_writes_are_wrapped_in_one_transaction
+ * 第  147 行  函数 concurrent_writers_are_serialized_on_the_single_connection
+ * 第  181 行  类 FakeOrderRepository
+ * 第  182 行  函数 insert
+ * 第  186 行  类 FakeSettlementRepository
+ * 第  187 行  函数 insert
+ */
+
 package com.jiancai.db
 
 import java.util.Collections

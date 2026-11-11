@@ -1,3 +1,14 @@
+﻿/*
+ * ===== 本文件代码地图（自动生成，改代码后请重跑 docs/tools/gen-code-map.ps1） =====
+ * ===== 行号为本文件真实起始行，格式：行号 / 种类 / 名称 =====
+ * 第   37 行  接口 AccountStorePort
+ * 第   40 行  函数 list
+ * 第   43 行  函数 get
+ * 第   50 行  函数 create
+ * 第   58 行  函数 update
+ * 第   65 行  函数 delete
+ */
+
 package com.jiancai.auth
 
 import com.jiancai.db.TxContext
