@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const PREFIX = '/app/czxs'
 const money = (v) => (v == null ? '—' : v)
@@ -125,6 +125,185 @@ function OrderTable({ rows, onDetail, onDelete, onArchive, canEdit = true }) {
         </tr>
       ))}</tbody>
     </table>
+  )
+}
+
+
+function Wheel({ options, value, onChange, width = 120 }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const i = options.indexOf(value)
+    if (i >= 0 && ref.current) ref.current.scrollTop = i * 32
+  }, [options.join('|'), value])
+  return (
+    <div ref={ref} onScroll={(e) => {
+      const i = Math.round(e.target.scrollTop / 32)
+      const v = options[i]
+      if (v && v !== value) onChange(v)
+    }} style={{ height: 160, overflowY: 'scroll', scrollSnapType: 'y mandatory', border: '1px solid #cfd6df', borderRadius: 6, width, background: '#fff' }}>
+      <div style={{ height: 64 }} />
+      {options.map((o) => <div key={o} style={{ height: 32, lineHeight: '32px', textAlign: 'center', scrollSnapAlign: 'center' }}>{o}</div>)}
+      <div style={{ height: 64 }} />
+    </div>
+  )
+}
+
+function ProductPicker({ cats, onClose, onPick }) {
+  const groups = [...new Set(cats.map((c) => c.group))]
+  const [group, setGroup] = useState(groups[0] || '')
+  const names = [...new Set(cats.filter((c) => c.group === group).map((c) => c.name))]
+  const [name, setName] = useState(names[0] || '')
+  const batches = cats.filter((c) => c.group === group && c.name === name).map((c) => c.batch)
+  const [batch, setBatch] = useState(batches[0] || '')
+  useEffect(() => { const n = [...new Set(cats.filter((c) => c.group === group).map((c) => c.name))]; setName(n[0] || ''); setBatch('') }, [group])
+  useEffect(() => { const b = cats.filter((c) => c.group === group && c.name === name).map((c) => c.batch); setBatch(b[0] || '') }, [name])
+  const current = cats.find((c) => c.group === group && c.name === name && c.batch === batch)
+  return (
+    <dialog open className="modal" style={{ width: 480 }}>
+      <h3>选择商品（品类 → 型号 → 批号）</h3>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+        <div><div className="muted">品类</div><Wheel options={groups} value={group} onChange={setGroup} /></div>
+        <div><div className="muted">型号</div><Wheel options={names} value={name} onChange={setName} /></div>
+        <div><div className="muted">批号</div><Wheel options={batches} value={batch} onChange={setBatch} /></div>
+      </div>
+      <p className="muted" style={{ textAlign: 'center' }}>{group} / {name} / {batch}　计价单位：{current?.settlement_unit || '—'}　默认价：{current?.default_price || '—'}</p>
+      <div style={{ textAlign: 'center' }}>
+        <button disabled={!current} onClick={() => { onPick(current); onClose() }}>确定</button>{' '}
+        <button type="button" className="secondary" onClick={onClose}>取消</button>
+      </div>
+    </dialog>
+  )
+}
+
+function newLine() {
+  return { category_id: '', batch_tag: '', input_unit: '', input_quantity: '', unit_price: '', locked: false, units: [] }
+}
+
+function OrderModal({ type, onClose, onDone }) {
+  const [cats, setCats] = useState([])
+  const [phone, setPhone] = useState('')
+  const [name, setName] = useState('')
+  const [addr, setAddr] = useState('')
+  const [looked, setLooked] = useState(false)
+  const [isNew, setIsNew] = useState(false)
+  const [lines, setLines] = useState([newLine()])
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [picker, setPicker] = useState(null)
+  useEffect(() => { api('/api/categories').then(setCats).catch(() => {}) }, [])
+  const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
+  const lookup = async () => {
+    setBusy(true); setErr('')
+    try {
+      const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
+      setLooked(true); setIsNew(!c.exists)
+      setName(c.exists ? c.name : '')
+      setAddr(c.exists ? (c.addr || '') : '')
+    } catch (e) { setErr(e.message || '查询失败') } finally { setBusy(false) }
+  }
+  const loadPrice = async (i, catId, batch, fallback) => {
+    if (!phone || !catId) return
+    try {
+      const d = await api('/api/prices?phone=' + encodeURIComponent(phone) + '&category_id=' + catId + '&batch_tag=' + encodeURIComponent(batch || ''))
+      setLine(i, { unit_price: d.unit_price, locked: true })
+    } catch (e) {
+      setLine(i, { unit_price: fallback || '', locked: false })
+    }
+  }
+  const applyCat = (i, c) => {
+    setLine(i, { category_id: c.id, batch_tag: c.batch, input_unit: c.settlement_unit, units: [c.settlement_unit, c.conversion_unit].filter(Boolean), unit_price: '', locked: false })
+    loadPrice(i, c.id, c.batch, c.default_price)
+  }
+  const submit = async (e) => {
+    e.preventDefault(); setErr('')
+    try {
+      if (!looked) throw new Error('请先点击“查客户”')
+      if (!name) throw new Error('请填写客户姓名')
+      const items = lines.filter((l) => l.category_id && l.input_quantity).map((l) => ({
+        category_id: Number(l.category_id), batch_tag: l.batch_tag, input_unit: l.input_unit,
+        input_quantity: l.input_quantity, unit_price: l.locked ? undefined : l.unit_price,
+      }))
+      if (!items.length) throw new Error('请至少录入一行明细')
+      await api('/api/orders', { method: 'POST', body: JSON.stringify({ type, phone, customer_name: name, address: addr, items }) })
+      onDone()
+    } catch (x) { setErr(x.message) }
+  }
+  return (
+    <dialog open className="modal" style={{ width: 780 }}>
+      <form onSubmit={submit}>
+        <h3>{typeLabel[type]}单</h3>
+        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        {err && <div className="err">{err}</div>}
+        {looked && (
+          <>
+            <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
+          </>
+        )}
+        <table>
+          <thead><tr><th>商品</th><th>批号</th><th>单位</th><th>数量</th><th>单价</th><th></th></tr></thead>
+          <tbody>{lines.map((l, i) => (
+            <tr key={i}>
+              <td><button type="button" className="secondary" onClick={() => setPicker(i)}>
+                {l.category_id ? (() => { const c = cats.find((x) => x.id === l.category_id); return c ? `${c.group} ${c.name} ${c.batch}` : '已选' })() : '选择商品'}
+              </button></td>
+              <td><input value={l.batch_tag} onChange={(e) => { setLine(i, { batch_tag: e.target.value }); loadPrice(i, l.category_id, e.target.value, '') }} /></td>
+              <td><select value={l.input_unit} onChange={(e) => setLine(i, { input_unit: e.target.value })}>
+                {(l.units.length ? l.units : ['']).map((u) => <option key={u} value={u}>{u}</option>)}
+              </select></td>
+              <td><input style={{ width: 70 }} value={l.input_quantity} onChange={(e) => setLine(i, { input_quantity: e.target.value })} /></td>
+              <td><input style={{ width: 80 }} value={l.unit_price} readOnly={l.locked} onChange={(e) => setLine(i, { unit_price: e.target.value })} /></td>
+              <td><button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button></td>
+            </tr>
+          ))}</tbody>
+        </table>
+        <button type="button" className="secondary" onClick={() => setLines((ls) => [...ls, newLine()])}>+ 添加一行</button>
+        <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
+      </form>
+      {picker !== null && <ProductPicker cats={cats} onClose={() => setPicker(null)} onPick={(c) => applyCat(picker, c)} />}
+    </dialog>
+  )
+}
+
+function NoteModal({ onClose, onDone }) {
+  const [phone, setPhone] = useState('')
+  const [orders, setOrders] = useState([])
+  const [ref, setRef] = useState(null)
+  const [diffType, setDiffType] = useState('short')
+  const [qty, setQty] = useState('')
+  const [remark, setRemark] = useState('')
+  const [err, setErr] = useState('')
+  const search = async () => { try { setOrders(await api('/api/orders/recent?phone=' + encodeURIComponent(phone) + '&days=3')) } catch (e) { setErr(e.message) } }
+  const submit = async (e) => {
+    e.preventDefault()
+    try {
+      if (!ref) throw new Error('请选择原单')
+      const item = ref.items[0]
+      await api('/api/notes', { method: 'POST', body: JSON.stringify({ ref_order_no: ref.order_no, items: [{ category_id: item.category_id, batch_tag: item.batch_tag, diff_type: diffType, diff_quantity: qty, remark }] }) })
+      onDone()
+    } catch (x) { setErr(x.message) }
+  }
+  return (
+    <dialog open className="modal" style={{ width: 650 }}>
+      <form onSubmit={submit}>
+        <h3>备注单</h3>
+        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={search}>查近三日单据</button></div>
+        {orders.length > 0 && (
+          <div className="row">原单：<select value={ref?.order_no || ''} onChange={(e) => setRef(orders.find((o) => o.order_no === e.target.value) || null)}>
+            <option value="">选择原单</option>
+            {orders.map((o) => <option key={o.order_no} value={o.order_no}>{o.order_no} {typeLabel[o.type]} {o.order_total}</option>)}
+          </select></div>
+        )}
+        {ref && <p className="muted">原单 {ref.order_no}　客户 {ref.customer_name}　合计 {ref.order_total}</p>}
+        <div className="row">差异类型：<select value={diffType} onChange={(e) => setDiffType(e.target.value)}>
+          <option value="short">少</option><option value="over">多</option><option value="damaged">破损</option>
+        </select></div>
+        <div className="row">差异数量：<input value={qty} onChange={(e) => setQty(e.target.value)} /></div>
+        <div className="row">说明：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
+        {err && <div className="err">{err}</div>}
+        <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
+      </form>
+    </dialog>
   )
 }
 
