@@ -123,6 +123,7 @@ func migrate(db *sql.DB) {
 		}
 	}
 	_, _ = db.Exec(`ALTER TABLE accounts ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
+	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN addr TEXT NOT NULL DEFAULT ''`)
 }
 
 func loadEnvFile(path string) {
@@ -308,9 +309,9 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	case p == "/customers" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		var cid int64
-		var name string
-		err := a.db.QueryRow(`SELECT id,name FROM customers WHERE phone=?`, phone).Scan(&cid, &name)
-		ok(w, map[string]any{"exists": err == nil, "name": name, "id": cid, "phone": phone})
+		var name, addr string
+		err := a.db.QueryRow(`SELECT id,name,COALESCE(addr,'') FROM customers WHERE phone=?`, phone).Scan(&cid, &name, &addr)
+		ok(w, map[string]any{"exists": err == nil, "name": name, "addr": addr, "id": cid, "phone": phone})
 	case p == "/customers" && r.Method == "GET" && false:
 	case p == "/prices" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
@@ -538,7 +539,7 @@ func (a *App) priceFor(cid, cat int64, batch string) string {
 
 func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	var in struct {
-		Phone, Name, Type, Remark string
+		Phone, Name, Type, Remark, Address string
 		Items                     []struct {
 			CategoryID int64   `json:"category_id"`
 			BatchTag   string  `json:"batch_tag"`
@@ -555,7 +556,7 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	phone := strings.NewReplacer(" ", "", "-", "").Replace(in.Phone)
 	cid := a.customerID(phone)
 	if cid == 0 {
-		res, _ := a.db.Exec(`INSERT INTO customers(name,phone,created_at) VALUES(?,?,?)`, in.Name, phone, now())
+		res, _ := a.db.Exec(`INSERT INTO customers(name,phone,addr,created_at) VALUES(?,?,?,?)`, in.Name, phone, in.Address, now())
 		cid, _ = res.LastInsertId()
 	}
 	type line struct {

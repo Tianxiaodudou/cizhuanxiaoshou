@@ -87,6 +87,8 @@ function OrderModal({ type, onClose, onDone }) {
   const [cats, setCats] = useState([])
   const [phone, setPhone] = useState('')
   const [name, setName] = useState('')
+  const [addr, setAddr] = useState('')
+  const [looked, setLooked] = useState(false)
   const [isNew, setIsNew] = useState(false)
   const [lines, setLines] = useState([newLine()])
   const [err, setErr] = useState('')
@@ -95,8 +97,10 @@ function OrderModal({ type, onClose, onDone }) {
   const lookup = async () => {
     try {
       const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
+      setLooked(true)
       setIsNew(!c.exists)
       setName(c.exists ? c.name : '')
+      setAddr(c.exists ? (c.addr || '') : '')
     } catch (e) { setErr(e.message) }
   }
   const pickCat = (i, id) => {
@@ -116,7 +120,8 @@ function OrderModal({ type, onClose, onDone }) {
     e.preventDefault()
     setErr('')
     try {
-      if (!phone || !name) throw new Error('请填写客户电话并查询/填写姓名')
+      if (!looked) throw new Error('请先点击“查客户”')
+      if (!name) throw new Error('请填写客户姓名')
       const items = lines.filter((l) => l.category_id && l.input_quantity).map((l) => ({
         category_id: Number(l.category_id), batch_tag: l.batch_tag, input_unit: l.input_unit,
         input_quantity: l.input_quantity, unit_price: l.locked ? undefined : l.unit_price,
@@ -132,7 +137,12 @@ function OrderModal({ type, onClose, onDone }) {
       <form onSubmit={submit}>
         <h3>{label}单</h3>
         <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={lookup}>查客户</button></div>
-        <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} readOnly={!isNew} /> <span className="muted">{isNew ? '新客户，提交时创建' : '老客户，以库中姓名为准'}</span></div>
+        {looked && (
+          <>
+            <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} readOnly={!isNew} /> <span className="muted">{isNew ? '新客户，提交时创建' : '老客户，以库中姓名为准'}</span></div>
+            <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} readOnly={!isNew} /> <span className="muted">{isNew ? '新客户，可填写' : '老客户，以库中地址为准'}</span></div>
+          </>
+        )}
         <table>
           <thead><tr><th>型号</th><th>批号</th><th>单位</th><th>数量</th><th>单价</th><th></th></tr></thead>
           <tbody>{lines.map((l, i) => (
