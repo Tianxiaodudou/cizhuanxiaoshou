@@ -689,15 +689,21 @@ func (a *App) order(oid int64) map[string]any {
 }
 
 func (a *App) orders(where string, args []any) []map[string]any {
-	rows, _ := a.db.Query(`SELECT o.id FROM orders o JOIN customers cu ON cu.id=o.customer_id WHERE `+where+` ORDER BY o.id DESC LIMIT 100`, args...)
-	out := []map[string]any{}
-	if rows == nil {
-		return out
+	// 先取 id 并关闭 rows，再逐个查详情；SQLite 单连接下嵌套查询会死锁
+	rows, err := a.db.Query(`SELECT o.id FROM orders o JOIN customers cu ON cu.id=o.customer_id WHERE `+where+` ORDER BY o.id DESC LIMIT 100`, args...)
+	if err != nil || rows == nil {
+		return []map[string]any{}
 	}
-	defer rows.Close()
+	ids := []int64{}
 	for rows.Next() {
 		var id int64
-		_ = rows.Scan(&id)
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	_ = rows.Close()
+	out := make([]map[string]any, 0, len(ids))
+	for _, id := range ids {
 		if o := a.order(id); o != nil {
 			out = append(out, o)
 		}
