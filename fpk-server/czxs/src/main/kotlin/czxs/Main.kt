@@ -1,4 +1,4 @@
-﻿package czxs
+package czxs
 
 import java.io.File
 import kotlin.system.exitProcess
@@ -20,14 +20,19 @@ fun main(args: Array<String>) {
     val api = Api(svc)
     val admin = Admin(svc, cfg)
 
+    // 客户端按 NAS 域名 + /app/czxs/api/... 访问，TCP 端同样剥前缀后分发
+    val stripPrefix: (String) -> String = { path ->
+        if (path.startsWith(cfg.gatewayPrefix)) path.removePrefix(cfg.gatewayPrefix).ifBlank { "/" } else path
+    }
+
     val server = HttpServer { req ->
-        api.handle(req)
+        api.handle(req.copy(path = stripPrefix(req.path)))
     }
     server.startTcp(cfg.apiPort)
 
     // 网关：剥掉配置里的前缀后再分发（前缀只在 FPK 配置出现一次，规格 54）
     val gateway = HttpServer { req ->
-        val path = if (req.path.startsWith(cfg.gatewayPrefix)) req.path.removePrefix(cfg.gatewayPrefix).ifBlank { "/" } else req.path
+        val path = stripPrefix(req.path)
         val stripped = req.copy(path = path)
         when {
             path.startsWith("/admin") -> admin.handle(stripped)

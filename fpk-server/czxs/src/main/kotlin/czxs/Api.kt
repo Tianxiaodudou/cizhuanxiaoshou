@@ -49,6 +49,12 @@ class Api(private val svc: Services) {
                 }
             }
 
+            path == "/api/customers" && method == "GET" -> {
+                val phone = req.query["phone"] ?: throw ApiError("PHONE_REQUIRED", "电话必填")
+                val (exists, name) = svc.customerLookup(phone)
+                Json.okRaw("""{"exists":$exists,"name":"${name}","phone":"${phone.replace(" ", "").replace("-", "")}"}""")
+            }
+
             path == "/api/prices" && method == "GET" -> {
                 val phone = req.query["phone"] ?: throw ApiError("PHONE_REQUIRED", "电话必填")
                 val categoryId = req.query["category_id"]?.toLongOrNull() ?: throw ApiError("CATEGORY_REQUIRED", "型号必填")

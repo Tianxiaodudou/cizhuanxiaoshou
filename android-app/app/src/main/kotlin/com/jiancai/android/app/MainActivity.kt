@@ -13,7 +13,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.jiancai.android.app.data.AppContainer
+import com.jiancai.android.app.czxs.CzxsApi
+import com.jiancai.android.app.czxs.CzxsApp
 import com.jiancai.android.app.navigation.AppNav
 import com.jiancai.android.app.ui.theme.JiancaiTheme
 
@@ -23,10 +24,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val container = AppContainer(this)
+        val prefs = getSharedPreferences("czxs", MODE_PRIVATE)
+        val api = CzxsApi(prefs)
         setContent {
             JiancaiTheme {
-                AppNav(container)
+                CzxsApp(api)
             }
         }
     }

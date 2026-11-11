@@ -222,6 +222,11 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
         repo.ordersRecentByPhone(c, normalizePhone(phone), since).map { orderView(c, it) }
     }
 
+    fun customerLookup(phone: String): Pair<Boolean, String> = db.tx { c ->
+        val customer = repo.customerByPhone(c, normalizePhone(phone))
+        if (customer == null) false to "" else true to customer.name
+    }
+
     fun cumulative(phone: String): String = db.tx { c ->
         val customer = repo.customerByPhone(c, normalizePhone(phone)) ?: return@tx "0.00"
         Num.money(repo.ordersByPhone(c, customer.phone, 1000).sumOf { Num.bd(it.orderTotal) })
