@@ -9,7 +9,7 @@ PID_FILE="$PKGVAR/czxs.pid"
 LOG="$PKGVAR/czxs.log"
 
 export CZ_XS_DATA_DIR="$PKGVAR"
-export CZ_XS_ADMIN_SOCKET="$APP_HOME/target/app.sock"
+export CZ_XS_ADMIN_SOCKET="$APP_HOME/app.sock"
 export CZ_XS_GATEWAY_PREFIX="${CZ_XS_GATEWAY_PREFIX:-/app/czxs}"
 [ -f "$APP_HOME/etc/api_port" ] && export CZ_XS_API_PORT="$(cat "$APP_HOME/etc/api_port")"
 

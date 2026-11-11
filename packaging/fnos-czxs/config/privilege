@@ -1,7 +1,1 @@
-﻿{
-    "defaults": {
-        "run-as": "package"
-    },
-    "username": "jiancai",
-    "groupname": "jiancai"
-}
+{"defaults":{"run-as":"package"},"username":"czxs","groupname":"czxs"}
