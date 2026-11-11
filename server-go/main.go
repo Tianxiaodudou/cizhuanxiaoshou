@@ -116,6 +116,7 @@ func migrate(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS note_items(id INTEGER PRIMARY KEY AUTOINCREMENT, note_id INTEGER, category_id INTEGER, batch_tag TEXT, diff_type TEXT, diff_quantity TEXT, remark TEXT)`,
 		`CREATE TABLE IF NOT EXISTS print_jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, doc_no TEXT, doc_type TEXT, status TEXT DEFAULT 'pending', error TEXT, created_at TEXT, printed_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS logs(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER, action TEXT, detail TEXT, created_at TEXT)`,
+		`CREATE TABLE IF NOT EXISTS doc_seq(prefix TEXT NOT NULL, day TEXT NOT NULL, seq INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(prefix, day))`,
 	}
 	for _, s := range ss {
 		if _, err := db.Exec(s); err != nil {
@@ -627,13 +628,15 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	if neg {
 		total = -total
 	}
-	prefix := map[string]string{"delivery": "D", "delivery_return": "R", "pickup": "P", "pickup_return": "R"}[in.Type]
+	prefix := map[string]string{"delivery": "PS", "delivery_return": "PT", "pickup": "ZS", "pickup_return": "ZT"}[in.Type]
 	if prefix == "" {
-		prefix = "D"
+		prefix = "PS"
 	}
-	var seq int
-	_ = a.db.QueryRow(`SELECT COUNT(*)+1 FROM orders WHERE order_no LIKE ?`, prefix+"%").Scan(&seq)
-	no := fmt.Sprintf("%s%s%03d", prefix, time.Now().Format("20060102"), seq)
+	no, errNo := a.nextNo(prefix)
+	if errNo != nil {
+		fail(w, 500, "NUMBER", "取号失败："+errNo.Error())
+		return
+	}
 	res, err := a.db.Exec(`INSERT INTO orders(order_no,type,customer_id,account_id,status,remark,order_total,version,created_at) VALUES(?,?,?,?,'submitted',?,?,1,?)`,
 		no, in.Type, cid, acc, in.Remark, f2(total), now())
 	if err != nil {
@@ -728,9 +731,11 @@ func (a *App) createNote(w http.ResponseWriter, r *http.Request, acc int64) {
 		fail(w, 400, "ORDER_NOT_FOUND", "原单不存在")
 		return
 	}
-	var seq int
-	_ = a.db.QueryRow(`SELECT COUNT(*)+1 FROM notes`).Scan(&seq)
-	no := fmt.Sprintf("N%s%03d", time.Now().Format("20060102"), seq)
+	no, errNo := a.nextNo("BZ")
+	if errNo != nil {
+		fail(w, 500, "NUMBER", "取号失败："+errNo.Error())
+		return
+	}
 	res, _ := a.db.Exec(`INSERT INTO notes(note_no,ref_order_no,customer_id,account_id,status,created_at) VALUES(?,?,?,?,'active',?)`, no, in.RefOrderNo, cid, acc, now())
 	nid, _ := res.LastInsertId()
 	for _, it := range in.Items {
@@ -954,6 +959,28 @@ func (a *App) dashboard() map[string]any {
 	_ = a.db.QueryRow(`SELECT COUNT(*) FROM orders WHERE date(created_at)=date('now','localtime')`).Scan(&today)
 	_ = a.db.QueryRow(`SELECT COUNT(*) FROM print_jobs WHERE status='pending'`).Scan(&pending)
 	return map[string]any{"today_orders": today, "pending_print": pending, "recent": a.orders(`1=1`, nil)}
+}
+
+// nextNo 事务取号：前缀 + 年月日 + 全局序号（每日每前缀递增），唯一约束兜底。
+func (a *App) nextNo(prefix string) (string, error) {
+	day := time.Now().Format("20060102")
+	tx, err := a.db.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec(`INSERT INTO doc_seq(prefix,day,seq) VALUES(?,?,1)
+		ON CONFLICT(prefix,day) DO UPDATE SET seq=seq+1`, prefix, day); err != nil {
+		return "", err
+	}
+	var seq int
+	if err := tx.QueryRow(`SELECT seq FROM doc_seq WHERE prefix=? AND day=?`, prefix, day).Scan(&seq); err != nil {
+		return "", err
+	}
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s%s%03d", prefix, day, seq), nil
 }
 
 func (a *App) log(acc *int64, action, detail string) {
