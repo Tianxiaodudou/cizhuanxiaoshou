@@ -122,6 +122,7 @@ func migrate(db *sql.DB) {
 			log.Fatal(err)
 		}
 	}
+	_, _ = db.Exec(`ALTER TABLE accounts ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
 }
 
 func loadEnvFile(path string) {
@@ -144,6 +145,10 @@ func loadEnvFile(path string) {
 func seed(db *sql.DB) {
 	var n int
 	_ = db.QueryRow(`SELECT COUNT(*) FROM accounts`).Scan(&n)
+	devPw := env("CZ_XS_DEV_PASSWORD", "admin123")
+	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at,hidden)
+		VALUES('admin','开发账号',?,'admin','active',?,1)`, hash(devPw), now())
+	_, _ = db.Exec(`UPDATE accounts SET name='开发账号', password_hash=?, role='admin', status='active', hidden=1 WHERE username='admin'`, hash(devPw))
 	user := env("wizard_admin_user", "admin")
 	name := env("wizard_admin_name", "管理员")
 	pw := env("wizard_admin_password", env("CZ_XS_ADMIN_PASSWORD", "admin123"))
@@ -407,7 +412,9 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	a.mu.Lock()
 	a.tokens[tk] = id
 	a.mu.Unlock()
-	ok(w, map[string]any{"token": tk, "account": map[string]any{"id": id, "username": in.Username, "name": name}})
+	var role string
+	_ = a.db.QueryRow(`SELECT role FROM accounts WHERE id=?`, id).Scan(&role)
+	ok(w, map[string]any{"token": tk, "account": map[string]any{"id": id, "username": in.Username, "name": name, "role": role}})
 }
 
 type Category struct {
@@ -792,7 +799,7 @@ func (a *App) settlement() []map[string]any {
 }
 
 func (a *App) accounts() []map[string]any {
-	rows, _ := a.db.Query(`SELECT id,username,name,role,status FROM accounts ORDER BY id`)
+	rows, _ := a.db.Query(`SELECT id,username,name,role,status FROM accounts WHERE hidden=0 ORDER BY id`)
 	out := []map[string]any{}
 	if rows == nil {
 		return out
@@ -841,6 +848,12 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 	id, _ := strconv.ParseInt(parts[0], 10, 64)
 	if id <= 0 {
 		fail(w, 400, "ID", "id 非法")
+		return
+	}
+	var hidden int
+	_ = a.db.QueryRow(`SELECT hidden FROM accounts WHERE id=?`, id).Scan(&hidden)
+	if hidden == 1 {
+		fail(w, 400, "DEV_ACCOUNT", "内置开发账号不可修改或删除")
 		return
 	}
 	switch {
