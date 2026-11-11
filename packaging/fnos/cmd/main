@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # 建材进销存 FPK 生命周期主控：main start|stop|restart|status
 # 只拉起 JVM 版 S13 网关（内置 JRE），不依赖宿主 Java；数据放在 fnOS 分配的 var 目录。
 set -u
@@ -10,7 +10,7 @@ PKGVAR="${TRIM_PKGVAR:-$APPDEST/var}"
 PKGTMP="${TRIM_PKGTMP:-$APPDEST/tmp}"
 PKGHOME="${TRIM_PKGHOME:-$APPDEST/home}"
 
-APP_HOME="$APPDEST/app"
+APP_HOME="$APPDEST"
 JAVA="$APP_HOME/jre/bin/java"
 CLASSES="$APP_HOME/lib/*"
 PID_FILE="$PKGVAR/server.pid"
@@ -41,6 +41,9 @@ start() {
     export JIANCAI_MERCHANT_NAME="$(cat "$PKGETC/merchant.name")"
     export JIANCAI_HTTP_HOST="0.0.0.0"
     export JIANCAI_HTTP_PORT="$(cat "$PKGETC/port")"
+    if [ -f "$PKGETC/admin.password" ]; then
+        export JIANCAI_ADMIN_PASSWORD="$(cat "$PKGETC/admin.password")"
+    fi
 
     log "starting gateway on port $JIANCAI_HTTP_PORT (db=$JIANCAI_DB_PATH)"
     nohup "$JAVA" -Dfile.encoding=UTF-8 -Xms64m -Xmx256m -cp "$CLASSES" com.jiancai.app.GatewayMainKt >> "$LOG_FILE" 2>&1 &

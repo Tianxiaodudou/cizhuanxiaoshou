@@ -37,10 +37,10 @@ class AndroidTransport(
             connection.connectTimeout = connectTimeoutMs
             connection.readTimeout = readTimeoutMs
             request.headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
-            val body = request.body
-            if (body != null) {
+            val requestBody = request.body
+            if (requestBody != null) {
                 connection.doOutput = true
-                connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                connection.outputStream.use { it.write(requestBody.toByteArray(Charsets.UTF_8)) }
             }
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
