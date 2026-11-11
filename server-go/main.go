@@ -663,11 +663,11 @@ func (a *App) order(oid int64) map[string]any {
 		ID                                                   int64
 		No, Type, Status, Remark, Total, Created              string
 		Version                                              int
-		CName, CPhone, AName                                 string
+		CName, CPhone, CAddr, AName                          string
 	}
-	err := a.db.QueryRow(`SELECT o.id,o.order_no,o.type,o.status,COALESCE(o.remark,''),o.order_total,o.created_at,o.version,cu.name,cu.phone,a.name
+	err := a.db.QueryRow(`SELECT o.id,o.order_no,o.type,o.status,COALESCE(o.remark,''),o.order_total,o.created_at,o.version,cu.name,cu.phone,COALESCE(cu.addr,''),a.name
 		FROM orders o JOIN customers cu ON cu.id=o.customer_id JOIN accounts a ON a.id=o.account_id WHERE o.id=?`, oid).
-		Scan(&o.ID, &o.No, &o.Type, &o.Status, &o.Remark, &o.Total, &o.Created, &o.Version, &o.CName, &o.CPhone, &o.AName)
+		Scan(&o.ID, &o.No, &o.Type, &o.Status, &o.Remark, &o.Total, &o.Created, &o.Version, &o.CName, &o.CPhone, &o.CAddr, &o.AName)
 	if err != nil {
 		return nil
 	}
@@ -688,7 +688,7 @@ func (a *App) order(oid int64) map[string]any {
 	_ = a.db.QueryRow(`SELECT COALESCE(SUM(CAST(o2.order_total AS REAL)),0) FROM orders o2 JOIN customers c2 ON c2.id=o2.customer_id WHERE c2.phone=?`, o.CPhone).Scan(&cum)
 	return map[string]any{"id": o.ID, "order_no": o.No, "type": o.Type, "status": o.Status, "remark": o.Remark,
 		"order_total": o.Total, "version": o.Version, "created_at": o.Created, "customer_name": o.CName,
-		"customer_phone": o.CPhone, "account_name": o.AName, "items": items, "cumulative_total": f2(cum)}
+		"customer_phone": o.CPhone, "customer_address": o.CAddr, "account_name": o.AName, "items": items, "cumulative_total": f2(cum)}
 }
 
 func (a *App) orders(where string, args []any) []map[string]any {
@@ -980,7 +980,7 @@ func (a *App) nextNo(prefix string) (string, error) {
 	if err := tx.Commit(); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s%s%03d", prefix, day, seq), nil
+	return fmt.Sprintf("%s%s%d", prefix, day, seq), nil
 }
 
 func (a *App) log(acc *int64, action, detail string) {

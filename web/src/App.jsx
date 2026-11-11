@@ -70,10 +70,11 @@ function OrderDetail({ o }) {
 function OrderTable({ rows, onOpen }) {
   return (
     <table>
-      <thead><tr><th>单号</th><th>类型</th><th>客户</th><th>金额</th><th>状态</th><th>操作</th></tr></thead>
+      <thead><tr><th>单号</th><th>类型</th><th>客户（电话/姓名/地址）</th><th>金额</th><th>状态</th><th>操作</th></tr></thead>
       <tbody>{(rows || []).map((o) => (
         <tr key={o.id}>
-          <td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td><td>{o.customer_name}</td>
+          <td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td>
+          <td>{o.customer_phone}<br />{o.customer_name}<br />{o.customer_address || ''}</td>
           <td>{o.order_total}</td><td>{o.status === 'printed' ? '已打印' : '待打印'}</td>
           <td><button className="secondary" onClick={() => onOpen(o.id)}>详情</button></td>
         </tr>
