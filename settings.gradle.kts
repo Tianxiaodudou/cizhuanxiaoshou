@@ -1,4 +1,4 @@
-// 建材进销存 —— 正式 Gradle 根工程
+﻿// 建材进销存 —— 正式 Gradle 根工程
 //
 // 目录即模块，每个目录都有自己的 build.gradle.kts；插件版本只在根 build.gradle.kts 声明。
 //
@@ -21,23 +21,6 @@ rootProject.name = "jiancai"
 
 include(":shared")
 
-include(":fpk-server")
-include(":fpk-server:db-core")
-include(":fpk-server:config")
-include(":fpk-server:auth")
-include(":fpk-server:account")
-include(":fpk-server:category")
-include(":fpk-server:serial")
-include(":fpk-server:customer")
-include(":fpk-server:pricing")
-include(":fpk-server:order")
-include(":fpk-server:return-check")
-include(":fpk-server:note")
-include(":fpk-server:settlement")
-include(":fpk-server:print")
-include(":fpk-server:observability")
-include(":fpk-server:api-gateway")
-include(":fpk-server:app")
 
 // 客户端（阶段 4）：本机无 Android SDK，按任务卡允许的方式退化为 JVM 模块 + JVM 单测。
 include(":android-app")
@@ -57,4 +40,3 @@ include(":android-app:feature-settings")
 include(":android-app:app")
 
 // czxs v1.1 新服务端（FPK appname=czxs，网关 /app/czxs）
-include(":fpk-server:czxs")
