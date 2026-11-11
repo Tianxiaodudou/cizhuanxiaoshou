@@ -1,7 +1,12 @@
 #!/bin/bash
 set -u
 APP_HOME="${TRIM_APPDEST:-$(cd "$(dirname "$0")/.." && pwd)}"
-PKGVAR="${TRIM_PKGVAR:-$APP_HOME/data}"
-mkdir -p "$PKGVAR" "$APP_HOME/target"
-echo "$(date '+%F %T') $0" >> "$PKGVAR/install.log" 2>/dev/null || true
+ETC="${TRIM_PKGETC:-$APP_HOME/etc}"
+mkdir -p "$ETC" 2>/dev/null || true
+umask 077
+cat > "$ETC/runtime.env" <<EOF
+wizard_merchant=${wizard_merchant:-}
+wizard_api_port=${wizard_api_port:-8080}
+EOF
+chmod 600 "$ETC/runtime.env" 2>/dev/null || true
 exit 0

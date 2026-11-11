@@ -1,0 +1,73 @@
+[
+  {
+    "stepTitle": "初始化设置",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "首次安装请填写初始化参数；若检测到已有配置，可直接沿用并再次编辑。"
+      },
+      {
+        "type": "text",
+        "field": "wizard_admin_user",
+        "label": "管理员账号",
+        "initValue": "admin",
+        "rules": [
+          {
+            "required": true,
+            "message": "请填写管理员账号"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "field": "wizard_admin_name",
+        "label": "管理员姓名",
+        "initValue": "管理员",
+        "rules": [
+          {
+            "required": true,
+            "message": "请填写管理员姓名"
+          }
+        ]
+      },
+      {
+        "type": "password",
+        "field": "wizard_admin_password",
+        "label": "管理员密码",
+        "initValue": "",
+        "rules": [
+          {
+            "required": true,
+            "min": 6,
+            "message": "密码至少 6 位"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "field": "wizard_merchant",
+        "label": "商家名称",
+        "initValue": "",
+        "rules": [
+          {
+            "required": true,
+            "message": "商家名称必填"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "field": "wizard_api_port",
+        "label": "Android API 端口（仅客户端连接用）",
+        "initValue": "8080",
+        "rules": [
+          {
+            "required": true,
+            "pattern": "^[0-9]+$",
+            "message": "端口必须是数字"
+          }
+        ]
+      }
+    ]
+  }
+]

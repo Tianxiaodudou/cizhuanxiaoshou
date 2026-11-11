@@ -47,6 +47,9 @@ func env(k, d string) string {
 
 func main() {
 	home := env("TRIM_APPDEST", ".")
+	etc := env("TRIM_PKGETC", filepath.Join(home, "etc"))
+	loadEnvFile(filepath.Join(etc, "seed.env"))
+	loadEnvFile(filepath.Join(etc, "runtime.env"))
 	data := env("TRIM_PKGVAR", filepath.Join(home, "data"))
 	_ = os.MkdirAll(data, 0o755)
 	sock := env("CZ_XS_SOCKET", filepath.Join(home, "app.sock"))
@@ -65,6 +68,9 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/", a.api)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { ok(w, map[string]any{"app": "czxs", "version": "2.0.0"}) })
+	if p := a.settingInt("api_port"); p > 0 && os.Getenv("CZ_XS_API_PORT") == "" {
+		port = p
+	}
 	spa := a.static()
 	mux.Handle("/admin/", spa)
 	mux.Handle("/admin", spa)
@@ -118,12 +124,42 @@ func migrate(db *sql.DB) {
 	}
 }
 
+func loadEnvFile(path string) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
+			continue
+		}
+		kv := strings.SplitN(line, "=", 2)
+		if os.Getenv(kv[0]) == "" {
+			_ = os.Setenv(kv[0], kv[1])
+		}
+	}
+}
+
 func seed(db *sql.DB) {
 	var n int
 	_ = db.QueryRow(`SELECT COUNT(*) FROM accounts`).Scan(&n)
+	user := env("wizard_admin_user", "admin")
+	name := env("wizard_admin_name", "管理员")
+	pw := env("wizard_admin_password", env("CZ_XS_ADMIN_PASSWORD", "admin123"))
+	if pw == "" {
+		pw = "admin123"
+	}
 	if n == 0 {
-		_, _ = db.Exec(`INSERT INTO accounts(username,name,password_hash,role,created_at) VALUES('admin','管理员',?,'admin',?)`,
-			hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
+		_, _ = db.Exec(`INSERT INTO accounts(username,name,password_hash,role,created_at) VALUES(?,?,?,'admin',?)`, user, name, hash(pw), now())
+	} else if user == "admin" {
+		_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'admin','active',?)`, hash(pw), now())
+	}
+	if m := env("wizard_merchant", ""); m != "" {
+		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, m)
+	}
+	if p := env("wizard_api_port", ""); p != "" {
+		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('api_port',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, p)
 	}
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
@@ -839,3 +875,10 @@ func (a *App) log(acc *int64, action, detail string) {
 
 var _ = big.NewInt
 var _ = fmt.Sprint
+
+func (a *App) settingInt(key string) int {
+	var v string
+	_ = a.db.QueryRow(`SELECT v FROM settings WHERE k=?`, key).Scan(&v)
+	n, _ := strconv.Atoi(v)
+	return n
+}
