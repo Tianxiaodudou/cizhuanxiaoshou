@@ -85,3 +85,18 @@ adb shell am start -n com.jiancai.android.app/.MainActivity
 - fnOS 的 sshd 关闭了 TCP 转发（`administratively prohibited`），所以用 `docs/tools` 之外的一个
   临时 Node 转发脚本（不提交）替代 `ssh -L`。
 - 手机与 fnOS 不在同一网段（192.168.1.x / 192.168.80.x），必须经电脑中转。
+
+## 真机验证结果（2026-11-11，v1.0.8）
+
+| 步骤 | 结果 |
+| --- | --- |
+| FPK 安装（fnOS 192.168.80.129） | `1.0.8` 运行中；`/contract` 返回 contractVersion 1.2.0、商家「建材进销存」 |
+| FPK 升级（保留数据） | 1.0.7 → 1.0.8 只替换 `bin/lib/jre` + manifest，`var/jiancai.db` 保留，订单仍在 |
+| APK 安装（Redmi K40 / Android 11） | `jiancai-client_1.0.8.apk` 安装成功，启动器名称「建材进销存」 |
+| App 契约握手 | 界面显示「契约版本=1.2.0，商家=建材进销存」（adb reverse → PC 转发 → fnOS） |
+| App 登录 | admin 登录成功，进入首页（5 入口） |
+| App 下单 | 查客户 → 提交订单，回显「单号=PS202611110001，总额=200.00，应收=200.00」 |
+| 服务端核对 | `/orders/today` 返回 1 单：`PS202611110001 purchase 200.00 200.00 created_by=1 lines=1` |
+
+截图留在本机（未入库）：`.tools/app-order-success.png`、`.tools/app-contract.png`。
+
