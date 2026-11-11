@@ -113,12 +113,16 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      - name: 配置 Android SDK（使用 runner 预装，避免 sdkmanager 拉 tools 包）
+      - name: 安装 Android SDK 包（platform + build-tools）
         run: |
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          ls "$SDK/platforms" "$SDK/build-tools" || true
+          SDKM=$(find "$SDK/cmdline-tools" -name sdkmanager -type f | head -1)
+          echo "sdkmanager: $SDKM"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          ls "$SDK/platforms" "$SDK/build-tools"
 
       - name: 编译客户端 APK
         run: |
