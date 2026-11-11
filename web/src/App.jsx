@@ -139,8 +139,8 @@ function OrderModal({ type, onClose, onDone }) {
         <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={lookup}>查客户</button></div>
         {looked && (
           <>
-            <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} readOnly={!isNew} /> <span className="muted">{isNew ? '新客户，提交时创建' : '老客户，以库中姓名为准'}</span></div>
-            <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} readOnly={!isNew} /> <span className="muted">{isNew ? '新客户，可填写' : '老客户，以库中地址为准'}</span></div>
+            <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /> <span className="muted">{isNew ? '新客户，提交时创建' : '老客户，以库中姓名为准'}</span></div>
+            <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /> <span className="muted">{isNew ? '新客户，可填写' : '老客户，以库中地址为准'}</span></div>
           </>
         )}
         <table>

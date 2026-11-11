@@ -347,7 +347,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	case p == "/orders/all" && r.Method == "GET":
 		ok(w, a.orders(`1=1`, nil))
 	case p == "/orders/today":
-		ok(w, a.orders(`date(o.created_at)=date('now','localtime')`, nil))
+		ok(w, a.orders(`substr(o.created_at,1,10)=?`, []any{time.Now().Format("2006-01-02")}))
 	case p == "/orders/recent":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		ok(w, a.orders(`cu.phone=?`, []any{phone}))
@@ -558,6 +558,8 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	if cid == 0 {
 		res, _ := a.db.Exec(`INSERT INTO customers(name,phone,addr,created_at) VALUES(?,?,?,?)`, in.Name, phone, in.Address, now())
 		cid, _ = res.LastInsertId()
+	} else if in.Name != "" || in.Address != "" {
+		_, _ = a.db.Exec(`UPDATE customers SET name=COALESCE(NULLIF(?,''),name), addr=COALESCE(NULLIF(?,''),addr) WHERE id=?`, in.Name, in.Address, cid)
 	}
 	type line struct {
 		cat      Category
