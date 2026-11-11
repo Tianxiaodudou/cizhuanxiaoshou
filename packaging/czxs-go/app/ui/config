@@ -4,7 +4,7 @@
       "title": "瓷砖店销售系统",
       "icon": "images/icon_{0}.png",
       "type": "iframe",
-      "protocol": "",
+      "protocol": "http",
       "gatewayPrefix": "/app/czxs",
       "gatewaySocket": "app.sock",
       "url": "/app/czxs/admin/",
