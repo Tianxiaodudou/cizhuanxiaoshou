@@ -107,6 +107,27 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
     </dialog>
   )
 }
+function OrderTable({ rows, onDetail, onDelete, onArchive, canEdit = true }) {
+  return (
+    <table>
+      <thead><tr><th>单号</th><th>类型</th><th>客户（电话/姓名/地址）</th><th>金额</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>{(rows || []).map((o) => (
+        <tr key={o.id}>
+          <td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td>
+          <td>{o.customer_phone}<br />{o.customer_name}<br />{o.customer_address || ''}</td>
+          <td>{o.order_total}</td><td>{o.status === 'archived' ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}</td>
+          <td>
+            <button className="secondary" onClick={() => onDetail(o.id)}>详情</button>
+            <button className="secondary" disabled={!canEdit || o.status === 'archived'} onClick={() => onDetail(o.id, true)}>编辑</button>
+            <button className="secondary" disabled={o.status === 'archived'} onClick={() => onArchive(o.id)}>归档</button>
+            <button className="danger" disabled={!canEdit || o.status === 'archived'} onClick={() => onDelete(o.id)}>删除</button>
+          </td>
+        </tr>
+      ))}</tbody>
+    </table>
+  )
+}
+
 function Dashboard() {
   const [rows, setRows] = useState([])
   const [detail, setDetail] = useState(null)
