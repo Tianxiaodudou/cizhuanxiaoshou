@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # 安装 / 升级前：预创建应用数据目录（与 fnOS 约定一致）
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"

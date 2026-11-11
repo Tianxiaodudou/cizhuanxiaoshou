@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # 回调：只记录一行，不阻塞安装/卸载
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"

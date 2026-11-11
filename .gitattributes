@@ -1,0 +1,6 @@
+* text=auto
+*.sh text eol=lf
+packaging/fnos/cmd/* text eol=lf
+gradlew text eol=lf
+*.fpk binary
+*.apk binary

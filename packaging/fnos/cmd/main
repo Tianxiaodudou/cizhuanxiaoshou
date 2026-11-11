@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # 建材进销存 FPK 生命周期主控：main start|stop|restart|status
 # 只拉起 JVM 版 S13 网关（内置 JRE），不依赖宿主 Java；数据放在 fnOS 分配的 var 目录。
 set -u
