@@ -63,6 +63,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
   if (!o) return (<dialog open className="modal"><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></dialog>)
   const archived = o.status === 'archived'
   const save = async () => {
+    if (!confirm('确认保存修改？')) return
     try {
       await api('/api/orders/' + id, { method: 'PUT', body: JSON.stringify({ version: o.version, remark, items: lines.map((l) => ({ category_id: l.category_id, batch_tag: l.batch_tag, input_unit: l.input_unit, input_quantity: l.input_quantity, unit_price: l.unit_price })) }) })
       setEditing(false); await load(); onChanged?.()
@@ -132,7 +133,7 @@ function Dashboard() {
   )
 }
 
-function Orders() {
+function Orders({ isAdmin }) {
   const [rows, setRows] = useState([])
   const [detail, setDetail] = useState(null)
   const load = useCallback(() => api('/api/orders/all').then(setRows).catch(() => {}), [])
@@ -142,7 +143,7 @@ function Orders() {
   return (
     <>
       <h2>单据库（全部 {rows.length} 张）</h2>
-      <OrderTable rows={rows} onDetail={(id) => setDetail({ id })} onDelete={del} onArchive={archive} />
+      <OrderTable rows={rows} canEdit={isAdmin} onDetail={(id, edit) => setDetail({ id, edit })} onDelete={del} onArchive={archive} />
       {detail && <OrderDetailModal id={detail.id} startEdit={detail.edit} onClose={() => setDetail(null)} onChanged={load} />}
     </>
   )
@@ -160,7 +161,7 @@ function PrintPage() {
   )
 }
 
-const emptyCat = { group: '', name: '', batch: '', settlement_unit: '', conversion_unit: '', conversion: '1' }
+const emptyCat = { group: '', name: '', batch: '', settlement_unit: '', conversion_unit: '', conversion: '1', default_price: '' }
 
 function CategoryModal({ init, onClose, onDone }) {
   const [f, setF] = useState(init || emptyCat)
@@ -184,6 +185,7 @@ function CategoryModal({ init, onClose, onDone }) {
         <label className="row">二级 型号：<input value={f.name} onChange={set('name')} required /></label>
         <label className="row">三级 批号：<input value={f.batch} onChange={set('batch')} required /></label>
         <label className="row">四级 计价单位：<input value={f.settlement_unit} onChange={set('settlement_unit')} required /></label>
+        <label className="row">默认价格（元/计价单位）：<input value={f.default_price} onChange={set('default_price')} placeholder="可空，新客户默认用它" /></label>
         <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} /></label>
         {f.conversion_unit.trim() !== '' && (
           <div className="row">换算系数：1 <b>{f.conversion_unit}</b> = <input style={{ width: 70 }} value={f.conversion} onChange={set('conversion')} /> <b>{f.settlement_unit || '暂无'}</b></div>
@@ -209,7 +211,7 @@ function Categories() {
         <button className="secondary" onClick={load}>刷新</button>
       </div>
       <table>
-        <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>计价单位</th><th>换算单位</th><th>状态</th><th>操作</th></tr></thead>
+        <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>计价单位</th><th>默认价</th><th>换算单位</th><th>状态</th><th>操作</th></tr></thead>
         <tbody>{rows.map((c) => (
           <tr key={c.id}>
             <td>{c.group}</td><td>{c.name}</td><td>{c.batch}</td><td>{c.settlement_unit}</td>
@@ -354,7 +356,7 @@ function Settings() {
   )
 }
 
-const TABS = [['dashboard', '仪表盘'], ['orders', '单据'], ['print', '打印'], ['categories', '型号库'], ['prices', '价格'], ['accounts', '账号'], ['settlement', '结算'], ['settings', '配置']]
+const TABS = [['dashboard', '仪表盘'], ['orders', '单据'], ['print', '打印'], ['categories', '型号库'], ['accounts', '账号'], ['settlement', '结算'], ['settings', '配置']]
 
 export default function App() {
   const [acc, setAcc] = useState(() => {
@@ -374,10 +376,9 @@ export default function App() {
       </header>
       <main>
         {tab === 'dashboard' && <Dashboard />}
-        {tab === 'orders' && <Orders />}
+        {tab === 'orders' && <Orders isAdmin={isAdmin} />}
         {tab === 'print' && <PrintPage />}
         {tab === 'categories' && <Categories />}
-        {tab === 'prices' && <Prices />}
         {tab === 'accounts' && <Accounts isAdmin={isAdmin} />}
         {tab === 'settlement' && <Settlement />}
         {tab === 'settings' && <Settings />}

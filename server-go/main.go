@@ -107,7 +107,7 @@ func migrate(db *sql.DB) {
 	ss := []string{
 		`CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, name TEXT, password_hash TEXT, role TEXT DEFAULT 'staff', status TEXT DEFAULT 'active', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`,
-		`CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, name TEXT, batch TEXT, settlement_unit TEXT, conversion_unit TEXT, conversion REAL DEFAULT 1, batch_type TEXT DEFAULT 'none', status TEXT DEFAULT 'active', created_at TEXT, UNIQUE(grp,name,batch,settlement_unit,conversion_unit))`,
+		`CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, name TEXT, batch TEXT, settlement_unit TEXT, conversion_unit TEXT, conversion REAL DEFAULT 1, default_price TEXT DEFAULT '', batch_type TEXT DEFAULT 'none', status TEXT DEFAULT 'active', created_at TEXT, UNIQUE(grp,name,batch,settlement_unit,conversion_unit))`,
 		`CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT UNIQUE, created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS customer_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, category_id INTEGER, batch_tag TEXT DEFAULT '', unit_price TEXT, updated_at TEXT, UNIQUE(customer_id,category_id,batch_tag))`,
 		`CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY AUTOINCREMENT, order_no TEXT UNIQUE, type TEXT, customer_id INTEGER, account_id INTEGER, status TEXT DEFAULT 'submitted', remark TEXT, order_total TEXT, version INTEGER DEFAULT 1, created_at TEXT)`,
@@ -125,6 +125,7 @@ func migrate(db *sql.DB) {
 	}
 	_, _ = db.Exec(`ALTER TABLE accounts ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN addr TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
 }
 
 func loadEnvFile(path string) {
@@ -433,17 +434,18 @@ type Category struct {
 	Conversion     float64 `json:"conversion"`
 	Status         string  `json:"status"`
 	UnitPrice      string  `json:"unit_price,omitempty"`
+	DefaultPrice   string  `json:"default_price"`
 }
 
 func (a *App) categories(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		rows, _ := a.db.Query(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,status FROM categories WHERE status!='deleted' ORDER BY id DESC`)
+		rows, _ := a.db.Query(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE status!='deleted' ORDER BY id DESC`)
 		list := []Category{}
 		if rows != nil {
 			defer rows.Close()
 			for rows.Next() {
 				var c Category
-				_ = rows.Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion, &c.Status)
+				_ = rows.Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion, &c.DefaultPrice, &c.Status)
 				list = append(list, c)
 			}
 		}
@@ -463,8 +465,8 @@ func (a *App) categories(w http.ResponseWriter, r *http.Request) {
 	if in.Conversion <= 0 {
 		in.Conversion = 1
 	}
-	res, err := a.db.Exec(`INSERT INTO categories(grp,name,batch,settlement_unit,conversion_unit,conversion,status,created_at) VALUES(?,?,?,?,?,?,'active',?)`,
-		in.Group, in.Name, in.Batch, in.SettlementUnit, in.ConversionUnit, in.Conversion, now())
+	res, err := a.db.Exec(`INSERT INTO categories(grp,name,batch,settlement_unit,conversion_unit,conversion,default_price,status,created_at) VALUES(?,?,?,?,?,?,?,'active',?)`,
+		in.Group, in.Name, in.Batch, in.SettlementUnit, in.ConversionUnit, in.Conversion, in.DefaultPrice, now())
 	if err != nil {
 		fail(w, 409, "CATEGORY_EXISTS", "该品类+型号+批号+计价单位+换算单位已存在")
 		return
@@ -502,8 +504,8 @@ func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string) 
 		if in.Conversion <= 0 {
 			in.Conversion = 1
 		}
-		_, err := a.db.Exec(`UPDATE categories SET grp=?,name=?,batch=?,settlement_unit=?,conversion_unit=?,conversion=? WHERE id=?`,
-			in.Group, in.Name, in.Batch, in.SettlementUnit, in.ConversionUnit, in.Conversion, id)
+		_, err := a.db.Exec(`UPDATE categories SET grp=?,name=?,batch=?,settlement_unit=?,conversion_unit=?,conversion=?,default_price=? WHERE id=?`,
+			in.Group, in.Name, in.Batch, in.SettlementUnit, in.ConversionUnit, in.Conversion, in.DefaultPrice, id)
 		if err != nil {
 			fail(w, 409, "CATEGORY_EXISTS", "该五元组已存在")
 			return
@@ -539,6 +541,10 @@ func (a *App) available(cid, cat int64) []map[string]any {
 func (a *App) priceFor(cid, cat int64, batch string) string {
 	var p string
 	_ = a.db.QueryRow(`SELECT unit_price FROM customer_prices WHERE customer_id=? AND category_id=? AND batch_tag=?`, cid, cat, batch).Scan(&p)
+	if p != "" {
+		return p
+	}
+	_ = a.db.QueryRow(`SELECT COALESCE(default_price,'') FROM categories WHERE id=?`, cat).Scan(&p)
 	return p
 }
 
