@@ -49,8 +49,8 @@ class Db(private val path: String) {
                     created_at TEXT NOT NULL)""",
                 """CREATE TABLE IF NOT EXISTS customer_prices(
                     id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER NOT NULL, category_id INTEGER NOT NULL,
-                    unit_price TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by INTEGER,
-                    UNIQUE(customer_id, category_id))""",
+                    batch_tag TEXT NOT NULL DEFAULT '', unit_price TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by INTEGER,
+                    UNIQUE(customer_id, category_id, batch_tag))""",
                 """CREATE TABLE IF NOT EXISTS orders(
                     id INTEGER PRIMARY KEY AUTOINCREMENT, order_no TEXT NOT NULL UNIQUE, type TEXT NOT NULL,
                     customer_id INTEGER NOT NULL, account_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'submitted',

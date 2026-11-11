@@ -52,7 +52,8 @@ class Api(private val svc: Services) {
             path == "/api/prices" && method == "GET" -> {
                 val phone = req.query["phone"] ?: throw ApiError("PHONE_REQUIRED", "电话必填")
                 val categoryId = req.query["category_id"]?.toLongOrNull() ?: throw ApiError("CATEGORY_REQUIRED", "型号必填")
-                Json.okRaw("""{"unit_price":"${svc.price(phone, categoryId)}"}""")
+                val batch = req.query["batch_tag"].orEmpty()
+                Json.okRaw("""{"unit_price":"${svc.price(phone, categoryId, batch)}"}""")
             }
 
             path == "/api/returns/available" && method == "GET" -> {
@@ -77,7 +78,11 @@ class Api(private val svc: Services) {
                     Json.str(o, "remark"),
                     items,
                 )
-                Json.okRaw(Json.orderJson(order, svc.itemsOf(order.id)).toString())
+                val base = Json.orderJson(order, svc.itemsOf(order.id))
+                val withCum = kotlinx.serialization.json.JsonObject(
+                    base + ("cumulative_total" to kotlinx.serialization.json.JsonPrimitive(svc.cumulative(order.customerPhone))),
+                )
+                Json.ok(withCum)
             }
 
             path == "/api/orders/today" && method == "GET" ->
@@ -154,6 +159,7 @@ class Api(private val svc: Services) {
                 Json.str(item, "batch_tag"),
                 Json.str(item, "input_unit") ?: throw ApiError("UNIT_REQUIRED", "单位必填"),
                 Json.str(item, "input_quantity") ?: throw ApiError("QUANTITY_REQUIRED", "数量必填"),
+                Json.str(item, "unit_price"),
             )
         }
 }

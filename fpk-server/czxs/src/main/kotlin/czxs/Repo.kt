@@ -19,7 +19,7 @@ data class CategoryRow(
     val batchType: String, val status: String, val units: List<UnitRow>,
 )
 data class CustomerRow(val id: Long, val name: String, val phone: String)
-data class ItemInput(val categoryId: Long, val batchTag: String?, val inputUnit: String, val inputQuantity: String)
+data class ItemInput(val categoryId: Long, val batchTag: String?, val inputUnit: String, val inputQuantity: String, val unitPrice: String? = null)
 data class OrderItemRow(
     val lineNo: Int, val categoryId: Long, val categoryName: String, val spec: String, val batchTag: String?,
     val inputUnit: String, val inputQuantity: String, val settlementUnit: String, val settlementQuantity: String,
@@ -143,12 +143,8 @@ class Repo(private val db: Db) {
         }
 
     fun upsertCustomer(c: Connection, name: String, phone: String, at: String): CustomerRow {
-        customerByPhone(c, phone)?.let { existing ->
-            if (existing.name != name) c.prepareStatement("UPDATE customers SET name=? WHERE id=?").use { ps ->
-                ps.setString(1, name); ps.setLong(2, existing.id); ps.executeUpdate()
-            }
-            return existing.copy(name = name)
-        }
+        // 电话已存在：忽略客户端姓名，沿用库中原姓名（v1.2 流程）
+        customerByPhone(c, phone)?.let { return it }
         c.prepareStatement("INSERT INTO customers(name,phone,created_at) VALUES(?,?,?)").use { ps ->
             ps.setString(1, name); ps.setString(2, phone); ps.setString(3, at); ps.executeUpdate()
         }
@@ -218,20 +214,20 @@ class Repo(private val db: Db) {
     }
 
     // ---------- prices ----------
-    fun price(c: Connection, customerId: Long, categoryId: Long): String? =
-        c.prepareStatement("SELECT unit_price FROM customer_prices WHERE customer_id=? AND category_id=?").use { ps ->
-            ps.setLong(1, customerId); ps.setLong(2, categoryId)
+    fun price(c: Connection, customerId: Long, categoryId: Long, batchTag: String): String? =
+        c.prepareStatement("SELECT unit_price FROM customer_prices WHERE customer_id=? AND category_id=? AND batch_tag=?").use { ps ->
+            ps.setLong(1, customerId); ps.setLong(2, categoryId); ps.setString(3, batchTag)
             ps.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null }
         }
 
-    fun setPrice(c: Connection, customerId: Long, categoryId: Long, price: String, at: String, accountId: Long) {
-        c.prepareStatement("INSERT INTO customer_prices(customer_id,category_id,unit_price,updated_at,updated_by) VALUES(?,?,?,?,?) ON CONFLICT(customer_id,category_id) DO UPDATE SET unit_price=excluded.unit_price, updated_at=excluded.updated_at, updated_by=excluded.updated_by").use { ps ->
-            ps.setLong(1, customerId); ps.setLong(2, categoryId); ps.setString(3, price); ps.setString(4, at); ps.setLong(5, accountId); ps.executeUpdate()
+    fun setPrice(c: Connection, customerId: Long, categoryId: Long, batchTag: String, price: String, at: String, accountId: Long) {
+        c.prepareStatement("INSERT INTO customer_prices(customer_id,category_id,batch_tag,unit_price,updated_at,updated_by) VALUES(?,?,?,?,?,?) ON CONFLICT(customer_id,category_id,batch_tag) DO UPDATE SET unit_price=excluded.unit_price, updated_at=excluded.updated_at, updated_by=excluded.updated_by").use { ps ->
+            ps.setLong(1, customerId); ps.setLong(2, categoryId); ps.setString(3, batchTag); ps.setString(4, price); ps.setString(5, at); ps.setLong(6, accountId); ps.executeUpdate()
         }
     }
 
     fun prices(c: Connection, customerId: Long): List<Triple<Long, String, String>> =
-        c.prepareStatement("SELECT p.category_id, c.name||' '||c.spec, p.unit_price FROM customer_prices p JOIN categories c ON c.id=p.category_id WHERE p.customer_id=? ORDER BY c.name").use { ps ->
+        c.prepareStatement("SELECT p.category_id, c.name||' '||c.spec||CASE WHEN p.batch_tag='' THEN '' ELSE ' · '||p.batch_tag END, p.unit_price FROM customer_prices p JOIN categories c ON c.id=p.category_id WHERE p.customer_id=? ORDER BY c.name, p.batch_tag").use { ps ->
             ps.setLong(1, customerId); ps.executeQuery().use { rs ->
                 buildList { while (rs.next()) add(Triple(rs.getLong(1), rs.getString(2), rs.getString(3))) }
             }
@@ -439,6 +435,12 @@ class Repo(private val db: Db) {
                 }
             }
         }
+
+    fun finishPrintJob(c: Connection, jobId: Long, at: String) {
+        c.prepareStatement("UPDATE print_jobs SET status='printed', printed_at=? WHERE id=?").use { ps ->
+            ps.setString(1, at); ps.setLong(2, jobId); ps.executeUpdate()
+        }
+    }
 
     fun pendingPrintCount(c: Connection): Int =
         c.createStatement().use { st -> st.executeQuery("SELECT COUNT(*) FROM print_jobs WHERE status='pending'").use { rs -> rs.next(); rs.getInt(1) } }

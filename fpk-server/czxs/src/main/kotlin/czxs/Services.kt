@@ -101,14 +101,17 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
     }
 
     // ---------- 价格 ----------
-    fun price(phone: String, categoryId: Long): String = db.tx { c ->
+    fun price(phone: String, categoryId: Long, batchTag: String = ""): String = db.tx { c ->
         val customer = repo.customerByPhone(c, normalizePhone(phone)) ?: throw ApiError("CUSTOMER_NOT_FOUND", "客户不存在")
-        repo.price(c, customer.id, categoryId) ?: throw ApiError("PRICE_MISSING", "该客户型号未维护价格")
+        repo.price(c, customer.id, categoryId, batchTag) ?: throw ApiError("PRICE_MISSING", "该批次暂无价格")
     }
 
-    fun setPrice(admin: AccountRow, customerId: Long, categoryId: Long, price: String) = db.tx { c ->
+    fun setPrice(admin: AccountRow, customerId: Long, categoryId: Long, price: String) =
+        setPrice(admin, customerId, categoryId, "", price)
+
+    fun setPrice(admin: AccountRow, customerId: Long, categoryId: Long, batchTag: String, price: String) = db.tx { c ->
         val value = price.toBigDecimalOrNull()?.setScale(2, RoundingMode.HALF_UP) ?: throw ApiError("PRICE_INVALID", "价格非法")
-        repo.setPrice(c, customerId, categoryId, Num.money(value), now(), admin.id)
+        repo.setPrice(c, customerId, categoryId, batchTag, Num.money(value), now(), admin.id)
         repo.log(c, admin.id, "PRICE_SET", "category", categoryId.toString(), "customer=$customerId price=${Num.money(value)}", now())
     }
 
@@ -175,7 +178,26 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
         val qty = input.inputQuantity.toBigDecimalOrNull() ?: throw ApiError("QUANTITY_INVALID", "数量非法")
         if (qty <= BigDecimal.ZERO) throw ApiError("QUANTITY_INVALID", "数量必须大于 0")
         val settlementQty = qty.multiply(unit.conversion).setScale(4, RoundingMode.HALF_UP)
-        val price = repo.price(c, customerId, cat.id) ?: throw ApiError("PRICE_MISSING", "该客户型号未维护价格")
+        val batch = input.batchTag.orEmpty()
+        if (cat.batchType != "none" && batch.isBlank()) throw ApiError("BATCH_REQUIRED", "该型号必须填写批次")
+        val existing = repo.price(c, customerId, cat.id, batch)
+        val price = when {
+            existing != null -> {
+                val supplied = input.unitPrice?.takeIf { it.isNotBlank() }
+                if (supplied != null && supplied.toBigDecimalOrNull() != existing.toBigDecimalOrNull()) {
+                    throw ApiError("PRICE_EXISTS", "价格已存在，当前批次单价为 $existing")
+                }
+                existing
+            }
+            else -> {
+                val supplied = input.unitPrice?.takeIf { it.isNotBlank() }
+                    ?: throw ApiError("PRICE_REQUIRED", "该批次无价格，请录入单价")
+                val value = supplied.toBigDecimalOrNull()?.setScale(2, RoundingMode.HALF_UP)
+                    ?: throw ApiError("PRICE_INVALID", "单价非法")
+                repo.setPrice(c, customerId, cat.id, batch, Num.money(value), now(), 0)
+                Num.money(value)
+            }
+        }
         val lineTotal = settlementQty.multiply(price.toBigDecimal()).setScale(2, RoundingMode.HALF_UP)
         if (type.endsWith("_return")) {
             val available = repo.delivered(c, customerId, cat.id, input.batchTag.orEmpty())
@@ -198,6 +220,11 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
     fun recent(phone: String, days: Int): List<OrderRow> = db.tx { c ->
         val since = OffsetDateTime.now().minusDays(days.toLong().coerceIn(1, 7)).toString()
         repo.ordersRecentByPhone(c, normalizePhone(phone), since).map { orderView(c, it) }
+    }
+
+    fun cumulative(phone: String): String = db.tx { c ->
+        val customer = repo.customerByPhone(c, normalizePhone(phone)) ?: return@tx "0.00"
+        Num.money(repo.ordersByPhone(c, customer.phone, 1000).sumOf { Num.bd(it.orderTotal) })
     }
 
     fun history(phone: String): Pair<CustomerRow, String> = db.tx { c ->
@@ -248,8 +275,37 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
 
     fun reprint(admin: AccountRow, orderNo: String) = db.tx { c ->
         val order = repo.orderByNo(c, orderNo) ?: throw ApiError("ORDER_NOT_FOUND", "单据不存在")
-        printOrder(c, order.id, order.orderNo, "order")
-        repo.log(c, admin.id, "ORDER_REPRINT", "order", orderNo, null, now())
+        renderTicket(c, order, null)
+        repo.markPrinted(c, order.id, now())
+        repo.log(c, admin.id, "ORDER_REPRINT", "order", orderNo, "补打", now())
+    }
+
+    fun executePrintJob(admin: AccountRow, jobId: Long) = db.tx { c ->
+        val job = repo.printJobs(c, 200).firstOrNull { it.id == jobId } ?: throw ApiError("JOB_NOT_FOUND", "打印任务不存在")
+        val order = job.orderNo?.let { repo.orderByNo(c, it) }
+        if (order != null) {
+            renderTicket(c, order, null)
+            repo.markPrinted(c, order.id, now())
+        }
+        repo.finishPrintJob(c, jobId, now())
+        repo.log(c, admin.id, "PRINT_JOB", "print_job", jobId.toString(), null, now())
+    }
+
+    private fun renderTicket(c: java.sql.Connection, order: OrderRow, merchantOverride: String?) {
+        val merchant = merchantOverride ?: repo.setting(c, "merchant_name") ?: "瓷砖店"
+        val body = buildString {
+            appendLine("==== $merchant ====")
+            appendLine("单号：${order.orderNo}")
+            appendLine("客户：${order.customerName}")
+            appendLine("时间：${now().take(16).replace('T', ' ')}")
+            repo.items(c, order.id).forEach { line ->
+                appendLine("${line.categoryName} ${line.spec} ${line.batchTag ?: ""}")
+                appendLine("  ${line.inputQuantity}${line.inputUnit}（结算 ${line.settlementQuantity}${line.settlementUnit}）× ${line.unitPrice} = ${line.lineTotal}")
+            }
+            appendLine("合计：${order.orderTotal}")
+            appendLine("----------------")
+        }
+        java.io.File(cfg.printDir, "${order.orderNo}.txt").writeText(body, Charsets.UTF_8)
     }
 
     fun printPending(admin: AccountRow, jobId: Long) = db.tx { c ->
@@ -272,14 +328,7 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
             }
             appendLine("----------------")
         }
-        try {
-            val file = java.io.File(cfg.printDir, "$docNo.txt")
-            file.writeText(body, Charsets.UTF_8)
-            repo.insertPrintJob(c, orderId, docType, merchant, at, "printed", null, at)
-            if (orderId != null) repo.markPrinted(c, orderId, at)
-        } catch (e: Exception) {
-            repo.insertPrintJob(c, orderId, docType, merchant, at, "failed", e.message, null)
-        }
+        repo.insertPrintJob(c, orderId, docType, merchant, at, "pending", null, null)
     }
 
     // ---------- 工具 ----------
@@ -288,7 +337,12 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
     private fun sign(type: String, total: BigDecimal): BigDecimal =
         if (type.endsWith("_return")) total.negate() else total
 
-    private fun prefixOf(type: String): String = if (type.startsWith("pickup")) "P" else "D"
+    private fun prefixOf(type: String): String = when (type) {
+        "delivery" -> "D"
+        "delivery_return" -> "R"
+        "pickup" -> "P"
+        else -> "R"
+    }
 
     private fun nextNo(c: Connection, table: String, column: String, prefix: String): String {
         val day = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
