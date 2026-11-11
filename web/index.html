@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>瓷砖店销售系统</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f7f9; color: #1c2430; }
+      header { background: #1565c0; color: #fff; padding: 12px 20px; font-weight: 600; display: flex; align-items: center; gap: 16px; }
+      header nav a { color: #fff; margin-right: 14px; text-decoration: none; opacity: .9; }
+      header .who { margin-left: auto; font-size: 13px; opacity: .9; }
+      main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+      table { width: 100%; border-collapse: collapse; background: #fff; }
+      th, td { border: 1px solid #e3e6ea; padding: 8px; text-align: left; font-size: 14px; }
+      th { background: #f0f3f7; }
+      button { font-size: 14px; padding: 5px 10px; border: 0; border-radius: 5px; background: #1565c0; color: #fff; cursor: pointer; margin-right: 6px; }
+      button.secondary { background: #eef2f7; color: #1565c0; }
+      button.danger { background: #c62828; }
+      input { font-size: 14px; padding: 6px 8px; border: 1px solid #cfd6df; border-radius: 5px; }
+      label.row { display: block; margin: 8px 0; }
+      label.row input { width: 320px; }
+      .muted { color: #777; font-size: 13px; }
+      dialog { border: 1px solid #cfd6df; border-radius: 8px; padding: 18px 22px; }
+      .login { max-width: 380px; margin: 60px auto; background: #fff; border: 1px solid #e3e6ea; border-radius: 8px; padding: 24px; }
+      .login input { width: 100%; margin: 6px 0 12px; }
+      .err { color: #c62828; margin: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

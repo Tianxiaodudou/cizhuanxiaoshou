@@ -1,0 +1,48 @@
+name: czxs (Go + React FPK)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "czxs-v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build admin (Vite/React)
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          rm -rf ../server-go/web/dist
+          cp -r dist ../server-go/web/dist
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build Go server (linux/amd64)
+        working-directory: server-go
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o ../packaging/czxs-go/app/bin/czxs .
+
+      - name: Install fnpack
+        run: |
+          curl -fsSL https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64 -o fnpack
+          chmod +x fnpack
+
+      - name: Pack FPK
+        run: |
+          ./fnpack build --directory packaging/czxs-go
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: czxs-fpk
+          path: "*.fpk"
