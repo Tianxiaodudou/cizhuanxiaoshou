@@ -221,12 +221,20 @@ class Admin(private val svc: Services, private val cfg: Config) {
                 <p>一级 品类：<input name="group" required placeholder="墙砖 / 地砖"></p>
                 <p>二级 型号：<input name="name" required placeholder="T6 / p3 / c200"></p>
                 <p>三级 批号：<input name="batch" required placeholder="789 / ii8"></p>
-                <p>四级 计价单位：<input name="settlement_unit" required placeholder="片 / 箱"></p>
-                <p>五级 换算单位：<input name="conversion_unit" required placeholder="箱 / 件"></p>
-                <p>换算系数：1 <input name="conversion_ratio" value="1" size="6"> 换算单位 = ? 计价单位（例如 1 箱 = 10 片 就填 10）</p>
+                <p>四级 计价单位：<input id="su" name="settlement_unit" required placeholder="片 / 箱" oninput="syncUnits()"></p>
+                <p>五级 换算单位：<input id="cu" name="conversion_unit" required placeholder="箱 / 件" oninput="syncUnits()"></p>
+                <p>换算系数：1 <b id="cuLbl">换算单位</b> = <input name="conversion_ratio" value="1" size="6"> <b id="suLbl">计价单位</b>（例如 1 箱 = 10 片 就填 10）</p>
                 <p><button>保存</button> <button type="button" onclick="document.getElementById('addCat').close()">取消</button></p>
               </form>
             </dialog>
+            <script>
+              function syncUnits() {
+                var cu = document.getElementById('cu').value || '换算单位';
+                var su = document.getElementById('su').value || '计价单位';
+                document.getElementById('cuLbl').textContent = cu;
+                document.getElementById('suLbl').textContent = su;
+              }
+            </script>
             <table><tr><th>品类</th><th>型号</th><th>批号</th><th>单位（计价/换算）</th><th>状态</th><th>操作</th></tr>$rows</table>
             <h3>单位配置</h3>
             <form method="post" action="${cfg.gatewayPrefix}/admin/categories/0/unit">
