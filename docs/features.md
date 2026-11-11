@@ -60,6 +60,7 @@
 | DOCS | `routes.md`、`features.md`、`进度-单agent.md` | 文档与实现一致 | ✅ |
 | SCAN | 按钮 / 打印关键词扫描脚本 | 能扫出违规关键词（注入违禁词即退出 1） | ✅ |
 | HOOKS | dsh hooks 配置 + 自检脚本 | hooks 生效（`verify-hooks.ps1` 返回 `HOOKS OK`） | ✅ |
+| 发版（FPK/APK） | GitHub Actions：`VERSION` 单一版本源，一次发版同时产出 fnOS FPK 与 Android APK，Release 挂双产物 | 工作流跑通；Release v1.0.7 含 `.fpk` 与 `.apk`；FPK 已在 fnOS 安装运行，APK 已装真机 | ✅ |
 | 代码地图 | 总览 `docs/CODEMAPS/`（architecture / backend / frontend / conventions）+ 每个源码文件头 `@file/@role/@exports/@depends/@calledBy/@sideEffects` | 总览与实现一致；`check-file-headers.ps1` 覆盖 236 个 `.kt`（缺 `@file` 仅警告） | ✅ |
 
 ## 真机联调（2026-11-11，Redmi K40 / Android 11 / `192.168.1.32`）

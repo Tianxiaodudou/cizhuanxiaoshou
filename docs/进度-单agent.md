@@ -38,6 +38,17 @@
 | `powershell -File docs/tools/verify-hooks.ps1` | HOOKS OK（扫描 + 394 份代码地图齐全） |
 | 真机联调 `docs/tools/device-e2e.sh` | Redmi K40 / Android 11：契约、登录、建档、建单、幂等重放、结算审核、备注单、审计、80mm 票据、401 全部通过 |
 
+## 发版与真机联调（第五轮）
+
+| 项目 | 结果 |
+| --- | --- |
+| GitHub 推送 | `main` 已推送（含 S09–S14 / C00–C12 / 代码地图 / 发版工程） |
+| GitHub Actions `release.yml` | 跑通：version 递增 → server（FPK，内置 JRE）→ client（APK）→ Release 双产物 |
+| 发布版本 | v1.0.7（Release） |
+| FPK 安装（fnOS 192.168.80.129） | 按 FPK 结构落盘 `/var/apps/jiancai` → `cmd/main start` → `:8080/contract` 返回 1.2.0；管理员 admin 已创建 |
+| APK 安装（Redmi K40） | `adb install -r` 成功，包名 `com.jiancai.android.app`，MainActivity 已启动（设备锁屏，界面操作待解锁后补验） |
+| 两端连通 | 手机 `curl 127.0.0.1:8080/contract`（adb reverse → PC Node 转发 → fnOS）拿到 1.2.0 契约响应 |
+
 ## 代码地图约定（第三轮定稿：总览 + 文件头）
 
 1. **总览地图** `docs/CODEMAPS/`：按领域拆分，`architecture.md`（分层 / 数据流 / 四条硬边界）、
