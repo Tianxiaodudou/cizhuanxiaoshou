@@ -178,7 +178,7 @@ class Admin(private val svc: Services, private val cfg: Config) {
             svc.createCategoryByAdmin(
                 account,
                 f["group"].orEmpty(), f["name"].orEmpty(), f["batch"].orEmpty(),
-                f["settlement_unit"].orEmpty(), f["conversion_unit"].orEmpty(),
+                f["settlement_unit"].orEmpty(), f["conversion_unit"].orEmpty(), f["conversion_ratio"].orEmpty(),
             )
             return redirect("${cfg.gatewayPrefix}/admin/categories")
         }
@@ -196,7 +196,11 @@ class Admin(private val svc: Services, private val cfg: Config) {
         }
         val list = svc.categoriesAll()
         val rows = list.joinToString("") { c ->
-            val units = c.units.joinToString("，") { "${it.unit}${if (it.isSettlement) "(计价)" else "(换算)"}" }
+            val settlementUnit = c.units.firstOrNull { it.isSettlement }
+            val units = c.units.joinToString("，") { u ->
+                if (u.isSettlement) "${u.unit}(计价)"
+                else "${u.unit}(1${u.unit}=${u.conversion.toPlainString()}${settlementUnit?.unit ?: ""})"
+            }
             val actions = buildString {
                 if (c.status == "pending") {
                     append("<form method=post action=\"${cfg.gatewayPrefix}/admin/categories/${c.id}/audit\" style=display:inline><input type=hidden name=approve value=1><button>通过</button></form>")
@@ -219,6 +223,7 @@ class Admin(private val svc: Services, private val cfg: Config) {
                 <p>三级 批号：<input name="batch" required placeholder="789 / ii8"></p>
                 <p>四级 计价单位：<input name="settlement_unit" required placeholder="片 / 箱"></p>
                 <p>五级 换算单位：<input name="conversion_unit" required placeholder="箱 / 件"></p>
+                <p>换算系数：1 <input name="conversion_ratio" value="1" size="6"> 换算单位 = ? 计价单位（例如 1 箱 = 10 片 就填 10）</p>
                 <p><button>保存</button> <button type="button" onclick="document.getElementById('addCat').close()">取消</button></p>
               </form>
             </dialog>

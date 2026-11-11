@@ -190,7 +190,7 @@ class Repo(private val db: Db) {
 
     fun insertCategory(
         c: Connection, group: String, name: String, spec: String, batchType: String, status: String,
-        accountId: Long, at: String, settlementUnit: String, conversionUnit: String,
+        accountId: Long, at: String, settlementUnit: String, conversionUnit: String, conversionRatio: BigDecimal = BigDecimal.ONE,
     ): Long {
         c.prepareStatement("INSERT INTO categories(grp,name,spec,batch_type,batch_required,status,created_by,created_at,settlement_unit,conversion_unit) VALUES(?,?,?,?,?,?,?,?,?,?)").use { ps ->
             ps.setString(1, group); ps.setString(2, name); ps.setString(3, spec); ps.setString(4, batchType)
@@ -201,7 +201,7 @@ class Repo(private val db: Db) {
         val id = c.createStatement().use { st -> st.executeQuery("SELECT last_insert_rowid()").use { rs -> rs.next(); rs.getLong(1) } }
         addUnit(c, id, settlementUnit, BigDecimal.ONE, true)
         if (conversionUnit.isNotBlank() && conversionUnit != settlementUnit) {
-            addUnit(c, id, conversionUnit, BigDecimal.ONE, false)
+            addUnit(c, id, conversionUnit, conversionRatio, false)
         }
         return id
     }

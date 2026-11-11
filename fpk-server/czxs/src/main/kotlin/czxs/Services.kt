@@ -415,7 +415,7 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
 
     /** 管理端新增型号：品类/型号/批号/计价单位/换算单位 五段自定义，五者联合唯一。 */
     fun createCategoryByAdmin(
-        admin: AccountRow, group: String, name: String, batch: String, settlementUnit: String, conversionUnit: String,
+        admin: AccountRow, group: String, name: String, batch: String, settlementUnit: String, conversionUnit: String, conversionRatio: String,
     ): CategoryRow = db.tx { c ->
         val g = group.trim(); val n = name.trim(); val b = batch.trim()
         val su = settlementUnit.trim(); val cu = conversionUnit.trim()
@@ -426,7 +426,9 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
         repo.categoryByUnique(c, g, n, b, su, cu)?.let {
             throw ApiError("CATEGORY_EXISTS", "该品类+型号+批号+计价单位+换算单位已存在（id=$it）")
         }
-        val id = repo.insertCategory(c, g, n, b, "none", "active", admin.id, now(), su, cu)
+        val ratio = conversionRatio.trim().toBigDecimalOrNull() ?: BigDecimal.ONE
+        if (ratio <= BigDecimal.ZERO) throw ApiError("RATIO_INVALID", "换算系数必须大于 0")
+        val id = repo.insertCategory(c, g, n, b, "none", "active", admin.id, now(), su, cu, ratio)
         repo.log(c, admin.id, "CATEGORY_CREATE", "category", id.toString(), "$g/$n/$b/$su/$cu", now())
         repo.category(c, id)!!
     }
