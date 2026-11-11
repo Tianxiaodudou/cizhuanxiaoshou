@@ -1,4 +1,4 @@
-package czxs
+﻿package czxs
 
 import java.io.File
 import kotlin.system.exitProcess
@@ -36,6 +36,7 @@ fun main(args: Array<String>) {
         val stripped = req.copy(path = path)
         when {
             path.startsWith("/admin") -> admin.handle(stripped)
+            path == "/" || path == "" -> Resp(303, "text/html; charset=utf-8", "", mapOf("Location" to cfg.gatewayPrefix + "/admin"))
             path == "/health" -> Json.okRaw("""{"app":"${cfg.appName}","version":"${cfg.version}"}""")
             else -> Resp(404, "text/html; charset=utf-8", "<h1>404</h1>")
         }
