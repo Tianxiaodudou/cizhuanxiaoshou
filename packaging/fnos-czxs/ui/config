@@ -1,0 +1,15 @@
+{
+  ".url": {
+    "czxs.main": {
+      "title": "瓷砖店销售系统",
+      "icon": "images/icon_{0}.png",
+      "type": "iframe",
+      "protocol": "",
+      "gatewayPrefix": "/app/czxs",
+      "gatewaySocket": "app.sock",
+      "url": "/app/czxs",
+      "allUsers": false,
+      "control": { "accessPerm": "readonly" }
+    }
+  }
+}

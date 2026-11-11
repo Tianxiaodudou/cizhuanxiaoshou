@@ -1,0 +1,8 @@
+#!/bin/bash
+# 安装/升级/配置/卸载钩子：只建目录并记一行日志，不阻塞安装。
+set -u
+APP_HOME="${TRIM_APPDEST:-$(cd "$(dirname "$0")/.." && pwd)}"
+PKGVAR="${TRIM_PKGVAR:-$APP_HOME/data}"
+echo "uninstall: keep data in $PKGVAR" >> "$PKGVAR/install.log" 2>/dev/null || true
+echo "$(date '+%F %T') $0" >> "$PKGVAR/install.log" 2>/dev/null || true
+exit 0

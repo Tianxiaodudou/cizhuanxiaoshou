@@ -55,3 +55,6 @@ include(":android-app:feature-settle")
 include(":android-app:feature-admin")
 include(":android-app:feature-settings")
 include(":android-app:app")
+
+// czxs v1.1 新服务端（FPK appname=czxs，网关 /app/czxs）
+include(":fpk-server:czxs")
