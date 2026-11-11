@@ -1,0 +1,8 @@
+﻿#!/bin/bash
+# 安装 / 升级前：预创建应用数据目录（与 fnOS 约定一致）
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+APPDEST="${TRIM_APPDEST:-$(cd "$HERE/.." && pwd)}"
+mkdir -p "${TRIM_PKGETC:-$APPDEST/etc}" "${TRIM_PKGVAR:-$APPDEST/var}" \
+         "${TRIM_PKGTMP:-$APPDEST/tmp}" "${TRIM_PKGHOME:-$APPDEST/home}" 2>/dev/null || true
+exit 0

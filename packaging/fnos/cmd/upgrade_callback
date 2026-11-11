@@ -1,0 +1,9 @@
+﻿#!/bin/bash
+# 回调：只记录一行，不阻塞安装/卸载
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+APPDEST="${TRIM_APPDEST:-$(cd "$HERE/.." && pwd)}"
+VAR="${TRIM_PKGVAR:-$APPDEST/var}"
+mkdir -p "$VAR" 2>/dev/null || true
+echo "$(date '+%Y-%m-%d %H:%M:%S') - callback $(basename "$0")" >> "$VAR/install.log" 2>/dev/null || true
+exit 0

@@ -1,0 +1,80 @@
+#!/bin/bash
+# 建材进销存 FPK 生命周期主控：main start|stop|restart|status
+# 只拉起 JVM 版 S13 网关（内置 JRE），不依赖宿主 Java；数据放在 fnOS 分配的 var 目录。
+set -u
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+APPDEST="${TRIM_APPDEST:-$(cd "$HERE/.." && pwd)}"
+PKGETC="${TRIM_PKGETC:-$APPDEST/etc}"
+PKGVAR="${TRIM_PKGVAR:-$APPDEST/var}"
+PKGTMP="${TRIM_PKGTMP:-$APPDEST/tmp}"
+PKGHOME="${TRIM_PKGHOME:-$APPDEST/home}"
+
+APP_HOME="$APPDEST/app"
+JAVA="$APP_HOME/jre/bin/java"
+CLASSES="$APP_HOME/lib/*"
+PID_FILE="$PKGVAR/server.pid"
+LOG_FILE="$PKGVAR/server.log"
+
+mkdir -p "$PKGETC" "$PKGVAR" "$PKGTMP" "$PKGHOME" 2>/dev/null || true
+
+log() { echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE" 2>/dev/null || true; }
+
+is_running() {
+    [ -f "$PID_FILE" ] || return 1
+    local pid; pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+start() {
+    if is_running; then echo "already running (pid $(cat "$PID_FILE"))"; return 0; fi
+    [ -x "$JAVA" ] || { echo "missing bundled JRE: $JAVA"; exit 1; }
+
+    if [ ! -f "$PKGETC/secret.key" ]; then
+        head -c 48 /dev/urandom | base64 | tr -d '\n' > "$PKGETC/secret.key"
+    fi
+    [ -f "$PKGETC/merchant.name" ] || echo "建材进销存" > "$PKGETC/merchant.name"
+    [ -f "$PKGETC/port" ] || echo "8080" > "$PKGETC/port"
+
+    export JIANCAI_DB_PATH="$PKGVAR/jiancai.db"
+    export JIANCAI_AUTH_SECRET="$(cat "$PKGETC/secret.key")"
+    export JIANCAI_MERCHANT_NAME="$(cat "$PKGETC/merchant.name")"
+    export JIANCAI_HTTP_HOST="0.0.0.0"
+    export JIANCAI_HTTP_PORT="$(cat "$PKGETC/port")"
+
+    log "starting gateway on port $JIANCAI_HTTP_PORT (db=$JIANCAI_DB_PATH)"
+    nohup "$JAVA" -Dfile.encoding=UTF-8 -Xms64m -Xmx256m -cp "$CLASSES" com.jiancai.app.GatewayMainKt >> "$LOG_FILE" 2>&1 &
+    echo $! > "$PID_FILE"
+    sleep 2
+    if is_running; then echo "started (pid $(cat "$PID_FILE"))"; else echo "failed to start, see $LOG_FILE"; exit 1; fi
+}
+
+stop() {
+    if is_running; then
+        kill "$(cat "$PID_FILE")" 2>/dev/null || true
+        for _ in 1 2 3 4 5; do is_running || break; sleep 1; done
+        is_running && kill -9 "$(cat "$PID_FILE")" 2>/dev/null || true
+        rm -f "$PID_FILE"
+        echo "stopped"
+    else
+        rm -f "$PID_FILE"
+        echo "not running"
+    fi
+}
+
+status() {
+    if is_running; then
+        echo "running (pid $(cat "$PID_FILE"))"
+        exit 0
+    fi
+    echo "stopped"
+    exit 3
+}
+
+case "${1:-}" in
+    start)   start ;;
+    stop)    stop ;;
+    restart) stop; start ;;
+    status)  status ;;
+    *) echo "usage: $0 start|stop|restart|status"; exit 2 ;;
+esac
