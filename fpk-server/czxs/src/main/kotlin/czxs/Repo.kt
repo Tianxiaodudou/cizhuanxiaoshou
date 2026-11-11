@@ -181,23 +181,28 @@ class Repo(private val db: Db) {
         }
     }
 
-    fun categoryByUnique(c: Connection, group: String, name: String, spec: String): Long? =
-        c.prepareStatement("SELECT id FROM categories WHERE grp=? AND name=? AND spec=?").use { ps ->
+    fun categoryByUnique(c: Connection, group: String, name: String, spec: String, settlementUnit: String, conversionUnit: String): Long? =
+        c.prepareStatement("SELECT id FROM categories WHERE grp=? AND name=? AND spec=? AND settlement_unit=? AND conversion_unit=?").use { ps ->
             ps.setString(1, group); ps.setString(2, name); ps.setString(3, spec)
+            ps.setString(4, settlementUnit); ps.setString(5, conversionUnit)
             ps.executeQuery().use { rs -> if (rs.next()) rs.getLong(1) else null }
         }
 
-    fun insertCategory(c: Connection, group: String, name: String, spec: String, batchType: String, status: String, accountId: Long, at: String): Long {
-        c.prepareStatement("INSERT INTO categories(grp,name,spec,batch_type,batch_required,status,created_by,created_at) VALUES(?,?,?,?,?,?,?,?)").use { ps ->
+    fun insertCategory(
+        c: Connection, group: String, name: String, spec: String, batchType: String, status: String,
+        accountId: Long, at: String, settlementUnit: String, conversionUnit: String,
+    ): Long {
+        c.prepareStatement("INSERT INTO categories(grp,name,spec,batch_type,batch_required,status,created_by,created_at,settlement_unit,conversion_unit) VALUES(?,?,?,?,?,?,?,?,?,?)").use { ps ->
             ps.setString(1, group); ps.setString(2, name); ps.setString(3, spec); ps.setString(4, batchType)
             ps.setInt(5, if (batchType == "none") 0 else 1); ps.setString(6, status); ps.setLong(7, accountId); ps.setString(8, at)
+            ps.setString(9, settlementUnit); ps.setString(10, conversionUnit)
             ps.executeUpdate()
         }
         val id = c.createStatement().use { st -> st.executeQuery("SELECT last_insert_rowid()").use { rs -> rs.next(); rs.getLong(1) } }
-        // 默认单位：片 / 箱=10 片（可管理端再改）
-        val settlement = if (group == "防水") "桶" else if (group == "胶灰") "包" else "片"
-        addUnit(c, id, settlement, BigDecimal.ONE, true)
-        if (settlement == "片") addUnit(c, id, "箱", BigDecimal.TEN, false)
+        addUnit(c, id, settlementUnit, BigDecimal.ONE, true)
+        if (conversionUnit.isNotBlank() && conversionUnit != settlementUnit) {
+            addUnit(c, id, conversionUnit, BigDecimal.ONE, false)
+        }
         return id
     }
 

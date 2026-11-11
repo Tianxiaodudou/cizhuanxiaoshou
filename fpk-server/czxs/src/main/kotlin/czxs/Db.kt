@@ -38,8 +38,8 @@ class Db(private val path: String) {
                     id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT NOT NULL, name TEXT NOT NULL, spec TEXT NOT NULL,
                     batch_type TEXT NOT NULL, batch_required INTEGER NOT NULL DEFAULT 1,
                     status TEXT NOT NULL DEFAULT 'active', created_by INTEGER, created_at TEXT NOT NULL,
-                    audited_by INTEGER, audited_at TEXT, reject_reason TEXT,
-                    UNIQUE(grp, name, spec))""",
+                    settlement_unit TEXT NOT NULL DEFAULT '', conversion_unit TEXT NOT NULL DEFAULT '',
+                    audited_by INTEGER, audited_at TEXT, reject_reason TEXT)""",
                 """CREATE TABLE IF NOT EXISTS category_units(
                     id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL,
                     unit TEXT NOT NULL, conversion REAL NOT NULL, is_settlement INTEGER NOT NULL DEFAULT 0,
@@ -83,7 +83,24 @@ class Db(private val path: String) {
                     token TEXT PRIMARY KEY, account_id INTEGER NOT NULL, created_at TEXT NOT NULL)""",
                 """CREATE TABLE IF NOT EXISTS admin_sessions(
                     token TEXT PRIMARY KEY, account_id INTEGER NOT NULL, created_at TEXT NOT NULL)""",
-            ).forEach { st.execute(it) }
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_identity ON categories(grp,name,spec,settlement_unit,conversion_unit)",
+            ).forEach { runCatching { st.execute(it) } }
+        }
+        // 兼容旧库：补两列后再建五元组唯一索引（已有重复数据时忽略失败）
+        runCatching {
+            val cols = mutableSetOf<String>()
+            c.createStatement().use { st ->
+                st.executeQuery("PRAGMA table_info(categories)").use { rs -> while (rs.next()) cols += rs.getString("name") }
+            }
+            if ("settlement_unit" !in cols) {
+                c.createStatement().use { it.execute("ALTER TABLE categories ADD COLUMN settlement_unit TEXT NOT NULL DEFAULT ''") }
+            }
+            if ("conversion_unit" !in cols) {
+                c.createStatement().use { it.execute("ALTER TABLE categories ADD COLUMN conversion_unit TEXT NOT NULL DEFAULT ''") }
+            }
+            c.createStatement().use {
+                it.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_identity ON categories(grp,name,spec,settlement_unit,conversion_unit)")
+            }
         }
         now()
     }

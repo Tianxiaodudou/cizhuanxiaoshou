@@ -48,7 +48,9 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
                 "瓷砖", "扣条" -> "color"
                 else -> "date"
             }
-            val id = repo.insertCategory(c, group, name, spec, batchType, "active", adminId, at)
+            val settlement = if (group == "瓷砖") "片" else if (group == "防水") "桶" else "支"
+            val conversion = if (settlement == "片") "箱" else ""
+            val id = repo.insertCategory(c, group, name, spec, batchType, "active", adminId, at, settlement, conversion)
             repo.addUnit(c, id, if (group == "瓷砖") "片" else if (group == "防水") "桶" else "支", BigDecimal.ONE, true)
         }
     }
@@ -75,7 +77,8 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
 
     fun submitCategory(account: AccountRow, group: String, name: String, spec: String, batchType: String): CategoryRow = db.tx { c ->
         val status = if (account.role == "admin") "active" else "pending"
-        val id = repo.insertCategory(c, group, name, spec, batchType, status, account.id, now())
+        val settlement = if (group == "瓷砖") "片" else if (group == "防水") "桶" else "支"
+        val id = repo.insertCategory(c, group, name, spec, batchType, status, account.id, now(), settlement, "")
         repo.log(c, account.id, "CATEGORY_SUBMIT", "category", id.toString(), "$group/$name/$spec -> $status", now())
         repo.category(c, id)!!
     }
@@ -408,6 +411,25 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
     fun settlementRows(): List<Triple<CustomerRow, BigDecimal, String>> = db.tx { c -> repo.settlement(c) }
 
     fun customersList(): List<CustomerRow> = db.tx { c -> repo.customers(c) }
+
+
+    /** 管理端新增型号：品类/型号/批号/计价单位/换算单位 五段自定义，五者联合唯一。 */
+    fun createCategoryByAdmin(
+        admin: AccountRow, group: String, name: String, batch: String, settlementUnit: String, conversionUnit: String,
+    ): CategoryRow = db.tx { c ->
+        val g = group.trim(); val n = name.trim(); val b = batch.trim()
+        val su = settlementUnit.trim(); val cu = conversionUnit.trim()
+        if (g.isEmpty() || n.isEmpty() || b.isEmpty() || su.isEmpty() || cu.isEmpty()) {
+            throw ApiError("FIELD_REQUIRED", "品类、型号、批号、计价单位、换算单位都必须填写")
+        }
+        if (su == cu) throw ApiError("UNIT_DUPLICATED", "计价单位与换算单位不能相同")
+        repo.categoryByUnique(c, g, n, b, su, cu)?.let {
+            throw ApiError("CATEGORY_EXISTS", "该品类+型号+批号+计价单位+换算单位已存在（id=$it）")
+        }
+        val id = repo.insertCategory(c, g, n, b, "none", "active", admin.id, now(), su, cu)
+        repo.log(c, admin.id, "CATEGORY_CREATE", "category", id.toString(), "$g/$n/$b/$su/$cu", now())
+        repo.category(c, id)!!
+    }
 
     fun categoriesAll(): List<CategoryRow> = db.tx { c -> repo.categories(c, listOf("active", "pending", "rejected", "disabled")) }
 
