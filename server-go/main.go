@@ -816,7 +816,7 @@ func (a *App) accounts() []map[string]any {
 
 func (a *App) activeAdminCount() int {
 	var n int
-	_ = a.db.QueryRow(`SELECT COUNT(*) FROM accounts WHERE role='admin' AND status='active'`).Scan(&n)
+	_ = a.db.QueryRow(`SELECT COUNT(*) FROM accounts WHERE role='admin' AND status='active' AND hidden=0`).Scan(&n)
 	return n
 }
 
