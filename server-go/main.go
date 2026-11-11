@@ -157,21 +157,43 @@ func (a *App) auth(r *http.Request) (int64, bool) {
 
 func (a *App) static() http.Handler {
 	sub, _ := fs.Sub(webFiles, "web/dist")
-	f := http.FileServer(http.FS(sub))
+	read := func(name string) ([]byte, bool) {
+		b, err := fs.ReadFile(sub, name)
+		return b, err == nil
+	}
+	ctype := func(name string) string {
+		switch {
+		case strings.HasSuffix(name, ".js"):
+			return "application/javascript; charset=utf-8"
+		case strings.HasSuffix(name, ".css"):
+			return "text/css; charset=utf-8"
+		case strings.HasSuffix(name, ".html"):
+			return "text/html; charset=utf-8"
+		case strings.HasSuffix(name, ".svg"):
+			return "image/svg+xml"
+		case strings.HasSuffix(name, ".png"):
+			return "image/png"
+		}
+		return "application/octet-stream"
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 不做任何 Location 跳转（网关前缀 + 反向代理下容易造成重定向循环）
-		p := strings.TrimPrefix(r.URL.Path, "/admin/")
-		if p == r.URL.Path {
-			p = strings.TrimPrefix(r.URL.Path, "/")
+		// 完全手工出文件，绝不重定向（避免网关前缀叠加导致 301 循环）
+		p := strings.TrimPrefix(r.URL.Path, "/admin")
+		p = strings.TrimPrefix(p, "/")
+		if p == "" || p == "index.html" {
+			body, _ := read("index.html")
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write(body)
+			return
 		}
-		if p == "" || p == "admin" {
-			p = "index.html"
+		if body, okFile := read(p); okFile {
+			w.Header().Set("Content-Type", ctype(p))
+			_, _ = w.Write(body)
+			return
 		}
-		if _, err := fs.Stat(sub, p); err != nil {
-			p = "index.html"
-		}
-		r.URL.Path = "/" + p
-		f.ServeHTTP(w, r)
+		body, _ := read("index.html")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write(body)
 	})
 }
 
