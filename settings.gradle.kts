@@ -12,6 +12,8 @@ pluginManagement {
         // Kotlin 插件及其依赖从插件门户取，其余依赖走各模块声明的 mavenCentral。
         gradlePluginPortal()
         mavenCentral()
+        // Android Gradle Plugin 只在 google() 仓库里。
+        google()
     }
 }
 

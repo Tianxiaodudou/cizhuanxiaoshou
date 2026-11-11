@@ -1,4 +1,4 @@
-// 客户端 Android 应用（真机验证用）：纯系统控件实现，不引入 AndroidX / Compose，降低构建风险。
+﻿// 客户端 Android 应用（真机验证用）：纯系统控件实现，不引入 AndroidX / Compose，降低构建风险。
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.jiancai.android.app"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.jiancai.android.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 34
         // 版本号来自仓库根 VERSION（与 FPK 同一份，发版时由 workflow 递增）
         versionName = rootProject.file("VERSION").readText().trim()
         versionCode = versionName.split('.').let { parts ->

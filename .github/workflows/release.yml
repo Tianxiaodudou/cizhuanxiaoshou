@@ -113,7 +113,12 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      - uses: android-actions/setup-android@v3
+      - name: 配置 Android SDK（使用 runner 预装，避免 sdkmanager 拉 tools 包）
+        run: |
+          SDK=/usr/local/lib/android/sdk
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          ls "$SDK/platforms" "$SDK/build-tools" || true
 
       - name: 编译客户端 APK
         run: |
