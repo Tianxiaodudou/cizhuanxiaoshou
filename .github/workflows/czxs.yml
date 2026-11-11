@@ -1,4 +1,4 @@
-name: czxs (Go + React FPK)
+﻿name: czxs (Go + React FPK)
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
       - name: Build admin (Vite/React)
         working-directory: web
         run: |
-          npm ci --no-audit --no-fund
+          npm install --no-audit --no-fund
           npm run build
           rm -rf ../server-go/web/dist
           cp -r dist ../server-go/web/dist
