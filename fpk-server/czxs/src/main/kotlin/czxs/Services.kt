@@ -413,6 +413,34 @@ class Services(private val db: Db, private val repo: Repo, private val cfg: Conf
     fun customersList(): List<CustomerRow> = db.tx { c -> repo.customers(c) }
 
 
+
+    fun categoryById(id: Long): CategoryRow = db.tx { c -> repo.category(c, id) ?: throw ApiError("CATEGORY_NOT_FOUND", "型号不存在") }
+
+    fun updateCategoryByAdmin(
+        admin: AccountRow, id: Long, group: String, name: String, batch: String,
+        settlementUnit: String, conversionUnit: String, conversionRatio: String,
+    ): CategoryRow = db.tx { c ->
+        val g = group.trim(); val n = name.trim(); val b = batch.trim()
+        val su = settlementUnit.trim(); val cu = conversionUnit.trim()
+        if (g.isEmpty() || n.isEmpty() || b.isEmpty() || su.isEmpty() || cu.isEmpty()) throw ApiError("FIELD_REQUIRED", "五个字段都必须填写")
+        if (su == cu) throw ApiError("UNIT_DUPLICATED", "计价单位与换算单位不能相同")
+        repo.categoryByUnique(c, g, n, b, su, cu)?.let { if (it != id) throw ApiError("CATEGORY_EXISTS", "该五元组已存在（id=$it）") }
+        val ratio = conversionRatio.trim().toBigDecimalOrNull() ?: java.math.BigDecimal.ONE
+        if (ratio <= java.math.BigDecimal.ZERO) throw ApiError("RATIO_INVALID", "换算系数必须大于 0")
+        repo.updateCategory(c, id, g, n, b, su, cu)
+        repo.clearUnits(c, id)
+        repo.addUnit(c, id, su, java.math.BigDecimal.ONE, true)
+        repo.addUnit(c, id, cu, ratio, false)
+        repo.log(c, admin.id, "CATEGORY_UPDATE", "category", id.toString(), "$g/$n/$b/$su/$cu/$ratio", now())
+        repo.category(c, id)!!
+    }
+
+    /** 软删除：状态置 deleted，保留历史单据引用。 */
+    fun deleteCategoryByAdmin(admin: AccountRow, id: Long) = db.tx { c ->
+        repo.auditCategory(c, id, "deleted", admin.id, now(), null)
+        repo.log(c, admin.id, "CATEGORY_DELETE", "category", id.toString(), null, now())
+    }
+
     /** 管理端新增型号：品类/型号/批号/计价单位/换算单位 五段自定义，五者联合唯一。 */
     fun createCategoryByAdmin(
         admin: AccountRow, group: String, name: String, batch: String, settlementUnit: String, conversionUnit: String, conversionRatio: String,

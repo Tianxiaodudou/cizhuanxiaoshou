@@ -212,6 +212,17 @@ class Repo(private val db: Db) {
         }
     }
 
+    fun updateCategory(c: Connection, id: Long, group: String, name: String, spec: String, settlementUnit: String, conversionUnit: String) {
+        c.prepareStatement("UPDATE categories SET grp=?, name=?, spec=?, settlement_unit=?, conversion_unit=? WHERE id=?").use { ps ->
+            ps.setString(1, group); ps.setString(2, name); ps.setString(3, spec)
+            ps.setString(4, settlementUnit); ps.setString(5, conversionUnit); ps.setLong(6, id); ps.executeUpdate()
+        }
+    }
+
+    fun clearUnits(c: Connection, categoryId: Long) {
+        c.prepareStatement("DELETE FROM category_units WHERE category_id=?").use { ps -> ps.setLong(1, categoryId); ps.executeUpdate() }
+    }
+
     fun auditCategory(c: Connection, id: Long, status: String, auditorId: Long, at: String, reason: String?) {
         c.prepareStatement("UPDATE categories SET status=?, audited_by=?, audited_at=?, reject_reason=? WHERE id=?").use { ps ->
             ps.setString(1, status); ps.setLong(2, auditorId); ps.setString(3, at); ps.setString(4, reason); ps.setLong(5, id); ps.executeUpdate()

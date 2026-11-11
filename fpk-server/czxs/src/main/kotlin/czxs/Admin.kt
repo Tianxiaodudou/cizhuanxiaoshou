@@ -172,77 +172,95 @@ class Admin(private val svc: Services, private val cfg: Config) {
     }
 
     private fun categories(req: Req, account: AccountRow): Resp {
-        // 新增型号：五个自定义字段联合唯一
+        val prefix = cfg.gatewayPrefix + "/admin/categories"
         if (req.method == "POST" && req.path == "/admin/categories") {
             val f = form(req.body)
             svc.createCategoryByAdmin(
-                account,
-                f["group"].orEmpty(), f["name"].orEmpty(), f["batch"].orEmpty(),
+                account, f["group"].orEmpty(), f["name"].orEmpty(), f["batch"].orEmpty(),
                 f["settlement_unit"].orEmpty(), f["conversion_unit"].orEmpty(), f["conversion_ratio"].orEmpty(),
             )
-            return redirect("${cfg.gatewayPrefix}/admin/categories")
+            return redirect(prefix)
         }
         if (req.method == "POST") {
             val parts = req.path.removePrefix("/admin/categories/").split('/')
-            val id = (parts.getOrNull(0)?.toLongOrNull() ?: 0).takeIf { it > 0 } ?: (form(req.body)["category_id"]?.toLongOrNull() ?: 0)
+            val id = parts.firstOrNull()?.toLongOrNull() ?: 0
             val action = parts.getOrNull(1)
             val f = form(req.body)
             when (action) {
                 "audit" -> svc.approveCategory(account, id, f["approve"] == "1", f["reason"])
                 "status" -> svc.setCategoryStatus(account, id, f["status"] ?: "active")
                 "unit" -> svc.setUnit(account, id, f["unit"] ?: "", f["conversion"] ?: "1", f["settlement"] == "1")
+                "update" -> svc.updateCategoryByAdmin(
+                    account, id, f["group"].orEmpty(), f["name"].orEmpty(), f["batch"].orEmpty(),
+                    f["settlement_unit"].orEmpty(), f["conversion_unit"].orEmpty(), f["conversion_ratio"].orEmpty(),
+                )
+                "delete" -> svc.deleteCategoryByAdmin(account, id)
             }
-            return redirect("${cfg.gatewayPrefix}/admin/categories")
+            return redirect(prefix)
         }
-        val list = svc.categoriesAll()
-        val rows = list.joinToString("") { c ->
-            val settlementUnit = c.units.firstOrNull { it.isSettlement }
-            val units = c.units.joinToString("，") { u ->
-                if (u.isSettlement) "${u.unit}(计价)"
-                else "${u.unit}(1${u.unit}=${u.conversion.toPlainString()}${settlementUnit?.unit ?: ""})"
-            }
-            val actions = buildString {
-                if (c.status == "pending") {
-                    append("<form method=post action=\"${cfg.gatewayPrefix}/admin/categories/${c.id}/audit\" style=display:inline><input type=hidden name=approve value=1><button>通过</button></form>")
-                    append("<form method=post action=\"${cfg.gatewayPrefix}/admin/categories/${c.id}/audit\" style=display:inline><input type=hidden name=approve value=0><input name=reason placeholder=拒绝原因><button>拒绝</button></form>")
-                } else {
-                    val target = if (c.status == "active") "disabled" else "active"
-                    append("<form method=post action=\"${cfg.gatewayPrefix}/admin/categories/${c.id}/status\" style=display:inline><input type=hidden name=status value=$target><button>${if (target == "active") "启用" else "禁用"}</button></form>")
-                }
-            }
-            "<tr><td>${esc(c.group)}</td><td>${esc(c.name)}</td><td>${esc(c.spec)}</td><td>$units</td><td>${c.status}</td><td>$actions</td></tr>"
+        Regex("^/admin/categories/(\\d+)/edit$").find(req.path)?.groupValues?.get(1)?.toLongOrNull()?.let { return editCategory(it) }
+
+        val rows = svc.categoriesAll().joinToString("") { c ->
+            val su = c.units.firstOrNull { it.isSettlement }
+            val cu = c.units.firstOrNull { !it.isSettlement }
+            val ratioText = if (cu != null && su != null) "1${cu.unit}=${cu.conversion.toPlainString()}${su.unit}" else "—"
+            val toggle = if (c.status == "active") "disabled" else "active"
+            val audit = if (c.status == "pending") {
+                "<form method=post action=\"$prefix/${c.id}/audit\" style=display:inline><input type=hidden name=approve value=1><button>通过</button></form>" +
+                    "<form method=post action=\"$prefix/${c.id}/audit\" style=display:inline><input type=hidden name=approve value=0><input name=reason placeholder=拒绝原因><button>拒绝</button></form>"
+            } else ""
+            "<tr><td>${esc(c.group)}</td><td>${esc(c.name)}</td><td>${esc(c.spec)}</td>" +
+                "<td>${esc(su?.unit ?: "—")}</td><td>${esc(cu?.unit ?: "—")} <span class=mut>（${esc(ratioText)}）</span></td>" +
+                "<td>${c.status}</td><td>$audit" +
+                "<form method=post action=\"$prefix/${c.id}/status\" style=display:inline><input type=hidden name=status value=$toggle><button>${if (toggle == "active") "启用" else "禁用"}</button></form>" +
+                "<a href=\"$prefix/${c.id}/edit\" style=\"margin:0 6px\">编辑</a>" +
+                "<form method=post action=\"$prefix/${c.id}/delete\" style=display:inline onsubmit=\"return confirm(''确认删除该型号？'')\"><button style=\"background:#c62828\">删除</button></form>" +
+                "</td></tr>"
         }
         val body = """
             <h2>型号库</h2>
             <p><button type="button" onclick="document.getElementById('addCat').showModal()">+ 新增型号</button></p>
             <dialog id="addCat">
-              <form method="post" action="${cfg.gatewayPrefix}/admin/categories">
+              <form method="post" action="$prefix">
                 <h3>新增型号</h3>
                 <p>一级 品类：<input name="group" required placeholder="墙砖 / 地砖"></p>
                 <p>二级 型号：<input name="name" required placeholder="T6 / p3 / c200"></p>
                 <p>三级 批号：<input name="batch" required placeholder="789 / ii8"></p>
                 <p>四级 计价单位：<input id="su" name="settlement_unit" required placeholder="片 / 箱" oninput="syncUnits()"></p>
                 <p>五级 换算单位：<input id="cu" name="conversion_unit" required placeholder="箱 / 件" oninput="syncUnits()"></p>
-                <p>换算系数：1 <b id="cuLbl">换算单位</b> = <input name="conversion_ratio" value="1" size="6"> <b id="suLbl">计价单位</b>（例如 1 箱 = 10 片 就填 10）</p>
+                <p>换算系数：1 <b id="cuLbl">暂无</b> = <input name="conversion_ratio" value="1" size="6"> <b id="suLbl">暂无</b>（例如 1 箱 = 10 片 就填 10）</p>
                 <p><button>保存</button> <button type="button" onclick="document.getElementById('addCat').close()">取消</button></p>
               </form>
             </dialog>
             <script>
               function syncUnits() {
-                var cu = document.getElementById('cu').value || '换算单位';
-                var su = document.getElementById('su').value || '计价单位';
-                document.getElementById('cuLbl').textContent = cu;
-                document.getElementById('suLbl').textContent = su;
+                document.getElementById('cuLbl').textContent = document.getElementById('cu').value || '暂无';
+                document.getElementById('suLbl').textContent = document.getElementById('su').value || '暂无';
               }
             </script>
-            <table><tr><th>品类</th><th>型号</th><th>批号</th><th>单位（计价/换算）</th><th>状态</th><th>操作</th></tr>$rows</table>
-            <h3>单位配置</h3>
-            <form method="post" action="${cfg.gatewayPrefix}/admin/categories/0/unit">
-              型号 ID <input name="category_id" size="4"> 单位 <input name="unit" size="6"> 换算 <input name="conversion" size="6" value="1">
-              <label><input type="checkbox" name="settlement" value="1">计价单位</label><button>保存</button>
-            </form>
+            <table><tr><th>品类</th><th>型号</th><th>批号</th><th>计价单位</th><th>换算单位</th><th>状态</th><th>操作</th></tr>$rows</table>
         """.trimIndent()
         return page("型号库", body)
+    }
+
+    private fun editCategory(id: Long): Resp {
+        val c = runCatching { svc.categoryById(id) }.getOrNull() ?: return page("编辑型号", "<p>型号不存在</p>")
+        val prefix = cfg.gatewayPrefix + "/admin/categories"
+        val su = c.units.firstOrNull { it.isSettlement }
+        val cu = c.units.firstOrNull { !it.isSettlement }
+        val body = """
+            <h2>编辑型号 #${c.id}</h2>
+            <form method="post" action="$prefix/${c.id}/update">
+              <p>一级 品类：<input name="group" required value="${esc(c.group)}"></p>
+              <p>二级 型号：<input name="name" required value="${esc(c.name)}"></p>
+              <p>三级 批号：<input name="batch" required value="${esc(c.spec)}"></p>
+              <p>四级 计价单位：<input name="settlement_unit" required value="${esc(su?.unit ?: "")}"></p>
+              <p>五级 换算单位：<input name="conversion_unit" required value="${esc(cu?.unit ?: "")}"></p>
+              <p>换算系数：1 ${esc(cu?.unit ?: "暂无")} = <input name="conversion_ratio" size="6" value="${cu?.conversion?.toPlainString() ?: "1"}"> ${esc(su?.unit ?: "暂无")}</p>
+              <p><button>保存修改</button> <a href="$prefix">取消</a></p>
+            </form>
+        """.trimIndent()
+        return page("编辑型号", body)
     }
 
     private fun prices(req: Req, account: AccountRow): Resp {
