@@ -1,4 +1,4 @@
-// czxs 服务端（Go）：飞牛统一网关（Unix Socket，/app/czxs）+ 客户端 TCP API（仅 JSON）。
+﻿// czxs 服务端（Go）：飞牛统一网关（Unix Socket，/app/czxs）+ 客户端 TCP API（仅 JSON）。
 package main
 
 import (
@@ -63,15 +63,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/", a.api)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { ok(w, map[string]any{"app": "czxs", "version": "2.0.0"}) })
-	mux.Handle("/admin/", a.static())
-	mux.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, prefix+"/admin/", 302) })
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" || r.URL.Path == "" {
-			http.Redirect(w, r, prefix+"/admin/", 302)
-			return
-		}
-		http.NotFound(w, r)
-	})
+	spa := a.static()
+	mux.Handle("/admin/", spa)
+	mux.Handle("/admin", spa)
+	mux.Handle("/", spa)
 	h := withPrefix(prefix, mux)
 
 	_ = os.Remove(sock)
@@ -164,8 +159,12 @@ func (a *App) static() http.Handler {
 	sub, _ := fs.Sub(webFiles, "web/dist")
 	f := http.FileServer(http.FS(sub))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 不做任何 Location 跳转（网关前缀 + 反向代理下容易造成重定向循环）
 		p := strings.TrimPrefix(r.URL.Path, "/admin/")
-		if p == "" {
+		if p == r.URL.Path {
+			p = strings.TrimPrefix(r.URL.Path, "/")
+		}
+		if p == "" || p == "admin" {
 			p = "index.html"
 		}
 		if _, err := fs.Stat(sub, p); err != nil {
