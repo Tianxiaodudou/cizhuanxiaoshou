@@ -3,10 +3,12 @@ package main
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
+	"crypto/hmac"
+"crypto/sha256"
 	"database/sql"
 	"embed"
-	"encoding/hex"
+	"encoding/base64"
+"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -126,9 +128,50 @@ func seed(db *sql.DB) {
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
 		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('api_port','8080'),('initialized','true'),('print_width','80mm')`)
+	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'+'admin', 'active', ?)`, hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
 	}
 }
 
+
+// verify 支持两种哈希：sha256（Go 版）与旧版 Kotlin 的 pbkdf2$salt$hash（base64url）。
+func verify(pw, stored string) bool {
+	if strings.HasPrefix(stored, "pbkdf2$") {
+		parts := strings.Split(stored, "$")
+		if len(parts) != 3 {
+			return false
+		}
+		salt, err1 := base64.RawURLEncoding.DecodeString(parts[1])
+		want, err2 := base64.RawURLEncoding.DecodeString(parts[2])
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		got := pbkdf2SHA256([]byte(pw), salt, 100000, len(want))
+		return hmac.Equal(got, want)
+	}
+	return stored == hash(pw)
+}
+
+func pbkdf2SHA256(password, salt []byte, iter, keyLen int) []byte {
+	h := hmac.New(sha256.New, password)
+	hashLen := h.Size()
+	blocks := (keyLen + hashLen - 1) / hashLen
+	out := make([]byte, 0, blocks*hashLen)
+	buf := make([]byte, 4)
+	for block := 1; block <= blocks; block++ {
+		h.Reset()
+		h.Write(salt)
+		buf[0] = byte(block >> 24); buf[1] = byte(block >> 16); buf[2] = byte(block >> 8); buf[3] = byte(block)
+		h.Write(buf)
+		u := h.Sum(nil)
+		acc := append([]byte(nil), u...)
+		for i := 1; i < iter; i++ {
+			h.Reset(); h.Write(u); u = h.Sum(nil)
+			for j := range acc { acc[j] ^= u[j] }
+		}
+		out = append(out, acc...)
+	}
+	return out[:keyLen]
+}
 func hash(s string) string { h := sha256.Sum256([]byte("czxs$" + s)); return hex.EncodeToString(h[:]) }
 func now() string           { return time.Now().Format(time.RFC3339) }
 
