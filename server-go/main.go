@@ -156,10 +156,10 @@ func seed(db *sql.DB) {
 		_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'admin','active',?)`, hash(pw), now())
 	}
 	if m := env("wizard_merchant", ""); m != "" {
-		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, m)
+		_, _ = db.Exec(`INSERT OR IGNORE INTO settings(k,v) VALUES('merchant_name',?)`, m)
 	}
 	if p := env("wizard_api_port", ""); p != "" {
-		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('api_port',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, p)
+		_, _ = db.Exec(`INSERT OR IGNORE INTO settings(k,v) VALUES('api_port',?)`, p)
 	}
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
@@ -435,11 +435,11 @@ func (a *App) categories(w http.ResponseWriter, r *http.Request) {
 	}
 	var in Category
 	_ = json.NewDecoder(r.Body).Decode(&in)
-	if in.Group == "" || in.Name == "" || in.Batch == "" || in.SettlementUnit == "" || in.ConversionUnit == "" {
-		fail(w, 400, "FIELD_REQUIRED", "五个字段都必须填写")
+	if in.Group == "" || in.Name == "" || in.Batch == "" || in.SettlementUnit == "" {
+		fail(w, 400, "FIELD_REQUIRED", "品类、型号、批号、计价单位必须填写")
 		return
 	}
-	if in.SettlementUnit == in.ConversionUnit {
+	if in.ConversionUnit != "" && in.SettlementUnit == in.ConversionUnit {
 		fail(w, 400, "UNIT_DUPLICATED", "计价单位与换算单位不能相同")
 		return
 	}
@@ -478,8 +478,8 @@ func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string) 
 	case "PUT":
 		var in Category
 		_ = json.NewDecoder(r.Body).Decode(&in)
-		if in.Group == "" || in.Name == "" || in.Batch == "" || in.SettlementUnit == "" || in.ConversionUnit == "" {
-			fail(w, 400, "FIELD_REQUIRED", "五个字段都必须填写")
+		if in.Group == "" || in.Name == "" || in.Batch == "" || in.SettlementUnit == "" {
+			fail(w, 400, "FIELD_REQUIRED", "品类、型号、批号、计价单位必须填写")
 			return
 		}
 		if in.Conversion <= 0 {

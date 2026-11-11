@@ -9,6 +9,11 @@ async function api(path, opt = {}) {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(opt.headers || {}) },
   })
   const body = await res.json().catch(() => ({}))
+  if (res.status === 401) {
+    localStorage.removeItem('czxs_token')
+    location.reload()
+    throw new Error('登录已失效，请重新登录')
+  }
   if (!res.ok || body.ok === false) throw new Error(body.message || '请求失败')
   return body.data
 }
@@ -142,7 +147,7 @@ function CategoryModal({ init, onClose, onDone }) {
         <label className="row">二级 型号：<input value={f.name} onChange={set('name')} placeholder="T6 / p3 / c200" required /></label>
         <label className="row">三级 批号：<input value={f.batch} onChange={set('batch')} placeholder="789 / ii8" required /></label>
         <label className="row">四级 计价单位：<input value={f.settlement_unit} onChange={set('settlement_unit')} placeholder="片 / 箱" required /></label>
-        <label className="row">五级 换算单位：<input value={f.conversion_unit} onChange={set('conversion_unit')} placeholder="箱 / 件" required /></label>
+        <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} placeholder="没有其他单位可留空" /></label>
         <div className="row">换算系数：1 <b>{f.conversion_unit || '暂无'}</b> = <input style={{ width: 70 }} value={f.conversion} onChange={set('conversion')} /> <b>{f.settlement_unit || '暂无'}</b></div>
         {err && <div className="err">{err}</div>}
         <button>保存</button> <button type="button" className="secondary" onClick={onClose}>取消</button>
@@ -240,7 +245,7 @@ function Accounts() {
       <table>
         <thead><tr><th>账号</th><th>姓名</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
         <tbody>{rows.map((a) => (
-          <tr key={a.id}><td>{a.username}</td><td>{a.name}</td><td>{a.role}</td><td>{a.status}</td>
+          <tr key={a.id}><td>{a.username}</td><td>{a.name}</td><td>{a.role === 'admin' ? '管理员' : '业务员'}</td><td>{a.status === 'active' ? '激活' : '未激活'}</td>
             <td>
               <button className="secondary" onClick={async () => { await api(`/api/accounts/${a.id}/status?value=${a.status === 'active' ? 'disabled' : 'active'}`); load() }}>{a.status === 'active' ? '禁用' : '启用'}</button>
               <button className="secondary" onClick={async () => { const p = prompt('新密码'); if (p) { await api(`/api/accounts/${a.id}/password`, { method: 'POST', body: JSON.stringify({ password: p }) }); alert('已重置') } }}>重置密码</button>
