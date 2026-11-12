@@ -438,12 +438,12 @@ function Categories() {
         <button className="secondary" onClick={load}>刷新</button>
       </div>
       <table>
-        <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>计价单位</th><th>默认价</th><th>换算单位</th><th>状态</th><th>操作</th></tr></thead>
+        <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>计价单位</th><th>换算单位</th><th>默认价</th><th>状态</th><th>操作</th></tr></thead>
         <tbody>{rows.map((c) => (
           <tr key={c.id}>
             <td>{c.group}</td><td>{c.name}</td><td>{c.batch || '无'}</td><td>{c.settlement_unit}</td>
-            <td>{c.default_price || '无'}</td>
             <td>{c.conversion_unit ? `${c.conversion_unit}（1${c.conversion_unit}=${c.conversion}${c.settlement_unit}）` : '无'}</td>
+            <td>{c.default_price || '无'}</td>
             <td>{c.status === 'active' ? '启用' : '禁用'}</td>
             <td>
               <button className="secondary" onClick={() => toggle(c)}>{c.status === 'active' ? '禁用' : '启用'}</button>
@@ -556,14 +556,48 @@ function Accounts({ isAdmin }) {
   )
 }
 
+function SettlementDetail({ id, onClose }) {
+  const [d, setD] = useState(null)
+  useEffect(() => { api('/api/settlement/' + id).then(setD).catch(() => {}) }, [id])
+  return (
+    <Modal width={760}>
+      {!d ? <p>加载中…</p> : (
+        <>
+          <h3>结算详情 · {d.customer.name}</h3>
+          <p>电话：{d.customer.phone}　地址：{d.customer.addr || '无'}</p>
+          <p>送货合计：<b>{d.total_delivery}</b>　退货合计：<b>{d.total_return}</b>　净结算：<b>{d.net}</b></p>
+          <table>
+            <thead><tr><th>单号</th><th>类型</th><th>日期</th><th>金额</th></tr></thead>
+            <tbody>{d.orders.map((o) => (
+              <tr key={o.id}><td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td>
+                <td>{o.created_at?.slice(0, 10)}</td>
+                <td style={{ color: o.order_total.startsWith('-') ? '#c62828' : '#2e7d32' }}>{o.order_total}</td></tr>
+            ))}</tbody>
+          </table>
+          <div style={{ marginTop: 10 }}><button className="secondary" onClick={onClose}>关闭</button></div>
+        </>
+      )}
+    </Modal>
+  )
+}
+
 function Settlement() {
   const [rows, setRows] = useState([])
+  const [detail, setDetail] = useState(null)
   useEffect(() => { api('/api/settlement').then(setRows).catch(() => {}) }, [])
   return (
     <>
       <h2>结算汇总（按客户）</h2>
-      <table><thead><tr><th>客户</th><th>电话</th><th>累计结算</th><th>最近交易</th></tr></thead>
-        <tbody>{rows.map((r) => <tr key={r.id}><td>{r.name}</td><td>{r.phone}</td><td>{r.total}</td><td>{r.last?.slice(0, 10)}</td></tr>)}</tbody></table>
+      <table>
+        <thead><tr><th>电话</th><th>客户</th><th>累计结算</th><th>最近交易</th><th>操作</th></tr></thead>
+        <tbody>{rows.map((r) => (
+          <tr key={r.id}>
+            <td>{r.phone}</td><td>{r.name}</td><td>{r.total}</td><td>{r.last?.slice(0, 10)}</td>
+            <td><button className="secondary" onClick={() => setDetail(r.id)}>详情</button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+      {detail && <SettlementDetail id={detail} onClose={() => setDetail(null)} />}
     </>
   )
 }

@@ -382,6 +382,8 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		ok(w, map[string]any{"printer_online": true, "pending": pending})
 	case p == "/print/jobs":
 		ok(w, a.printJobs())
+	case strings.HasPrefix(p, "/settlement/") && r.Method == "GET":
+		a.settlementDetail(w, strings.TrimPrefix(p, "/settlement/"))
 	case p == "/settlement":
 		ok(w, a.settlement())
 	case p == "/accounts" && r.Method == "POST":
@@ -932,6 +934,32 @@ func (a *App) settlement() []map[string]any {
 		out = append(out, map[string]any{"id": id, "name": n, "phone": p, "total": f2(total), "last": last})
 	}
 	return out
+}
+
+func (a *App) settlementDetail(w http.ResponseWriter, raw string) {
+	cid, _ := strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+	var name, phone, addr string
+	if err := a.db.QueryRow(`SELECT name,phone,COALESCE(addr,'') FROM customers WHERE id=?`, cid).Scan(&name, &phone, &addr); err != nil {
+		fail(w, 404, "NOT_FOUND", "客户不存在")
+		return
+	}
+	orders := a.orders(`cu.id=?`, []any{cid})
+	delivery, ret := 0.0, 0.0
+	for _, o := range orders {
+		v := bd(o["order_total"].(string))
+		if v >= 0 {
+			delivery += v
+		} else {
+			ret += -v
+		}
+	}
+	ok(w, map[string]any{
+		"customer":       map[string]any{"id": cid, "name": name, "phone": phone, "addr": addr},
+		"orders":         orders,
+		"total_delivery": f2(delivery),
+		"total_return":   f2(ret),
+		"net":            f2(delivery - ret),
+	})
 }
 
 func (a *App) accounts() []map[string]any {
