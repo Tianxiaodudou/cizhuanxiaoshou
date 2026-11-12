@@ -1050,21 +1050,28 @@ func (a *App) settlementDetail(w http.ResponseWriter, raw string) {
 		return
 	}
 	orders := a.orders(`cu.id=?`, []any{cid})
-	delivery, ret := 0.0, 0.0
+	receivable, payable, received, refunded := 0.0, 0.0, 0.0, 0.0
 	for _, o := range orders {
 		v := bd(o["order_total"].(string))
-		if v >= 0 {
-			delivery += v
-		} else {
-			ret += -v
+		switch o["type"].(string) {
+		case "delivery", "pickup":
+			receivable += v
+		case "delivery_return", "pickup_return":
+			payable += -v
+		case "receipt":
+			received += v
+		case "refund":
+			refunded += -v
 		}
 	}
 	ok(w, map[string]any{
-		"customer":       map[string]any{"id": cid, "name": name, "phone": phone, "addr": addr},
-		"orders":         orders,
-		"total_delivery": f2(delivery),
-		"total_return":   f2(ret),
-		"net":            f2(delivery - ret),
+		"customer":     map[string]any{"id": cid, "name": name, "phone": phone, "addr": addr},
+		"orders":       orders,
+		"receivable":   f2(receivable),
+		"payable":      f2(payable),
+		"received":     f2(received),
+		"refunded":     f2(refunded),
+		"outstanding":  f2(receivable - payable - received + refunded),
 	})
 }
 

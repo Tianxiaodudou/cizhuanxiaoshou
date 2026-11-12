@@ -14,6 +14,7 @@ function Modal({ children, width = 720, onClose }) {
 const PREFIX = '/app/czxs'
 const money = (v) => (v == null ? '—' : v)
 const isReturnType = (t) => t.endsWith('_return')
+const amountLabel = (t) => (t === 'receipt' ? '已收' : t === 'refund' ? '已退' : (t.endsWith('_return') ? '应退' : '应收'))
 const typeLabel = { delivery: '配送', delivery_return: '配退', pickup: '自送', pickup_return: '自退', receipt: '收款', refund: '退款', note: '备注' }
 
 async function api(path, opt = {}) {
@@ -93,7 +94,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
     <Modal width={820} onClose={onClose}>
       <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
       <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
-      <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　合计：<b>{o.order_total}</b>　累计：{o.cumulative_total}</p>
+      <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b>　累计：{o.cumulative_total}</p>
       <table>
         <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th></tr></thead>
         <tbody>{o.items.map((i, k) => (
@@ -127,7 +128,7 @@ function OrderTable({ rows, onDetail, onDelete, onArchive, canEdit = true }) {
         <tr key={o.id}>
           <td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td>
           <td>{o.customer_phone}<br />{o.customer_name}<br />{o.customer_address || ''}</td>
-          <td>{o.order_total}</td><td>{o.status === 'archived' ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}</td>
+          <td>{amountLabel(o.type)} {Math.abs(Number(o.order_total)).toFixed(2)}</td><td>{o.status === 'archived' ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}</td>
           <td>
             <button className="secondary" onClick={() => onDetail(o.id)}>详情</button>
             <button className="secondary" disabled={!canEdit || o.status === 'archived'} onClick={() => onDetail(o.id, true)}>编辑</button>
@@ -623,13 +624,13 @@ function SettlementDetail({ id, onClose }) {
         <>
           <h3>结算详情 · {d.customer.name}</h3>
           <p>电话：{d.customer.phone}　地址：{d.customer.addr || '无'}</p>
-          <p>送货合计：<b>{d.total_delivery}</b>　退货合计：<b>{d.total_return}</b>　净结算：<b>{d.net}</b></p>
+          <p>应收合计：<b>{d.receivable}</b>　应退合计：<b>{d.payable}</b>　已收：<b>{d.received}</b>　已退：<b>{d.refunded}</b>　未收：<b>{d.outstanding}</b></p>
           <table>
             <thead><tr><th>单号</th><th>类型</th><th>日期</th><th>金额</th></tr></thead>
             <tbody>{d.orders.map((o) => (
               <tr key={o.id}><td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td>
                 <td>{o.created_at?.slice(0, 10)}</td>
-                <td style={{ color: o.order_total.startsWith('-') ? '#c62828' : '#2e7d32' }}>{o.order_total}</td></tr>
+                <td style={{ color: o.order_total.startsWith('-') ? '#c62828' : '#2e7d32' }}>{amountLabel(o.type)} {Math.abs(Number(o.order_total)).toFixed(2)}</td></tr>
             ))}</tbody>
           </table>
           <div style={{ marginTop: 10 }}><button className="secondary" onClick={onClose}>关闭</button></div>
