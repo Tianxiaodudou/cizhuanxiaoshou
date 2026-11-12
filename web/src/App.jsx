@@ -131,19 +131,37 @@ function OrderTable({ rows, onDetail, onDelete, onArchive, canEdit = true }) {
 
 function Wheel({ options, value, onChange, width = 120 }) {
   const ref = useRef(null)
+  const idx = Math.max(0, options.indexOf(value))
   useEffect(() => {
-    const i = options.indexOf(value)
-    if (i >= 0 && ref.current) ref.current.scrollTop = i * 32
-  }, [options.join('|'), value])
+    if (ref.current) ref.current.scrollTop = idx * 32
+  }, [idx, options.length])
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onWheel = (e) => {
+      e.preventDefault()
+      const dir = e.deltaY > 0 ? 1 : -1
+      const next = Math.max(0, Math.min(options.length - 1, idx + dir))
+      el.scrollTo({ top: next * 32, behavior: 'smooth' })
+      if (options[next] !== undefined && options[next] !== value) onChange(options[next])
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [idx, options, value])
   return (
-    <div ref={ref} onScroll={(e) => {
-      const i = Math.round(e.target.scrollTop / 32)
-      const v = options[i]
-      if (v && v !== value) onChange(v)
-    }} style={{ height: 160, overflowY: 'scroll', scrollSnapType: 'y mandatory', border: '1px solid #cfd6df', borderRadius: 6, width, background: '#fff' }}>
-      <div style={{ height: 64 }} />
-      {options.map((o) => <div key={o} style={{ height: 32, lineHeight: '32px', textAlign: 'center', scrollSnapAlign: 'center' }}>{o}</div>)}
-      <div style={{ height: 64 }} />
+    <div style={{ position: 'relative', width }}>
+      <div style={{ position: 'absolute', top: 64, height: 32, left: 0, right: 0, background: 'rgba(21,101,192,.10)', borderTop: '1px solid #1565c0', borderBottom: '1px solid #1565c0', pointerEvents: 'none', zIndex: 2 }} />
+      <div ref={ref} onScroll={(e) => {
+        const i = Math.round(e.target.scrollTop / 32)
+        const v = options[i]
+        if (v && v !== value) onChange(v)
+      }} style={{ height: 160, overflowY: 'scroll', scrollSnapType: 'y mandatory', border: '1px solid #cfd6df', borderRadius: 6, background: '#fff', scrollbarWidth: 'none' }}>
+        <div style={{ height: 64 }} />
+        {options.map((o, i) => (
+          <div key={o} style={{ height: 32, lineHeight: '32px', textAlign: 'center', scrollSnapAlign: 'center', fontWeight: i === idx ? 700 : 400, color: i === idx ? '#1565c0' : '#666' }}>{o}</div>
+        ))}
+        <div style={{ height: 64 }} />
+      </div>
     </div>
   )
 }
@@ -269,8 +287,6 @@ function NoteModal({ onClose, onDone }) {
   const [phone, setPhone] = useState('')
   const [orders, setOrders] = useState([])
   const [ref, setRef] = useState(null)
-  const [diffType, setDiffType] = useState('short')
-  const [qty, setQty] = useState('')
   const [remark, setRemark] = useState('')
   const [err, setErr] = useState('')
   const search = async () => { try { setOrders(await api('/api/orders/recent?phone=' + encodeURIComponent(phone) + '&days=3')) } catch (e) { setErr(e.message) } }
@@ -278,13 +294,13 @@ function NoteModal({ onClose, onDone }) {
     e.preventDefault()
     try {
       if (!ref) throw new Error('请选择原单')
-      const item = ref.items[0]
-      await api('/api/notes', { method: 'POST', body: JSON.stringify({ ref_order_no: ref.order_no, items: [{ category_id: item.category_id, batch_tag: item.batch_tag, diff_type: diffType, diff_quantity: qty, remark }] }) })
+      if (!remark.trim()) throw new Error('请填写备注文字')
+      await api('/api/notes', { method: 'POST', body: JSON.stringify({ ref_order_no: ref.order_no, remark }) })
       onDone()
     } catch (x) { setErr(x.message) }
   }
   return (
-    <dialog open className="modal" style={{ width: 650 }}>
+    <dialog open className="modal" style={{ width: 620 }}>
       <form onSubmit={submit}>
         <h3>备注单</h3>
         <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={search}>查近三日单据</button></div>
@@ -295,11 +311,7 @@ function NoteModal({ onClose, onDone }) {
           </select></div>
         )}
         {ref && <p className="muted">原单 {ref.order_no}　客户 {ref.customer_name}　合计 {ref.order_total}</p>}
-        <div className="row">差异类型：<select value={diffType} onChange={(e) => setDiffType(e.target.value)}>
-          <option value="short">少</option><option value="over">多</option><option value="damaged">破损</option>
-        </select></div>
-        <div className="row">差异数量：<input value={qty} onChange={(e) => setQty(e.target.value)} /></div>
-        <div className="row">说明：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
+        <div className="row">备注：<textarea value={remark} onChange={(e) => setRemark(e.target.value)} rows={4} style={{ width: '100%' }} /></div>
         {err && <div className="err">{err}</div>}
         <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
       </form>

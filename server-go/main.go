@@ -112,7 +112,7 @@ func migrate(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS customer_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, category_id INTEGER, batch_tag TEXT DEFAULT '', unit_price TEXT, updated_at TEXT, UNIQUE(customer_id,category_id,batch_tag))`,
 		`CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY AUTOINCREMENT, order_no TEXT UNIQUE, type TEXT, customer_id INTEGER, account_id INTEGER, status TEXT DEFAULT 'submitted', remark TEXT, order_total TEXT, version INTEGER DEFAULT 1, created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS order_items(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, line_no INTEGER, category_id INTEGER, batch_tag TEXT, input_unit TEXT, input_quantity TEXT, settlement_unit TEXT, settlement_quantity TEXT, unit_price TEXT, line_total TEXT)`,
-		`CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY AUTOINCREMENT, note_no TEXT UNIQUE, ref_order_no TEXT, customer_id INTEGER, account_id INTEGER, status TEXT DEFAULT 'active', created_at TEXT)`,
+		`CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY AUTOINCREMENT, note_no TEXT UNIQUE, ref_order_no TEXT, customer_id INTEGER, account_id INTEGER, status TEXT DEFAULT 'active', remark TEXT DEFAULT '', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS note_items(id INTEGER PRIMARY KEY AUTOINCREMENT, note_id INTEGER, category_id INTEGER, batch_tag TEXT, diff_type TEXT, diff_quantity TEXT, remark TEXT)`,
 		`CREATE TABLE IF NOT EXISTS print_jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, doc_no TEXT, doc_type TEXT, status TEXT DEFAULT 'pending', error TEXT, created_at TEXT, printed_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS logs(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER, action TEXT, detail TEXT, created_at TEXT)`,
@@ -126,6 +126,7 @@ func migrate(db *sql.DB) {
 	_, _ = db.Exec(`ALTER TABLE accounts ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN addr TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE notes ADD COLUMN remark TEXT NOT NULL DEFAULT ''`)
 }
 
 func loadEnvFile(path string) {
@@ -842,13 +843,7 @@ func (a *App) orders(where string, args []any) []map[string]any {
 func (a *App) createNote(w http.ResponseWriter, r *http.Request, acc int64) {
 	var in struct {
 		RefOrderNo string `json:"ref_order_no"`
-		Items      []struct {
-			CategoryID int64  `json:"category_id"`
-			BatchTag   string `json:"batch_tag"`
-			DiffType   string `json:"diff_type"`
-			Quantity   string `json:"diff_quantity"`
-			Remark     string `json:"remark"`
-		} `json:"items"`
+		Remark     string `json:"remark"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&in)
 	var refID, cid int64
@@ -861,20 +856,16 @@ func (a *App) createNote(w http.ResponseWriter, r *http.Request, acc int64) {
 		fail(w, 500, "NUMBER", "取号失败："+errNo.Error())
 		return
 	}
-	res, _ := a.db.Exec(`INSERT INTO notes(note_no,ref_order_no,customer_id,account_id,status,created_at) VALUES(?,?,?,?,'active',?)`, no, in.RefOrderNo, cid, acc, now())
+	res, _ := a.db.Exec(`INSERT INTO notes(note_no,ref_order_no,customer_id,account_id,status,remark,created_at) VALUES(?,?,?,?,'active',?,?)`, no, in.RefOrderNo, cid, acc, in.Remark, now())
 	nid, _ := res.LastInsertId()
-	for _, it := range in.Items {
-		_, _ = a.db.Exec(`INSERT INTO note_items(note_id,category_id,batch_tag,diff_type,diff_quantity,remark) VALUES(?,?,?,?,?,?)`,
-			nid, it.CategoryID, it.BatchTag, it.DiffType, it.Quantity, it.Remark)
-	}
 	_, _ = a.db.Exec(`INSERT INTO print_jobs(doc_no,doc_type,status,created_at) VALUES(?,?,'pending',?)`, no, "note", now())
 	a.log(&acc, "NOTE_CREATE", no)
 	ok(w, a.note(nid))
 }
 
 func (a *App) note(id int64) map[string]any {
-	var no, ref, status, created string
-	if err := a.db.QueryRow(`SELECT note_no,ref_order_no,status,created_at FROM notes WHERE id=?`, id).Scan(&no, &ref, &status, &created); err != nil {
+	var no, ref, status, created, remark string
+	if err := a.db.QueryRow(`SELECT note_no,ref_order_no,status,created_at,COALESCE(remark,'') FROM notes WHERE id=?`, id).Scan(&no, &ref, &status, &created, &remark); err != nil {
 		return nil
 	}
 	items := []map[string]any{}
@@ -888,7 +879,7 @@ func (a *App) note(id int64) map[string]any {
 			items = append(items, map[string]any{"category_id": catID, "category_name": nm, "batch_tag": bt, "diff_type": dt, "diff_quantity": q, "remark": rm})
 		}
 	}
-	return map[string]any{"id": id, "note_no": no, "ref_order_no": ref, "status": status, "created_at": created, "items": items}
+	return map[string]any{"id": id, "note_no": no, "ref_order_no": ref, "status": status, "created_at": created, "remark": remark, "items": items}
 }
 
 func (a *App) history(phone string) map[string]any {
