@@ -624,14 +624,17 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 			}
 		}
 		p := a.priceFor(cid, c.ID, it.BatchTag)
-		if p == "" {
-			if it.UnitPrice == "" {
-				fail(w, 400, "PRICE_REQUIRED", "该批次无价格，请录入单价")
-				return
-			}
+		// 唯一恒定价格 = 客户+型号+批次；编辑单据时改价即更新这条价格
+		if it.UnitPrice != "" {
 			p = f2(bd(it.UnitPrice))
+		}
+		if p == "" {
+			fail(w, 400, "PRICE_REQUIRED", "该批次无价格，请录入单价")
+			return
+		}
+		if it.UnitPrice != "" {
 			_, _ = a.db.Exec(`INSERT INTO customer_prices(customer_id,category_id,batch_tag,unit_price,updated_at) VALUES(?,?,?,?,?)
-				ON CONFLICT(customer_id,category_id,batch_tag) DO UPDATE SET unit_price=excluded.unit_price`, cid, c.ID, it.BatchTag, p, now())
+				ON CONFLICT(customer_id,category_id,batch_tag) DO UPDATE SET unit_price=excluded.unit_price, updated_at=excluded.updated_at`, cid, c.ID, it.BatchTag, p, now())
 		} else if it.UnitPrice != "" && f2(bd(it.UnitPrice)) != p {
 			fail(w, 400, "PRICE_EXISTS", "价格已存在，当前批次单价为 "+p)
 			return
