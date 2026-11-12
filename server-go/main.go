@@ -340,6 +340,32 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			ON CONFLICT(customer_id,category_id,batch_tag) DO UPDATE SET unit_price=excluded.unit_price, updated_at=excluded.updated_at`,
 			in.CustomerID, in.CategoryID, in.BatchTag, f2(bd(in.Price)), now())
 		ok(w, map[string]any{"saved": true})
+	case p == "/returns/list" && r.Method == "GET":
+		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
+		cid := a.customerID(phone)
+		rows, err := a.db.Query(`SELECT i.category_id, COALESCE(i.batch_tag,''),
+			SUM(CASE WHEN o.type IN ('delivery','pickup') THEN CAST(i.settlement_quantity AS REAL) ELSE 0 END) -
+			SUM(CASE WHEN o.type IN ('delivery_return','pickup_return') THEN CAST(i.settlement_quantity AS REAL) ELSE 0 END) AS avail
+			FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.customer_id=?
+			GROUP BY i.category_id, COALESCE(i.batch_tag,'') HAVING avail > 0`, cid)
+		list := []map[string]any{}
+		if err == nil && rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var cidCat int64
+				var batch string
+				var avail float64
+				_ = rows.Scan(&cidCat, &batch, &avail)
+				var c Category
+				if e := a.db.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE id=?`, cidCat).
+					Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion, &c.DefaultPrice, &c.Status); e == nil {
+					list = append(list, map[string]any{"category_id": cidCat, "batch_tag": batch, "available": f2(avail),
+						"group": c.Group, "name": c.Name, "settlement_unit": c.SettlementUnit,
+						"conversion_unit": c.ConversionUnit, "conversion": c.Conversion, "default_price": c.DefaultPrice})
+				}
+			}
+		}
+		ok(w, list)
 	case p == "/returns/available" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		cid := a.customerID(phone)

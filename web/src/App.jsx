@@ -13,7 +13,8 @@ function Modal({ children, width = 720, onClose }) {
 
 const PREFIX = '/app/czxs'
 const money = (v) => (v == null ? '—' : v)
-const typeLabel = { delivery: '配送送货', delivery_return: '配送退货', pickup: '自提送货', pickup_return: '自提退货', receipt: '收款', refund: '退款' }
+const isReturnType = (t) => t.endsWith('_return')
+const typeLabel = { delivery: '配送', delivery_return: '配退', pickup: '自送', pickup_return: '自退', receipt: '收款', refund: '退款', note: '备注' }
 
 async function api(path, opt = {}) {
   const token = localStorage.getItem('czxs_token')
@@ -220,6 +221,8 @@ function OrderModal({ type, onClose, onDone }) {
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const [picker, setPicker] = useState(null)
+  const [returns, setReturns] = useState([])
+  const isReturn = isReturnType(type)
   useEffect(() => { api('/api/categories').then(setCats).catch(() => {}) }, [])
   const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
   const lookup = async () => {
@@ -229,6 +232,7 @@ function OrderModal({ type, onClose, onDone }) {
       setLooked(true); setIsNew(!c.exists)
       setName(c.exists ? c.name : '')
       setAddr(c.exists ? (c.addr || '') : '')
+      if (isReturn) setReturns(await api('/api/returns/list?phone=' + encodeURIComponent(phone)))
     } catch (e) { setErr(e.message || '查询失败') } finally { setBusy(false) }
   }
   const loadPrice = async (i, catId, batch, fallback) => {
@@ -241,7 +245,8 @@ function OrderModal({ type, onClose, onDone }) {
     }
   }
   const applyCat = (i, c) => {
-    setLine(i, { category_id: c.id, batch_tag: c.batch, input_unit: c.settlement_unit, units: [c.settlement_unit, c.conversion_unit].filter(Boolean), unit_price: '', locked: false })
+    const avail = isReturn ? (returns.find((r) => r.category_id === c.id && (r.batch_tag || '') === (c.batch || ''))?.available || '0') : null
+    setLine(i, { category_id: c.id, batch_tag: c.batch, input_unit: c.settlement_unit, units: [c.settlement_unit, c.conversion_unit].filter(Boolean), unit_price: '', locked: false, available: avail, focused: false })
     loadPrice(i, c.id, c.batch, c.default_price)
   }
   const submit = async (e) => {
@@ -281,8 +286,11 @@ function OrderModal({ type, onClose, onDone }) {
               <td><select value={l.input_unit} onChange={(e) => setLine(i, { input_unit: e.target.value })}>
                 {(l.units.length ? l.units : ['']).map((u) => <option key={u} value={u}>{u}</option>)}
               </select></td>
-              <td><input style={{ width: 70 }} value={l.input_quantity} onChange={(e) => setLine(i, { input_quantity: e.target.value })} /></td>
-              <td><input style={{ width: 80 }} value={l.unit_price} readOnly={l.locked} onChange={(e) => setLine(i, { unit_price: e.target.value })} /></td>
+              <td><input style={{ width: 90 }} value={l.input_quantity}
+                placeholder={!l.focused && !l.input_quantity && isReturn && l.available ? `可退${l.available}` : ''}
+                onFocus={() => setLine(i, { focused: true })} onBlur={() => setLine(i, { focused: false })}
+                onChange={(e) => setLine(i, { input_quantity: e.target.value })} /></td>
+              <td>{isReturn ? <span>{l.unit_price || '—'}</span> : <input style={{ width: 80 }} value={l.unit_price} readOnly={l.locked} onChange={(e) => setLine(i, { unit_price: e.target.value })} />}</td>
               <td><button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button></td>
             </tr>
           ))}</tbody>
@@ -383,11 +391,11 @@ function Dashboard() {
     <>
       <h2>仪表盘 · 今日单据（{rows.length}）</h2>
       <div style={{ marginBottom: 12 }}>
-        <button onClick={() => setModal('delivery')}>配送送货</button>
-        <button onClick={() => setModal('delivery_return')}>配送退货</button>
-        <button onClick={() => setModal('pickup')}>自提送货</button>
-        <button onClick={() => setModal('pickup_return')}>自提退货</button>
-        <button className="secondary" onClick={() => setModal('note')}>备注单</button>
+        <button onClick={() => setModal('delivery')}>配送</button>
+        <button onClick={() => setModal('delivery_return')}>配退</button>
+        <button onClick={() => setModal('pickup')}>自送</button>
+        <button onClick={() => setModal('pickup_return')}>自退</button>
+        <button className="secondary" onClick={() => setModal('note')}>备注</button>
         <button onClick={() => setModal('receipt')}>收款</button>
         <button className="secondary" onClick={() => setModal('refund')}>退款</button>
       </div>
