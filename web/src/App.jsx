@@ -265,6 +265,9 @@ function OrderModal({ type, onClose, onDone }) {
     e.preventDefault(); setErr('')
     try {
       if (!looked) throw new Error('请先点击“查客户”')
+      if (type === 'refund' && refundable != null && total > Number(refundable) + 0.001) {
+        throw new Error('退款金额超过可退金额（可退 ' + refundable + '）')
+      }
       if (!name) throw new Error('请填写客户姓名')
       const items = lines.filter((l) => l.category_id && l.input_quantity).map((l) => ({
         category_id: Number(l.category_id), batch_tag: l.batch_tag, input_unit: l.input_unit,

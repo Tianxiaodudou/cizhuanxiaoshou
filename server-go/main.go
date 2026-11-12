@@ -787,6 +787,18 @@ func (a *App) createPayment(w http.ResponseWriter, r *http.Request, acc int64) {
 		res, _ := a.db.Exec(`INSERT INTO customers(name,phone,addr,created_at) VALUES(?,?,?,?)`, in.Name, phone, in.Address, now())
 		cid, _ = res.LastInsertId()
 	}
+	if in.Type == "refund" {
+		var received, refunded sql.NullFloat64
+		_ = a.db.QueryRow(`SELECT
+			COALESCE(SUM(CASE WHEN type='receipt' THEN CAST(order_total AS REAL) ELSE 0 END),0),
+			COALESCE(SUM(CASE WHEN type='refund' THEN -CAST(order_total AS REAL) ELSE 0 END),0)
+			FROM orders WHERE customer_id=?`, cid).Scan(&received, &refunded)
+		refundable := received.Float64 - refunded.Float64
+		if amt > refundable+0.001 {
+			fail(w, 400, "REFUND_EXCEEDS", "退款金额超过可退金额（可退 "+f2(refundable)+"）")
+			return
+		}
+	}
 	prefix := "SK"
 	if in.Type == "refund" {
 		prefix = "TK"
