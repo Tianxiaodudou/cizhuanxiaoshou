@@ -624,7 +624,8 @@ function SettlementDetail({ id, onClose }) {
         <>
           <h3>结算详情 · {d.customer.name}</h3>
           <p>电话：{d.customer.phone}　地址：{d.customer.addr || '无'}</p>
-          <p>应收合计：<b>{d.receivable}</b>　应退合计：<b>{d.payable}</b>　已收：<b>{d.received}</b>　已退：<b>{d.refunded}</b>　未收：<b>{d.outstanding}</b></p>
+          <p>送货合计：<b>{d.receivable}</b>　退货合计：<b>{d.payable}</b>　收款合计：<b>{d.received}</b>　退款合计：<b>{d.refunded}</b></p>
+          <p style={{ fontSize: 16 }}>{Number(d.outstanding) >= 0 ? '还应收' : '应退'}：<b>{Math.abs(Number(d.outstanding)).toFixed(2)}</b></p>
           <table>
             <thead><tr><th>单号</th><th>类型</th><th>日期</th><th>金额</th></tr></thead>
             <tbody>{d.orders.map((o) => (
