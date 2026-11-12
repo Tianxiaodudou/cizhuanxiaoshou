@@ -366,6 +366,15 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		ok(w, list)
+	case p == "/refundable" && r.Method == "GET":
+		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
+		cid := a.customerID(phone)
+		var sum sql.NullFloat64
+		_ = a.db.QueryRow(`SELECT SUM(CASE WHEN type IN ('delivery','pickup') THEN CAST(order_total AS REAL)
+			WHEN type IN ('delivery_return','pickup_return','refund') THEN -CAST(order_total AS REAL)
+			WHEN type='receipt' THEN -CAST(order_total AS REAL) ELSE 0 END)
+			FROM orders WHERE customer_id=?`, cid).Scan(&sum)
+		ok(w, map[string]any{"refundable": f2(sum.Float64)})
 	case p == "/returns/available" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		cid := a.customerID(phone)
@@ -578,6 +587,13 @@ func (a *App) available(cid, cat int64) []map[string]any {
 func (a *App) priceFor(cid, cat int64, batch string) string {
 	var p string
 	_ = a.db.QueryRow(`SELECT unit_price FROM customer_prices WHERE customer_id=? AND category_id=? AND batch_tag=?`, cid, cat, batch).Scan(&p)
+	if p != "" {
+		return p
+	}
+	// 退货/新单：优先用该客户该型号该批次最近一次实际成交价（卖给该客户的价格）
+	_ = a.db.QueryRow(`SELECT i.unit_price FROM order_items i JOIN orders o ON o.id=i.order_id
+		WHERE o.customer_id=? AND i.category_id=? AND COALESCE(i.batch_tag,'')=? AND o.type IN ('delivery','pickup')
+		ORDER BY o.id DESC LIMIT 1`, cid, cat, batch).Scan(&p)
 	if p != "" {
 		return p
 	}

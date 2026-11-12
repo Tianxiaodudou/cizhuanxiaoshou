@@ -311,10 +311,15 @@ function PaymentModal({ type, onClose, onDone }) {
   const [amount, setAmount] = useState('')
   const [remark, setRemark] = useState('')
   const [err, setErr] = useState('')
+  const [refundable, setRefundable] = useState(null)
   const lookup = async () => {
     try {
       const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
       setLooked(true); setName(c.exists ? c.name : ''); setAddr(c.exists ? (c.addr || '') : '')
+      if (type === 'refund') {
+        const r = await api('/api/refundable?phone=' + encodeURIComponent(phone))
+        setRefundable(r.refundable)
+      }
     } catch (e) { setErr(e.message) }
   }
   const submit = async (e) => {
@@ -334,7 +339,8 @@ function PaymentModal({ type, onClose, onDone }) {
           <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
         </>)}
-        <div className="row">金额：<input value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+        <div className="row">金额：<input value={amount} placeholder={type === 'refund' && refundable != null ? `可退${refundable}` : ''} onChange={(e) => setAmount(e.target.value)} /></div>
+        {type === 'refund' && refundable != null && <div className="muted">可退金额：{refundable}（送货 - 退货 - 收款 + 退款）</div>}
         <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
         {err && <div className="err">{err}</div>}
         <div style={{ marginTop: 10 }}><button>提交</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
