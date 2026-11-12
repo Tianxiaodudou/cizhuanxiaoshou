@@ -181,11 +181,12 @@ function ProductPicker({ cats, onClose, onPick }) {
   const [group, setGroup] = useState(groups[0] || '')
   const names = [...new Set(cats.filter((c) => c.group === group).map((c) => c.name))]
   const [name, setName] = useState(names[0] || '')
-  const batches = cats.filter((c) => c.group === group && c.name === name).map((c) => c.batch)
-  const [batch, setBatch] = useState(batches[0] || '')
+  const batches = cats.filter((c) => c.group === group && c.name === name).map((c) => c.batch || '(无批号)')
+  const [batch, setBatch] = useState(batches[0] || '(无批号)')
   useEffect(() => { const n = [...new Set(cats.filter((c) => c.group === group).map((c) => c.name))]; setName(n[0] || ''); setBatch('') }, [group])
-  useEffect(() => { const b = cats.filter((c) => c.group === group && c.name === name).map((c) => c.batch); setBatch(b[0] || '') }, [name])
-  const current = cats.find((c) => c.group === group && c.name === name && c.batch === batch)
+  useEffect(() => { const b = cats.filter((c) => c.group === group && c.name === name).map((c) => c.batch || '(无批号)'); setBatch(b[0] || '(无批号)') }, [name])
+  const realBatch = batch === '(无批号)' ? '' : batch
+  const current = cats.find((c) => c.group === group && c.name === name && (c.batch || '') === realBatch)
   return (
     <Modal width={480}>
       <h3>选择商品（品类 → 型号 → 批号）</h3>
@@ -194,7 +195,7 @@ function ProductPicker({ cats, onClose, onPick }) {
         <div><div className="muted">型号</div><Wheel options={names} value={name} onChange={setName} /></div>
         <div><div className="muted">批号</div><Wheel options={batches} value={batch} onChange={setBatch} /></div>
       </div>
-      <p className="muted" style={{ textAlign: 'center' }}>{group} / {name} / {batch}　计价单位：{current?.settlement_unit || '—'}　默认价：{current?.default_price || '—'}</p>
+      <p className="muted" style={{ textAlign: 'center' }}>{group} / {name} / {(batch === '(无批号)' ? '无批号' : batch)}　计价单位：{current?.settlement_unit || '—'}　默认价：{current?.default_price || '—'}</p>
       <div style={{ textAlign: 'center' }}>
         <button disabled={!current} onClick={() => { onPick(current); onClose() }}>确定</button>{' '}
         <button type="button" className="secondary" onClick={onClose}>取消</button>
@@ -405,7 +406,7 @@ function CategoryModal({ init, onClose, onDone }) {
         <h3>{init?.id ? '编辑型号' : '新增型号'}</h3>
         <label className="row">一级 品类：<input value={f.group} onChange={set('group')} required /></label>
         <label className="row">二级 型号：<input value={f.name} onChange={set('name')} required /></label>
-        <label className="row">三级 批号：<input value={f.batch} onChange={set('batch')} required /></label>
+        <label className="row">三级 批号（可空）：<input value={f.batch} onChange={set('batch')} placeholder="没有批次/色号/日期的商品留空" /></label>
         <label className="row">四级 计价单位：<input value={f.settlement_unit} onChange={set('settlement_unit')} required /></label>
         <label className="row">默认价格（元/计价单位）：<input value={f.default_price} onChange={set('default_price')} placeholder="可空，新客户默认用它" /></label>
         <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} /></label>

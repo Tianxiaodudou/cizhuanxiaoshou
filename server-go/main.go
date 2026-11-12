@@ -455,7 +455,7 @@ func (a *App) categories(w http.ResponseWriter, r *http.Request) {
 	}
 	var in Category
 	_ = json.NewDecoder(r.Body).Decode(&in)
-	if in.Group == "" || in.Name == "" || in.Batch == "" || in.SettlementUnit == "" {
+	if in.Group == "" || in.Name == "" || in.SettlementUnit == "" {
 		fail(w, 400, "FIELD_REQUIRED", "品类、型号、批号、计价单位必须填写")
 		return
 	}
@@ -498,7 +498,7 @@ func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string) 
 	case "PUT":
 		var in Category
 		_ = json.NewDecoder(r.Body).Decode(&in)
-		if in.Group == "" || in.Name == "" || in.Batch == "" || in.SettlementUnit == "" {
+		if in.Group == "" || in.Name == "" || in.SettlementUnit == "" {
 			fail(w, 400, "FIELD_REQUIRED", "品类、型号、批号、计价单位必须填写")
 			return
 		}
@@ -594,10 +594,7 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 			fail(w, 400, "CATEGORY_NOT_FOUND", "型号不存在或未启用")
 			return
 		}
-		if it.BatchTag == "" {
-			fail(w, 400, "BATCH_REQUIRED", "该型号必须填写批号")
-			return
-		}
+
 		qty := bd(it.Quantity)
 		if qty <= 0 {
 			fail(w, 400, "QUANTITY", "数量必须大于 0")
