@@ -456,8 +456,11 @@ func (a *App) categories(w http.ResponseWriter, r *http.Request) {
 	var in Category
 	_ = json.NewDecoder(r.Body).Decode(&in)
 	if in.Group == "" || in.Name == "" || in.SettlementUnit == "" {
-		fail(w, 400, "FIELD_REQUIRED", "品类、型号、批号、计价单位必须填写")
+		fail(w, 400, "FIELD_REQUIRED", "品类、型号、计价单位必须填写")
 		return
+	}
+	if in.Batch == "" {
+		in.Batch = in.Name
 	}
 	if in.ConversionUnit != "" && in.SettlementUnit == in.ConversionUnit {
 		fail(w, 400, "UNIT_DUPLICATED", "计价单位与换算单位不能相同")
@@ -499,8 +502,11 @@ func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string) 
 		var in Category
 		_ = json.NewDecoder(r.Body).Decode(&in)
 		if in.Group == "" || in.Name == "" || in.SettlementUnit == "" {
-			fail(w, 400, "FIELD_REQUIRED", "品类、型号、批号、计价单位必须填写")
+			fail(w, 400, "FIELD_REQUIRED", "品类、型号、计价单位必须填写")
 			return
+		}
+		if in.Batch == "" {
+			in.Batch = in.Name
 		}
 		if in.Conversion <= 0 {
 			in.Conversion = 1

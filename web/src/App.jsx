@@ -389,7 +389,8 @@ const emptyCat = { group: '', name: '', batch: '', settlement_unit: '', conversi
 function CategoryModal({ init, onClose, onDone }) {
   const [f, setF] = useState(init || emptyCat)
   const [err, setErr] = useState('')
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
+  const upper = (v) => v.replace(/[a-z]/g, (c) => c.toUpperCase())
+  const set = (k) => (e) => setF({ ...f, [k]: k === 'default_price' || k === 'conversion' ? e.target.value : upper(e.target.value) })
   const save = async (e) => {
     e.preventDefault()
     try {
@@ -406,7 +407,7 @@ function CategoryModal({ init, onClose, onDone }) {
         <h3>{init?.id ? '编辑型号' : '新增型号'}</h3>
         <label className="row">一级 品类：<input value={f.group} onChange={set('group')} required /></label>
         <label className="row">二级 型号：<input value={f.name} onChange={set('name')} required /></label>
-        <label className="row">三级 批号（可空）：<input value={f.batch} onChange={set('batch')} placeholder="没有批次/色号/日期的商品留空" /></label>
+        <label className="row">三级 批号（可空，保存时默认等于型号）：<input value={f.batch} onChange={set('batch')} placeholder="留空则自动用型号作为批号" /></label>
         <label className="row">四级 计价单位：<input value={f.settlement_unit} onChange={set('settlement_unit')} required /></label>
         <label className="row">默认价格（元/计价单位）：<input value={f.default_price} onChange={set('default_price')} placeholder="可空，新客户默认用它" /></label>
         <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} /></label>
@@ -423,7 +424,10 @@ function CategoryModal({ init, onClose, onDone }) {
 function Categories() {
   const [rows, setRows] = useState([])
   const [edit, setEdit] = useState(undefined)
-  const load = useCallback(() => api('/api/categories').then(setRows).catch(() => {}), [])
+  const load = useCallback(() => api('/api/categories').then((list) => {
+    const key = (g) => (/^\d/.test(g) ? '0' + g : '1' + g)
+    setRows([...list].sort((a, b) => key(a.group).localeCompare(key(b.group), 'zh-Hans-CN') || a.id - b.id))
+  }).catch(() => {}), [])
   useEffect(() => { load() }, [load])
   const toggle = async (c) => { await api(`/api/categories/${c.id}/status?value=${c.status === 'active' ? 'disabled' : 'active'}`); load() }
   return (
@@ -438,7 +442,7 @@ function Categories() {
         <tbody>{rows.map((c) => (
           <tr key={c.id}>
             <td>{c.group}</td><td>{c.name}</td><td>{c.batch}</td><td>{c.settlement_unit}</td>
-            <td>{c.conversion_unit ? `${c.conversion_unit}（1${c.conversion_unit}=${c.conversion}${c.settlement_unit}）` : '—'}</td>
+            <td>{c.conversion_unit ? `${c.conversion_unit}（1${c.conversion_unit}=${c.conversion}${c.settlement_unit}）` : '无'}</td>
             <td>{c.status === 'active' ? '启用' : '禁用'}</td>
             <td>
               <button className="secondary" onClick={() => toggle(c)}>{c.status === 'active' ? '禁用' : '启用'}</button>
@@ -488,7 +492,8 @@ const emptyAcc = { username: '', name: '', password: '', role: 'staff', status: 
 function AccountModal({ init, onClose, onDone }) {
   const [f, setF] = useState(init ? { ...init, password: '' } : emptyAcc)
   const [err, setErr] = useState('')
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
+  const upper = (v) => v.replace(/[a-z]/g, (c) => c.toUpperCase())
+  const set = (k) => (e) => setF({ ...f, [k]: k === 'default_price' || k === 'conversion' ? e.target.value : upper(e.target.value) })
   const save = async (e) => {
     e.preventDefault()
     try {
