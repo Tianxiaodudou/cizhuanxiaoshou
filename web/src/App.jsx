@@ -441,7 +441,8 @@ function Categories() {
         <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>计价单位</th><th>默认价</th><th>换算单位</th><th>状态</th><th>操作</th></tr></thead>
         <tbody>{rows.map((c) => (
           <tr key={c.id}>
-            <td>{c.group}</td><td>{c.name}</td><td>{c.batch}</td><td>{c.settlement_unit}</td>
+            <td>{c.group}</td><td>{c.name}</td><td>{c.batch || '无'}</td><td>{c.settlement_unit}</td>
+            <td>{c.default_price || '无'}</td>
             <td>{c.conversion_unit ? `${c.conversion_unit}（1${c.conversion_unit}=${c.conversion}${c.settlement_unit}）` : '无'}</td>
             <td>{c.status === 'active' ? '启用' : '禁用'}</td>
             <td>
