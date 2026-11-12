@@ -96,6 +96,14 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
       <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
       <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
       <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b></p>
+      {!hasItems && (o.type === 'receipt' || o.type === 'refund') && (
+        <table>
+          <thead><tr><th>付款方式</th><th>金额</th></tr></thead>
+          <tbody>{(o.payments || []).map((p, k) => (
+            <tr key={k}><td>{p.method}</td><td>{p.amount}</td></tr>
+          ))}</tbody>
+        </table>
+      )}
       {hasItems && (
       <table>
         <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th></tr></thead>
@@ -312,7 +320,9 @@ function PaymentModal({ type, onClose, onDone }) {
   const [name, setName] = useState('')
   const [addr, setAddr] = useState('')
   const [looked, setLooked] = useState(false)
-  const [amount, setAmount] = useState('')
+  const [lines, setLines] = useState([{ method: '微信', custom: '', amount: '' }])
+  const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
+  const total = lines.reduce((s2, l) => s2 + (Number(l.amount) || 0), 0)
   const [remark, setRemark] = useState('')
   const [err, setErr] = useState('')
   const [refundable, setRefundable] = useState(null)
@@ -330,7 +340,7 @@ function PaymentModal({ type, onClose, onDone }) {
     e.preventDefault()
     try {
       if (!looked) throw new Error('请先点击“查客户”')
-      await api('/api/payments', { method: 'POST', body: JSON.stringify({ phone, customer_name: name, address: addr, type, amount, remark }) })
+      await api('/api/payments', { method: 'POST', body: JSON.stringify({ phone, customer_name: name, address: addr, type, remark, payments: lines.map((l) => ({ method: l.method, custom_method: l.custom, amount: l.amount })) }) })
       onDone()
     } catch (x) { setErr(x.message) }
   }
@@ -343,7 +353,21 @@ function PaymentModal({ type, onClose, onDone }) {
           <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
         </>)}
-        <div className="row">金额：<input value={amount} placeholder={type === 'refund' && refundable != null ? `可退${refundable}` : ''} onChange={(e) => setAmount(e.target.value)} /></div>
+        <table>
+          <thead><tr><th>付款方式</th><th>自定义方式</th><th>金额</th><th></th></tr></thead>
+          <tbody>{lines.map((l, i) => (
+            <tr key={i}>
+              <td><select value={l.method} onChange={(e) => setLine(i, { method: e.target.value })}>
+                {['微信', '支付宝', '现金', '其他'].map((m) => <option key={m} value={m}>{m}</option>)}
+              </select></td>
+              <td>{l.method === '其他' ? <input value={l.custom} onChange={(e) => setLine(i, { custom: e.target.value })} placeholder="自定义方式" /> : '—'}</td>
+              <td><input value={l.amount} placeholder={type === 'refund' && refundable != null ? `可退${refundable}` : ''} onChange={(e) => setLine(i, { amount: e.target.value })} /></td>
+              <td><button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button></td>
+            </tr>
+          ))}</tbody>
+        </table>
+        <button type="button" className="secondary" onClick={() => setLines((ls) => [...ls, { method: '微信', custom: '', amount: '' }])}>+ 添加付款方式</button>
+        <div className="row">合计：<b>{total.toFixed(2)}</b></div>
         {type === 'refund' && refundable != null && <div className="muted">可退金额：{refundable}（送货 - 退货 - 收款 + 退款）</div>}
         <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
         {err && <div className="err">{err}</div>}

@@ -122,6 +122,7 @@ func migrate(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS print_jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, doc_no TEXT, doc_type TEXT, status TEXT DEFAULT 'pending', error TEXT, created_at TEXT, printed_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS logs(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER, action TEXT, detail TEXT, created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS doc_seq(prefix TEXT NOT NULL, day TEXT NOT NULL, seq INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(prefix, day))`,
+		`CREATE TABLE IF NOT EXISTS payment_lines(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL, method TEXT NOT NULL, custom_method TEXT DEFAULT '', amount TEXT NOT NULL)`,
 	}
 	for _, s := range ss {
 		if _, err := db.Exec(s); err != nil {
@@ -736,19 +737,44 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 
 func (a *App) createPayment(w http.ResponseWriter, r *http.Request, acc int64) {
 	var in struct {
-		Phone   string `json:"phone"`
-		Name    string `json:"customer_name"`
-		Address string `json:"address"`
-		Type    string `json:"type"`
-		Amount  string `json:"amount"`
-		Remark  string `json:"remark"`
+		Phone    string `json:"phone"`
+		Name     string `json:"customer_name"`
+		Address  string `json:"address"`
+		Type     string `json:"type"`
+		Amount   string `json:"amount"`
+		Remark   string `json:"remark"`
+		Payments []struct {
+			Method string `json:"method"`
+			Custom string `json:"custom_method"`
+			Amount string `json:"amount"`
+		} `json:"payments"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&in)
-	if in.Phone == "" || in.Amount == "" || (in.Type != "receipt" && in.Type != "refund") {
-		fail(w, 400, "FIELD_REQUIRED", "电话、金额、类型必填")
+	if in.Phone == "" || (in.Type != "receipt" && in.Type != "refund") {
+		fail(w, 400, "FIELD_REQUIRED", "电话、类型必填")
 		return
 	}
-	amt := bd(in.Amount)
+	amt := 0.0
+	lines := []struct{ method, custom, amount string }{}
+	for _, p := range in.Payments {
+		v := bd(p.Amount)
+		if v <= 0 || p.Method == "" {
+			continue
+		}
+		m := p.Method
+		if m == "其他" {
+			m = p.Custom
+		}
+		lines = append(lines, struct{ method, custom, amount string }{m, p.Custom, f2(v)})
+		amt += v
+	}
+	if len(lines) == 0 {
+		amt = bd(in.Amount)
+		if amt <= 0 {
+			fail(w, 400, "AMOUNT", "金额必须大于 0")
+			return
+		}
+	}
 	if amt <= 0 {
 		fail(w, 400, "AMOUNT", "金额必须大于 0")
 		return
@@ -779,6 +805,9 @@ func (a *App) createPayment(w http.ResponseWriter, r *http.Request, acc int64) {
 		return
 	}
 	oid, _ := res.LastInsertId()
+	for _, l := range lines {
+		_, _ = a.db.Exec(`INSERT INTO payment_lines(order_id,method,custom_method,amount) VALUES(?,?,?,?)`, oid, l.method, l.custom, l.amount)
+	}
 	a.log(&acc, "PAYMENT_CREATE", no)
 	ok(w, a.order(oid))
 }
@@ -926,7 +955,19 @@ func (a *App) order(oid int64) map[string]any {
 	}
 	var cum float64
 	_ = a.db.QueryRow(`SELECT COALESCE(SUM(CAST(o2.order_total AS REAL)),0) FROM orders o2 JOIN customers c2 ON c2.id=o2.customer_id WHERE c2.phone=?`, o.CPhone).Scan(&cum)
-	return map[string]any{"id": o.ID, "order_no": o.No, "type": o.Type, "status": o.Status, "remark": o.Remark,
+	payments := []map[string]any{}
+	prows, perr := a.db.Query(`SELECT method,custom_method,amount FROM payment_lines WHERE order_id=?`, oid)
+	if perr == nil && prows != nil {
+		func() {
+			defer prows.Close()
+			for prows.Next() {
+				var m, c, am string
+				_ = prows.Scan(&m, &c, &am)
+				payments = append(payments, map[string]any{"method": m, "custom_method": c, "amount": am})
+			}
+		}()
+	}
+	return map[string]any{"id": o.ID, "order_no": o.No, "type": o.Type, "status": o.Status, "remark": o.Remark, "payments": payments,
 		"order_total": o.Total, "version": o.Version, "created_at": o.Created, "customer_name": o.CName,
 		"customer_phone": o.CPhone, "customer_address": o.CAddr, "account_name": o.AName, "items": items, "cumulative_total": f2(cum)}
 }
