@@ -60,7 +60,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.SetMaxOpenConns(1)
+	db.SetMaxOpenConns(4)
 	migrate(db)
 	seed(db)
 	a := &App{db: db, prefix: prefix, tokens: map[string]int64{}}
@@ -343,26 +343,33 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	case p == "/returns/list" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		cid := a.customerID(phone)
+		type agg struct {
+			cat   int64
+			batch string
+			avail float64
+		}
 		rows, err := a.db.Query(`SELECT i.category_id, COALESCE(i.batch_tag,''),
 			SUM(CASE WHEN o.type IN ('delivery','pickup') THEN CAST(i.settlement_quantity AS REAL) ELSE 0 END) -
 			SUM(CASE WHEN o.type IN ('delivery_return','pickup_return') THEN CAST(i.settlement_quantity AS REAL) ELSE 0 END) AS avail
 			FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.customer_id=?
 			GROUP BY i.category_id, COALESCE(i.batch_tag,'') HAVING avail > 0`, cid)
-		list := []map[string]any{}
+		aggs := []agg{}
 		if err == nil && rows != nil {
-			defer rows.Close()
 			for rows.Next() {
-				var cidCat int64
-				var batch string
-				var avail float64
-				_ = rows.Scan(&cidCat, &batch, &avail)
-				var c Category
-				if e := a.db.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE id=?`, cidCat).
-					Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion, &c.DefaultPrice, &c.Status); e == nil {
-					list = append(list, map[string]any{"category_id": cidCat, "batch_tag": batch, "available": f2(avail),
-						"group": c.Group, "name": c.Name, "settlement_unit": c.SettlementUnit,
-						"conversion_unit": c.ConversionUnit, "conversion": c.Conversion, "default_price": c.DefaultPrice})
-				}
+				var x agg
+				_ = rows.Scan(&x.cat, &x.batch, &x.avail)
+				aggs = append(aggs, x)
+			}
+			_ = rows.Close()
+		}
+		list := []map[string]any{}
+		for _, x := range aggs {
+			var c Category
+			if e := a.db.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE id=?`, x.cat).
+				Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion, &c.DefaultPrice, &c.Status); e == nil {
+				list = append(list, map[string]any{"category_id": x.cat, "batch_tag": x.batch, "available": f2(x.avail),
+					"group": c.Group, "name": c.Name, "settlement_unit": c.SettlementUnit,
+					"conversion_unit": c.ConversionUnit, "conversion": c.Conversion, "default_price": c.DefaultPrice})
 			}
 		}
 		ok(w, list)
