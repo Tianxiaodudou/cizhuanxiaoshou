@@ -384,9 +384,11 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		cid := a.customerID(phone)
 		var sum sql.NullFloat64
-		_ = a.db.QueryRow(`SELECT SUM(CASE WHEN type IN ('delivery','pickup') THEN CAST(order_total AS REAL)
-			WHEN type IN ('delivery_return','pickup_return','refund') THEN -CAST(order_total AS REAL)
-			WHEN type='receipt' THEN -CAST(order_total AS REAL) ELSE 0 END)
+		// 可退金额 = 已收（收款合计） − 已退（退款合计）；没收过钱就不能退
+		_ = a.db.QueryRow(`SELECT COALESCE(SUM(CASE
+			WHEN type='receipt' THEN CAST(order_total AS REAL)
+			WHEN type='refund' THEN CAST(order_total AS REAL)
+			ELSE 0 END), 0)
 			FROM orders WHERE customer_id=?`, cid).Scan(&sum)
 		ok(w, map[string]any{"refundable": f2(sum.Float64)})
 	case p == "/returns/available" && r.Method == "GET":
