@@ -82,8 +82,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("unix %s: %v", sock, err)
 	}
-	go func() { log.Printf("gateway %s prefix %s", sock, prefix); log.Fatal(http.Serve(ln, h)) }()
-	go func() { log.Printf("api :%d", port); log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), h)) }()
+	go func() { log.Printf("gateway %s prefix %s", sock, prefix); if err := http.Serve(ln, h); err != nil { log.Printf("gateway serve stopped: %v", err) } }()
+	go func() {
+		log.Printf("api :%d", port)
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", port), h); err != nil {
+			log.Printf("api listen failed on :%d (%v)，管理端仍可用，请检查端口占用", port, err)
+		}
+	}()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
