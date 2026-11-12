@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+function Modal({ children, width = 720, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, padding: '18px 22px', maxHeight: '88vh', overflow: 'auto', width, boxShadow: '0 12px 40px rgba(0,0,0,.25)' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 const PREFIX = '/app/czxs'
 const money = (v) => (v == null ? '—' : v)
 const typeLabel = { delivery: '配送送货', delivery_return: '配送退货', pickup: '自提送货', pickup_return: '自提退货' }
@@ -60,7 +70,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
     setO(d); setRemark(d.remark || ''); setLines(d.items.map((i) => ({ ...i, input_quantity: i.input_quantity, unit_price: i.unit_price })))
   }, [id])
   useEffect(() => { load().catch((e) => setErr(e.message)) }, [load])
-  if (!o) return (<dialog open className="modal"><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></dialog>)
+  if (!o) return (<Modal width={720}><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></Modal>)
   const archived = o.status === 'archived'
   const save = async () => {
     if (!confirm('确认保存修改？')) return
@@ -78,7 +88,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
     try { await api('/api/orders/' + id + '/archive', { method: 'POST' }); await load(); onChanged?.() } catch (e) { alert(e.message) }
   }
   return (
-    <dialog open className="modal" style={{ width: 820 }}>
+    <Modal width={820}>
       <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
       <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
       <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　合计：<b>{o.order_total}</b>　累计：{o.cumulative_total}</p>
@@ -104,7 +114,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
       {archived && (
         <p className="muted">已归档：不可修改、不可删除；请到「仪表盘」以该客户信息开新单（送货/退货/备注），或到「结算」查看该客户汇总。</p>
       )}
-    </dialog>
+    </Modal>
   )
 }
 function OrderTable({ rows, onDetail, onDelete, onArchive, canEdit = true }) {
@@ -177,7 +187,7 @@ function ProductPicker({ cats, onClose, onPick }) {
   useEffect(() => { const b = cats.filter((c) => c.group === group && c.name === name).map((c) => c.batch); setBatch(b[0] || '') }, [name])
   const current = cats.find((c) => c.group === group && c.name === name && c.batch === batch)
   return (
-    <dialog open className="modal" style={{ width: 480 }}>
+    <Modal width={480}>
       <h3>选择商品（品类 → 型号 → 批号）</h3>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
         <div><div className="muted">品类</div><Wheel options={groups} value={group} onChange={setGroup} /></div>
@@ -189,7 +199,7 @@ function ProductPicker({ cats, onClose, onPick }) {
         <button disabled={!current} onClick={() => { onPick(current); onClose() }}>确定</button>{' '}
         <button type="button" className="secondary" onClick={onClose}>取消</button>
       </div>
-    </dialog>
+    </Modal>
   )
 }
 
@@ -247,7 +257,7 @@ function OrderModal({ type, onClose, onDone }) {
     } catch (x) { setErr(x.message) }
   }
   return (
-    <dialog open className="modal" style={{ width: 780 }}>
+    <Modal width={780}>
       <form onSubmit={submit}>
         <h3>{typeLabel[type]}单</h3>
         <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
@@ -279,7 +289,7 @@ function OrderModal({ type, onClose, onDone }) {
         <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
       </form>
       {picker !== null && <ProductPicker cats={cats} onClose={() => setPicker(null)} onPick={(c) => applyCat(picker, c)} />}
-    </dialog>
+    </Modal>
   )
 }
 
@@ -300,7 +310,7 @@ function NoteModal({ onClose, onDone }) {
     } catch (x) { setErr(x.message) }
   }
   return (
-    <dialog open className="modal" style={{ width: 620 }}>
+    <Modal width={620}>
       <form onSubmit={submit}>
         <h3>备注单</h3>
         <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={search}>查近三日单据</button></div>
@@ -315,7 +325,7 @@ function NoteModal({ onClose, onDone }) {
         {err && <div className="err">{err}</div>}
         <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
       </form>
-    </dialog>
+    </Modal>
   )
 }
 
@@ -390,7 +400,7 @@ function CategoryModal({ init, onClose, onDone }) {
     } catch (x) { setErr(x.message) }
   }
   return (
-    <dialog open className="modal">
+    <Modal width={720}>
       <form onSubmit={save}>
         <h3>{init?.id ? '编辑型号' : '新增型号'}</h3>
         <label className="row">一级 品类：<input value={f.group} onChange={set('group')} required /></label>
@@ -405,7 +415,7 @@ function CategoryModal({ init, onClose, onDone }) {
         {err && <div className="err">{err}</div>}
         <button>保存</button> <button type="button" className="secondary" onClick={onClose}>取消</button>
       </form>
-    </dialog>
+    </Modal>
   )
 }
 
@@ -490,7 +500,7 @@ function AccountModal({ init, onClose, onDone }) {
     } catch (x) { setErr(x.message) }
   }
   return (
-    <dialog open className="modal">
+    <Modal width={720}>
       <form onSubmit={save}>
         <h3>{init?.id ? '编辑账号' : '新增账号'}</h3>
         {!init?.id && <label className="row">账号名：<input value={f.username} onChange={set('username')} required /></label>}
@@ -501,7 +511,7 @@ function AccountModal({ init, onClose, onDone }) {
         {err && <div className="err">{err}</div>}
         <button>保存</button> <button type="button" className="secondary" onClick={onClose}>取消</button>
       </form>
-    </dialog>
+    </Modal>
   )
 }
 
