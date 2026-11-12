@@ -95,7 +95,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
     <Modal width={820} onClose={onClose}>
       <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
       <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
-      <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b>　累计：{o.cumulative_total}</p>
+      <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b></p>
       {hasItems && (
       <table>
         <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th></tr></thead>
@@ -620,8 +620,10 @@ function Accounts({ isAdmin }) {
 
 function SettlementDetail({ id, onClose }) {
   const [d, setD] = useState(null)
+  const [orderId, setOrderId] = useState(null)
   useEffect(() => { api('/api/settlement/' + id).then(setD).catch(() => {}) }, [id])
   return (
+    <>
     <Modal width={760} onClose={onClose}>
       {!d ? <p>加载中…</p> : (
         <>
@@ -634,17 +636,20 @@ function SettlementDetail({ id, onClose }) {
             {Number(d.outstanding) === 0 && <b>已结清</b>}
           </p>
           <table>
-            <thead><tr><th>单号</th><th>类型</th><th>日期</th><th>金额</th></tr></thead>
+            <thead><tr><th>单号</th><th>类型</th><th>日期</th><th>金额</th><th>操作</th></tr></thead>
             <tbody>{d.orders.map((o) => (
               <tr key={o.id}><td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td>
                 <td>{o.created_at?.slice(0, 10)}</td>
-                <td style={{ color: o.order_total.startsWith('-') ? '#c62828' : '#2e7d32' }}>{amountLabel(o.type)} {Math.abs(Number(o.order_total)).toFixed(2)}</td></tr>
+                <td style={{ color: o.order_total.startsWith('-') ? '#c62828' : '#2e7d32' }}>{amountLabel(o.type)} {Math.abs(Number(o.order_total)).toFixed(2)}</td>
+                <td><button className="secondary" onClick={() => setOrderId(o.id)}>详情</button></td></tr>
             ))}</tbody>
           </table>
           <div style={{ marginTop: 10 }}><button className="secondary" onClick={onClose}>关闭</button></div>
         </>
       )}
     </Modal>
+    {orderId && <OrderDetailModal id={orderId} onClose={() => setOrderId(null)} />}
+    </>
   )
 }
 
