@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 function Modal({ children, width = 720, onClose }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, padding: '18px 22px', maxHeight: '88vh', overflow: 'auto', width, boxShadow: '0 12px 40px rgba(0,0,0,.25)' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', background: '#fff', borderRadius: 10, padding: '18px 22px', maxHeight: '88vh', overflow: 'auto', width, boxShadow: '0 12px 40px rgba(0,0,0,.25)' }}>
+        <button onClick={onClose} title="关闭" style={{ position: 'absolute', top: 8, right: 10, background: 'transparent', color: '#666', fontSize: 20, lineHeight: '20px', padding: '4px 8px' }}>×</button>
         {children}
       </div>
     </div>
@@ -12,7 +13,7 @@ function Modal({ children, width = 720, onClose }) {
 
 const PREFIX = '/app/czxs'
 const money = (v) => (v == null ? '—' : v)
-const typeLabel = { delivery: '配送送货', delivery_return: '配送退货', pickup: '自提送货', pickup_return: '自提退货' }
+const typeLabel = { delivery: '配送送货', delivery_return: '配送退货', pickup: '自提送货', pickup_return: '自提退货', receipt: '收款', refund: '退款' }
 
 async function api(path, opt = {}) {
   const token = localStorage.getItem('czxs_token')
@@ -70,7 +71,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
     setO(d); setRemark(d.remark || ''); setLines(d.items.map((i) => ({ ...i, input_quantity: i.input_quantity, unit_price: i.unit_price })))
   }, [id])
   useEffect(() => { load().catch((e) => setErr(e.message)) }, [load])
-  if (!o) return (<Modal width={720}><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></Modal>)
+  if (!o) return (<Modal width={720} onClose={onClose}><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></Modal>)
   const archived = o.status === 'archived'
   const save = async () => {
     if (!confirm('确认保存修改？')) return
@@ -88,7 +89,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
     try { await api('/api/orders/' + id + '/archive', { method: 'POST' }); await load(); onChanged?.() } catch (e) { alert(e.message) }
   }
   return (
-    <Modal width={820}>
+    <Modal width={820} onClose={onClose}>
       <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
       <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
       <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　合计：<b>{o.order_total}</b>　累计：{o.cumulative_total}</p>
@@ -188,7 +189,7 @@ function ProductPicker({ cats, onClose, onPick }) {
   const realBatch = batch === '(无批号)' ? '' : batch
   const current = cats.find((c) => c.group === group && c.name === name && (c.batch || '') === realBatch)
   return (
-    <Modal width={480}>
+    <Modal width={480} onClose={onClose}>
       <h3>选择商品（品类 → 型号 → 批号）</h3>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
         <div><div className="muted">品类</div><Wheel options={groups} value={group} onChange={setGroup} /></div>
@@ -258,7 +259,7 @@ function OrderModal({ type, onClose, onDone }) {
     } catch (x) { setErr(x.message) }
   }
   return (
-    <Modal width={780}>
+    <Modal width={780} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{typeLabel[type]}单</h3>
         <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
@@ -294,6 +295,46 @@ function OrderModal({ type, onClose, onDone }) {
   )
 }
 
+function PaymentModal({ type, onClose, onDone }) {
+  const [phone, setPhone] = useState('')
+  const [name, setName] = useState('')
+  const [addr, setAddr] = useState('')
+  const [looked, setLooked] = useState(false)
+  const [amount, setAmount] = useState('')
+  const [remark, setRemark] = useState('')
+  const [err, setErr] = useState('')
+  const lookup = async () => {
+    try {
+      const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
+      setLooked(true); setName(c.exists ? c.name : ''); setAddr(c.exists ? (c.addr || '') : '')
+    } catch (e) { setErr(e.message) }
+  }
+  const submit = async (e) => {
+    e.preventDefault()
+    try {
+      if (!looked) throw new Error('请先点击“查客户”')
+      await api('/api/payments', { method: 'POST', body: JSON.stringify({ phone, customer_name: name, address: addr, type, amount, remark }) })
+      onDone()
+    } catch (x) { setErr(x.message) }
+  }
+  return (
+    <Modal width={520} onClose={onClose}>
+      <form onSubmit={submit}>
+        <h3>{type === 'receipt' ? '收款' : '退款'}</h3>
+        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={lookup}>查客户</button></div>
+        {looked && (<>
+          <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
+        </>)}
+        <div className="row">金额：<input value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+        <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
+        {err && <div className="err">{err}</div>}
+        <div style={{ marginTop: 10 }}><button>提交</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
+      </form>
+    </Modal>
+  )
+}
+
 function NoteModal({ onClose, onDone }) {
   const [phone, setPhone] = useState('')
   const [orders, setOrders] = useState([])
@@ -311,7 +352,7 @@ function NoteModal({ onClose, onDone }) {
     } catch (x) { setErr(x.message) }
   }
   return (
-    <Modal width={620}>
+    <Modal width={620} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>备注单</h3>
         <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={search}>查近三日单据</button></div>
@@ -347,10 +388,13 @@ function Dashboard() {
         <button onClick={() => setModal('pickup')}>自提送货</button>
         <button onClick={() => setModal('pickup_return')}>自提退货</button>
         <button className="secondary" onClick={() => setModal('note')}>备注单</button>
+        <button onClick={() => setModal('receipt')}>收款</button>
+        <button className="secondary" onClick={() => setModal('refund')}>退款</button>
       </div>
       <OrderTable rows={rows} onDetail={(id, edit) => setDetail({ id, edit })} onDelete={del} onArchive={archive} />
       {detail && <OrderDetailModal id={detail.id} startEdit={detail.edit} onClose={() => setDetail(null)} onChanged={load} />}
-      {modal && modal !== 'note' && <OrderModal type={modal} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
+      {modal && modal !== 'note' && modal !== 'receipt' && modal !== 'refund' && <OrderModal type={modal} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
+      {(modal === 'receipt' || modal === 'refund') && <PaymentModal type={modal} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
       {modal === 'note' && <NoteModal onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
     </>
   )
@@ -402,7 +446,7 @@ function CategoryModal({ init, onClose, onDone }) {
     } catch (x) { setErr(x.message) }
   }
   return (
-    <Modal width={720}>
+    <Modal width={720} onClose={onClose}>
       <form onSubmit={save}>
         <h3>{init?.id ? '编辑型号' : '新增型号'}</h3>
         <label className="row">一级 品类：<input value={f.group} onChange={set('group')} required /></label>
@@ -507,7 +551,7 @@ function AccountModal({ init, onClose, onDone }) {
     } catch (x) { setErr(x.message) }
   }
   return (
-    <Modal width={720}>
+    <Modal width={720} onClose={onClose}>
       <form onSubmit={save}>
         <h3>{init?.id ? '编辑账号' : '新增账号'}</h3>
         {!init?.id && <label className="row">账号名：<input value={f.username} onChange={set('username')} required /></label>}
@@ -560,7 +604,7 @@ function SettlementDetail({ id, onClose }) {
   const [d, setD] = useState(null)
   useEffect(() => { api('/api/settlement/' + id).then(setD).catch(() => {}) }, [id])
   return (
-    <Modal width={760}>
+    <Modal width={760} onClose={onClose}>
       {!d ? <p>加载中…</p> : (
         <>
           <h3>结算详情 · {d.customer.name}</h3>

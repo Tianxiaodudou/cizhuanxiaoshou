@@ -345,6 +345,8 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		cid := a.customerID(phone)
 		cat, _ := strconv.ParseInt(r.URL.Query().Get("category_id"), 10, 64)
 		ok(w, a.available(cid, cat))
+	case p == "/payments" && r.Method == "POST":
+		a.createPayment(w, r, id)
 	case p == "/orders" && r.Method == "POST":
 		a.createOrder(w, r, id)
 	case p == "/orders/all" && r.Method == "GET":
@@ -675,6 +677,55 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	a.log(&acc, "ORDER_CREATE", no)
 	o := a.order(oid)
 	ok(w, o)
+}
+
+func (a *App) createPayment(w http.ResponseWriter, r *http.Request, acc int64) {
+	var in struct {
+		Phone   string `json:"phone"`
+		Name    string `json:"customer_name"`
+		Address string `json:"address"`
+		Type    string `json:"type"`
+		Amount  string `json:"amount"`
+		Remark  string `json:"remark"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	if in.Phone == "" || in.Amount == "" || (in.Type != "receipt" && in.Type != "refund") {
+		fail(w, 400, "FIELD_REQUIRED", "电话、金额、类型必填")
+		return
+	}
+	amt := bd(in.Amount)
+	if amt <= 0 {
+		fail(w, 400, "AMOUNT", "金额必须大于 0")
+		return
+	}
+	phone := strings.NewReplacer(" ", "", "-", "").Replace(in.Phone)
+	cid := a.customerID(phone)
+	if cid == 0 {
+		res, _ := a.db.Exec(`INSERT INTO customers(name,phone,addr,created_at) VALUES(?,?,?,?)`, in.Name, phone, in.Address, now())
+		cid, _ = res.LastInsertId()
+	}
+	prefix := "SK"
+	if in.Type == "refund" {
+		prefix = "TK"
+	}
+	no, err := a.nextNo(prefix)
+	if err != nil {
+		fail(w, 500, "NUMBER", "取号失败："+err.Error())
+		return
+	}
+	total := amt
+	if in.Type == "refund" {
+		total = -amt
+	}
+	res, err := a.db.Exec(`INSERT INTO orders(order_no,type,customer_id,account_id,status,remark,order_total,version,created_at) VALUES(?,?,?,?,'submitted',?,?,1,?)`,
+		no, in.Type, cid, acc, in.Remark, f2(total), now())
+	if err != nil {
+		fail(w, 500, "DB", err.Error())
+		return
+	}
+	oid, _ := res.LastInsertId()
+	a.log(&acc, "PAYMENT_CREATE", no)
+	ok(w, a.order(oid))
 }
 
 func (a *App) updateOrder(w http.ResponseWriter, r *http.Request, acc int64, rawID string) {
