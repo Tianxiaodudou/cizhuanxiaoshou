@@ -75,6 +75,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
   useEffect(() => { load().catch((e) => setErr(e.message)) }, [load])
   if (!o) return (<Modal width={720} onClose={onClose}><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></Modal>)
   const archived = o.status === 'archived'
+  const hasItems = ['delivery', 'delivery_return', 'pickup', 'pickup_return'].includes(o.type)
   const save = async () => {
     if (!confirm('确认保存修改？')) return
     try {
@@ -95,6 +96,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
       <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
       <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
       <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b>　累计：{o.cumulative_total}</p>
+      {hasItems && (
       <table>
         <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th></tr></thead>
         <tbody>{o.items.map((i, k) => (
@@ -105,10 +107,11 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
             <td>{i.line_total}</td></tr>
         ))}</tbody>
       </table>
+      )}
       {editing && <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>}
       {err && <div className="err">{err}</div>}
       <div style={{ marginTop: 10 }}>
-        {!editing && !archived && <button onClick={() => setEditing(true)}>编辑</button>}
+        {hasItems && !editing && !archived && <button onClick={() => setEditing(true)}>编辑</button>}
         {editing && <button onClick={save}>保存修改</button>}
         {!archived && <button className="secondary" onClick={archive}>归档</button>}
         {!archived && <button className="danger" onClick={del}>删除</button>}
