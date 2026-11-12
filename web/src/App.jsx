@@ -668,11 +668,11 @@ function Settings() {
     <>
       <h2>系统配置</h2>
       <p>商家名称：<input value={s.merchant_name || ''} onChange={(e) => setS({ ...s, merchant_name: e.target.value })} /></p>
-      <p>API 端口：<input value={s.api_port || '8080'} onChange={(e) => setS({ ...s, api_port: e.target.value })} /></p>
+      <p>API 端口：<input value={s.api_port || '9527'} onChange={(e) => setS({ ...s, api_port: e.target.value })} /></p>
       <p>小票宽度：<select value={s.print_width || '80mm'} onChange={(e) => setS({ ...s, print_width: e.target.value })}><option>80mm</option><option>58mm</option></select></p>
       <button onClick={async () => { await api('/api/settings', { method: 'POST', body: JSON.stringify(s) }); setMsg('已保存') }}>保存</button>
       {msg && <span style={{ marginLeft: 8 }}>{msg}</span>}
-      <p className="muted">端口修改需重启应用生效；客户端需同步更新地址。</p>
+      <p className="muted">默认端口 9527；修改后需重启应用生效，客户端需同步更新地址。</p>
     </>
   )
 }

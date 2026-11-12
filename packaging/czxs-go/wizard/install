@@ -58,8 +58,8 @@
       {
         "type": "text",
         "field": "wizard_api_port",
-        "label": "Android API 端口（仅客户端连接用）",
-        "initValue": "8080",
+        "label": "Android API 端口（默认 9527，仅客户端连接用）",
+        "initValue": "9527",
         "rules": [
           {
             "required": true,

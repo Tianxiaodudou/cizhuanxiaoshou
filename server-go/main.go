@@ -53,7 +53,7 @@ func main() {
 	data := env("TRIM_PKGVAR", filepath.Join(home, "data"))
 	_ = os.MkdirAll(data, 0o755)
 	sock := env("CZ_XS_SOCKET", filepath.Join(home, "app.sock"))
-	port, _ := strconv.Atoi(env("CZ_XS_API_PORT", "8080"))
+	port, _ := strconv.Atoi(env("CZ_XS_API_PORT", "9527"))
 	prefix := strings.TrimRight(env("CZ_XS_PREFIX", "/app/czxs"), "/")
 
 	db, err := sql.Open("sqlite", filepath.Join(data, "orders.sq3")+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
@@ -127,6 +127,7 @@ func migrate(db *sql.DB) {
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN addr TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE notes ADD COLUMN remark TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`UPDATE settings SET v='9527' WHERE k='api_port' AND v='8080'`)
 }
 
 func loadEnvFile(path string) {
@@ -172,7 +173,7 @@ func seed(db *sql.DB) {
 	}
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
-		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('api_port','8080'),('initialized','true'),('print_width','80mm')`)
+		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
 	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'+'admin', 'active', ?)`, hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
 	}
 }

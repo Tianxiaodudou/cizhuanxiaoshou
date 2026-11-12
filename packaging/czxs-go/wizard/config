@@ -18,7 +18,7 @@
         "type": "text",
         "field": "wizard_api_port",
         "label": "Android API 端口",
-        "initValue": "8080",
+        "initValue": "9527",
         "rules": [
           {
             "required": true,
