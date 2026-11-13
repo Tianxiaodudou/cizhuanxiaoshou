@@ -113,7 +113,7 @@ func migrate(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, name TEXT, password_hash TEXT, role TEXT DEFAULT 'staff', status TEXT DEFAULT 'active', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`,
 		`CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, name TEXT, batch TEXT, settlement_unit TEXT, conversion_unit TEXT, conversion REAL DEFAULT 1, default_price TEXT DEFAULT '', batch_type TEXT DEFAULT 'none', status TEXT DEFAULT 'active', created_at TEXT, UNIQUE(grp,name,batch,settlement_unit,conversion_unit))`,
-		`CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT UNIQUE, created_at TEXT)`,
+		`CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT UNIQUE, addr TEXT DEFAULT '', price_mode TEXT DEFAULT 'open', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS customer_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, category_id INTEGER, batch_tag TEXT DEFAULT '', unit_price TEXT, updated_at TEXT, UNIQUE(customer_id,category_id,batch_tag))`,
 		`CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY AUTOINCREMENT, order_no TEXT UNIQUE, type TEXT, customer_id INTEGER, account_id INTEGER, status TEXT DEFAULT 'submitted', remark TEXT, order_total TEXT, version INTEGER DEFAULT 1, created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS order_items(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, line_no INTEGER, category_id INTEGER, batch_tag TEXT, input_unit TEXT, input_quantity TEXT, settlement_unit TEXT, settlement_quantity TEXT, unit_price TEXT, line_total TEXT)`,
@@ -131,6 +131,7 @@ func migrate(db *sql.DB) {
 	}
 	_, _ = db.Exec(`ALTER TABLE accounts ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN addr TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN price_mode TEXT NOT NULL DEFAULT 'open'`)
 	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE notes ADD COLUMN remark TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`UPDATE settings SET v='9527' WHERE k='api_port' AND v='8080'`)
@@ -319,9 +320,9 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	case p == "/customers" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		var cid int64
-		var name, addr string
-		err := a.db.QueryRow(`SELECT id,name,COALESCE(addr,'') FROM customers WHERE phone=?`, phone).Scan(&cid, &name, &addr)
-		ok(w, map[string]any{"exists": err == nil, "name": name, "addr": addr, "id": cid, "phone": phone})
+		var name, addr, mode string
+		err := a.db.QueryRow(`SELECT id,name,COALESCE(addr,''),COALESCE(price_mode,'open') FROM customers WHERE phone=?`, phone).Scan(&cid, &name, &addr, &mode)
+		ok(w, map[string]any{"exists": err == nil, "name": name, "addr": addr, "price_mode": mode, "id": cid, "phone": phone})
 	case p == "/customers" && r.Method == "GET" && false:
 	case p == "/prices" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
@@ -415,6 +416,21 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		ok(w, o)
+	case strings.HasSuffix(p, "/remark") && r.Method == "POST":
+		oid, _ := strconv.ParseInt(strings.TrimSuffix(strings.TrimPrefix(p, "/orders/"), "/remark"), 10, 64)
+		var in struct{ Remark string `json:"remark"` }
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		var status string
+		if err := a.db.QueryRow(`SELECT status FROM orders WHERE id=?`, oid).Scan(&status); err != nil {
+			fail(w, 404, "NOT_FOUND", "单据不存在")
+			return
+		}
+		if status == "archived" {
+			fail(w, 409, "ORDER_ARCHIVED", "该单已归档，不可修改")
+			return
+		}
+		_, _ = a.db.Exec(`UPDATE orders SET remark=? WHERE id=?`, in.Remark, oid)
+		ok(w, a.order(oid))
 	case strings.HasPrefix(p, "/orders/") && r.Method == "PUT":
 		a.updateOrder(w, r, id, strings.TrimPrefix(p, "/orders/"))
 	case strings.HasSuffix(p, "/archive") && r.Method == "POST":
@@ -623,8 +639,9 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 		Name    string `json:"customer_name"`
 		Type    string `json:"type"`
 		Remark  string `json:"remark"`
-		Address string `json:"address"`
-		Items   []struct {
+		Address   string `json:"address"`
+		PriceMode string `json:"price_mode"`
+		Items     []struct {
 			CategoryID int64   `json:"category_id"`
 			BatchTag   string  `json:"batch_tag"`
 			InputUnit  string  `json:"input_unit"`
@@ -645,6 +662,15 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	} else if in.Name != "" || in.Address != "" {
 		_, _ = a.db.Exec(`UPDATE customers SET name=COALESCE(NULLIF(?,''),name), addr=COALESCE(NULLIF(?,''),addr) WHERE id=?`, in.Name, in.Address, cid)
 	}
+	var role string
+	_ = a.db.QueryRow(`SELECT role FROM accounts WHERE id=?`, acc).Scan(&role)
+	if in.PriceMode != "" {
+		_, _ = a.db.Exec(`UPDATE customers SET price_mode=? WHERE id=?`, in.PriceMode, cid)
+	}
+	var custMode string
+	_ = a.db.QueryRow(`SELECT COALESCE(price_mode,'open') FROM customers WHERE id=?`, cid).Scan(&custMode)
+	hiddenStaff := custMode == "hidden" && role != "admin"
+
 	type line struct {
 		cat      Category
 		settleQ  float64
@@ -686,20 +712,23 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 			}
 		}
 		p := a.priceFor(cid, c.ID, it.BatchTag)
-		// 唯一恒定价格 = 客户+型号+批次；编辑单据时改价即更新这条价格
-		if it.UnitPrice != "" {
-			p = f2(bd(it.UnitPrice))
-		}
-		if p == "" {
-			fail(w, 400, "PRICE_REQUIRED", "该批次无价格，请录入单价")
-			return
-		}
-		if it.UnitPrice != "" {
-			_, _ = a.db.Exec(`INSERT INTO customer_prices(customer_id,category_id,batch_tag,unit_price,updated_at) VALUES(?,?,?,?,?)
-				ON CONFLICT(customer_id,category_id,batch_tag) DO UPDATE SET unit_price=excluded.unit_price, updated_at=excluded.updated_at`, cid, c.ID, it.BatchTag, p, now())
-		} else if it.UnitPrice != "" && f2(bd(it.UnitPrice)) != p {
-			fail(w, 400, "PRICE_EXISTS", "价格已存在，当前批次单价为 "+p)
-			return
+		if hiddenStaff {
+			// 暗价客户 + 业务员：不可见/不可改价，用恒定价，无价则 0（待管理员编辑补价）
+			if p == "" {
+				p = "0.00"
+			}
+		} else {
+			if it.UnitPrice != "" {
+				p = f2(bd(it.UnitPrice))
+			}
+			if p == "" {
+				fail(w, 400, "PRICE_REQUIRED", "该批次无价格，请录入单价")
+				return
+			}
+			if it.UnitPrice != "" {
+				_, _ = a.db.Exec(`INSERT INTO customer_prices(customer_id,category_id,batch_tag,unit_price,updated_at) VALUES(?,?,?,?,?)
+					ON CONFLICT(customer_id,category_id,batch_tag) DO UPDATE SET unit_price=excluded.unit_price, updated_at=excluded.updated_at`, cid, c.ID, it.BatchTag, p, now())
+			}
 		}
 		lines = append(lines, line{c, settle, bd(p), settle * bd(p), it.Quantity, it.InputUnit, it.BatchTag})
 	}

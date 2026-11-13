@@ -95,6 +95,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
     <Modal width={820} onClose={onClose}>
       <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
       <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
+      <p>备注：{o.remark || '（空）'}</p>
       <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b></p>
       {!hasItems && (o.type === 'receipt' || o.type === 'refund') && (
         <table>
@@ -235,6 +236,8 @@ function OrderModal({ type, onClose, onDone }) {
   const [picker, setPicker] = useState(null)
   const [returns, setReturns] = useState([])
   const isReturn = isReturnType(type)
+  const isAdmin = (localStorage.getItem('czxs_role') || 'staff') === 'admin'
+  const [priceMode, setPriceMode] = useState('open')
   useEffect(() => { api('/api/categories').then(setCats).catch(() => {}) }, [])
   const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
   const lookup = async () => {
@@ -244,6 +247,7 @@ function OrderModal({ type, onClose, onDone }) {
       setLooked(true); setIsNew(!c.exists)
       setName(c.exists ? c.name : '')
       setAddr(c.exists ? (c.addr || '') : '')
+      setPriceMode(c.exists ? (c.price_mode || 'open') : 'open')
       if (isReturn) setReturns(await api('/api/returns/list?phone=' + encodeURIComponent(phone)))
     } catch (e) { setErr(e.message || '查询失败') } finally { setBusy(false) }
   }
@@ -274,7 +278,7 @@ function OrderModal({ type, onClose, onDone }) {
         input_quantity: l.input_quantity, unit_price: l.locked ? undefined : l.unit_price,
       }))
       if (!items.length) throw new Error('请至少录入一行明细')
-      await api('/api/orders', { method: 'POST', body: JSON.stringify({ type, phone, customer_name: name, address: addr, items }) })
+      await api('/api/orders', { method: 'POST', body: JSON.stringify({ type, phone, customer_name: name, address: addr, price_mode: priceMode, items }) })
       onDone()
     } catch (x) { setErr(x.message) }
   }
@@ -288,6 +292,12 @@ function OrderModal({ type, onClose, onDone }) {
           <>
             <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
+            <div className="row">价格模式：
+              <select value={priceMode} onChange={(e) => setPriceMode(e.target.value)} disabled={!isAdmin}>
+                <option value="open">明价（正常开单，单价必填）</option>
+                <option value="hidden">暗价（单价仅管理员可见）</option>
+              </select>
+            </div>
           </>
         )}
         <table>
@@ -305,7 +315,10 @@ function OrderModal({ type, onClose, onDone }) {
                 placeholder={!l.focused && !l.input_quantity && isReturn && l.available ? `可退${l.available}` : ''}
                 onFocus={() => setLine(i, { focused: true })} onBlur={() => setLine(i, { focused: false })}
                 onChange={(e) => setLine(i, { input_quantity: e.target.value })} /></td>
-              <td>{isReturn ? <span>{l.unit_price || '—'}</span> : <input style={{ width: 80 }} value={l.unit_price} readOnly={l.locked} onChange={(e) => setLine(i, { unit_price: e.target.value })} />}</td>
+              <td>{isReturn ? <span>{l.unit_price || '—'}</span> : <input style={{ width: 80 }} value={priceMode === 'hidden' && !isAdmin ? '' : l.unit_price}
+                disabled={priceMode === 'hidden' && !isAdmin}
+                placeholder={priceMode === 'hidden' && !isAdmin ? '（不可见）' : ''}
+                readOnly={l.locked} onChange={(e) => setLine(i, { unit_price: e.target.value })} />}</td>
               <td><button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button></td>
             </tr>
           ))}</tbody>
@@ -328,7 +341,7 @@ function PaymentModal({ type, onClose, onDone }) {
   const total = lines.reduce((s2, l) => s2 + (Number(l.amount) || 0), 0)
   const [remark, setRemark] = useState('')
   const [err, setErr] = useState('')
-  const [refundable, setRefundable] = useState(null)
+
   const lookup = async () => {
     try {
       const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
@@ -386,31 +399,37 @@ function NoteModal({ onClose, onDone }) {
   const [ref, setRef] = useState(null)
   const [remark, setRemark] = useState('')
   const [err, setErr] = useState('')
-  const search = async () => { try { setOrders(await api('/api/orders/recent?phone=' + encodeURIComponent(phone) + '&days=3')) } catch (e) { setErr(e.message) } }
+  const search = async () => {
+    try { setOrders(await api('/api/orders/recent?phone=' + encodeURIComponent(phone) + '&days=365')) } catch (e) { setErr(e.message) }
+  }
+  const pick = (no) => {
+    const o = orders.find((x) => x.order_no === no) || null
+    setRef(o)
+    setRemark(o?.remark || '')
+  }
   const submit = async (e) => {
     e.preventDefault()
     try {
-      if (!ref) throw new Error('请选择原单')
-      if (!remark.trim()) throw new Error('请填写备注文字')
-      await api('/api/notes', { method: 'POST', body: JSON.stringify({ ref_order_no: ref.order_no, remark }) })
+      if (!ref) throw new Error('请选择要备注的单据')
+      await api('/api/orders/' + ref.id + '/remark', { method: 'POST', body: JSON.stringify({ remark }) })
       onDone()
     } catch (x) { setErr(x.message) }
   }
   return (
-    <Modal width={620} onClose={onClose}>
+    <Modal width={640} onClose={onClose}>
       <form onSubmit={submit}>
-        <h3>备注单</h3>
-        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={search}>查近三日单据</button></div>
+        <h3>备注（写入选中的单据）</h3>
+        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={search}>查单据</button></div>
         {orders.length > 0 && (
-          <div className="row">原单：<select value={ref?.order_no || ''} onChange={(e) => setRef(orders.find((o) => o.order_no === e.target.value) || null)}>
-            <option value="">选择原单</option>
-            {orders.map((o) => <option key={o.order_no} value={o.order_no}>{o.order_no} {typeLabel[o.type]} {o.order_total}</option>)}
+          <div className="row">选择单据：<select value={ref?.order_no || ''} onChange={(e) => pick(e.target.value)}>
+            <option value="">请选择</option>
+            {orders.map((o) => <option key={o.id} value={o.order_no}>{o.order_no} {typeLabel[o.type]} {amountLabel(o.type)} {Math.abs(Number(o.order_total)).toFixed(2)}</option>)}
           </select></div>
         )}
-        {ref && <p className="muted">原单 {ref.order_no}　客户 {ref.customer_name}　合计 {ref.order_total}</p>}
+        {ref && <p className="muted">原备注：{ref.remark || '（空）'}</p>}
         <div className="row">备注：<textarea value={remark} onChange={(e) => setRemark(e.target.value)} rows={4} style={{ width: '100%' }} /></div>
         {err && <div className="err">{err}</div>}
-        <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
+        <div style={{ marginTop: 10 }}><button>保存备注</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
       </form>
     </Modal>
   )
