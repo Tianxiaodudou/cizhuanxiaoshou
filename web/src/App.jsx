@@ -278,7 +278,7 @@ function OrderModal({ type, onClose, onDone }) {
         input_quantity: l.input_quantity, unit_price: l.locked ? undefined : l.unit_price,
       }))
       if (!items.length) throw new Error('请至少录入一行明细')
-      await api('/api/orders', { method: 'POST', body: JSON.stringify({ type, phone, customer_name: name, address: addr, price_mode: priceMode, items }) })
+      await api('/api/orders', { method: 'POST', body: JSON.stringify({ type, phone, customer_name: name, address: addr, price_mode: priceMode, remark, items }) })
       onDone()
     } catch (x) { setErr(x.message) }
   }
