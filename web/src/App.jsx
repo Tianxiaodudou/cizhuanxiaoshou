@@ -262,8 +262,9 @@ function OrderModal({ type, onClose, onDone }) {
   }
   const applyCat = (i, c) => {
     const avail = isReturn ? (returns.find((r) => r.category_id === c.id && (r.batch_tag || '') === (c.batch || ''))?.available || '0') : null
-    setLine(i, { category_id: c.id, batch_tag: c.batch, input_unit: c.settlement_unit, units: [c.settlement_unit, c.conversion_unit].filter(Boolean), unit_price: '', locked: false, available: avail, focused: false })
-    loadPrice(i, c.id, c.batch, c.default_price)
+    const blind = priceMode === 'hidden' && !isAdmin
+    setLine(i, { category_id: c.id, batch_tag: c.batch, input_unit: c.settlement_unit, units: [c.settlement_unit, c.conversion_unit].filter(Boolean), unit_price: '', locked: blind, available: avail, focused: false })
+    if (!blind) loadPrice(i, c.id, c.batch, c.default_price)
   }
   const submit = async (e) => {
     e.preventDefault(); setErr('')
@@ -317,7 +318,7 @@ function OrderModal({ type, onClose, onDone }) {
                 onChange={(e) => setLine(i, { input_quantity: e.target.value })} /></td>
               <td>{isReturn ? <span>{l.unit_price || '—'}</span> : <input style={{ width: 80 }} value={priceMode === 'hidden' && !isAdmin ? '' : l.unit_price}
                 disabled={priceMode === 'hidden' && !isAdmin}
-                placeholder={priceMode === 'hidden' && !isAdmin ? '（不可见）' : ''}
+                placeholder={priceMode === 'hidden' && !isAdmin ? '自动取恒定价' : ''}
                 readOnly={l.locked} onChange={(e) => setLine(i, { unit_price: e.target.value })} />}</td>
               <td><button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button></td>
             </tr>
