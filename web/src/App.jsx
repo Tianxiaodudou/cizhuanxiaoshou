@@ -378,6 +378,7 @@ function PaymentModal({ type, onClose, onDone }) {
   const [matches, setMatches] = useState([])
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const presets = usePresets()
 
   const applyCustomer = async (c) => {
     setLooked(true); setPhone(c.phone); setName(c.name); setAddr(c.addr || ''); setMatches([])
@@ -424,7 +425,7 @@ function PaymentModal({ type, onClose, onDone }) {
           <tbody>{lines.map((l, i) => (
             <tr key={i}>
               <td><select value={l.method} onChange={(e) => setLine(i, { method: e.target.value })}>
-                {['微信', '支付宝', '现金', '其他'].map((m) => <option key={m} value={m}>{m}</option>)}
+                {(presets.pay.length ? presets.pay : ['微信', '支付宝', '现金', '其他']).map((m) => <option key={m} value={m}>{m}</option>)}
               </select></td>
               <td>{l.method === '其他' ? <input value={l.custom} onChange={(e) => setLine(i, { custom: e.target.value })} placeholder="自定义方式" /> : '—'}</td>
               <td><input value={l.amount} placeholder={type === 'refund' && refundable != null ? `可退${refundable}` : ''} onChange={(e) => setLine(i, { amount: e.target.value })} /></td>
@@ -549,10 +550,23 @@ function PrintPage() {
 
 const emptyCat = { group: '', name: '', batch: '', settlement_unit: '', conversion_unit: '', conversion: '1', default_price: '' }
 
+function usePresets() {
+  const [p, setP] = useState({ s: [], c: [], pay: [] })
+  useEffect(() => {
+    api('/api/settings').then((st) => setP({
+      s: (st.settlement_units || '片,箱').split(',').map((x) => x.trim()).filter(Boolean),
+      c: (st.conversion_units || '箱').split(',').map((x) => x.trim()).filter(Boolean),
+      pay: (st.payment_methods || '微信,支付宝,现金,其他').split(',').map((x) => x.trim()).filter(Boolean),
+    })).catch(() => {})
+  }, [])
+  return p
+}
+
 function CategoryModal({ init, onClose, onDone }) {
   const [f, setF] = useState(init || emptyCat)
   const [err, setErr] = useState('')
   const upper = (v) => v.replace(/[a-z]/g, (c) => c.toUpperCase())
+  const presets = usePresets()
   const set = (k) => (e) => setF({ ...f, [k]: ['username', 'name'].includes(k) ? upper(e.target.value) : e.target.value })
   const save = async (e) => {
     e.preventDefault()
@@ -571,7 +585,7 @@ function CategoryModal({ init, onClose, onDone }) {
         <label className="row">一级 品类：<input value={f.group} onChange={set('group')} required /></label>
         <label className="row">二级 型号：<input value={f.name} onChange={set('name')} required /></label>
         <label className="row">三级 批号（可空，保存时默认等于型号）：<input value={f.batch} onChange={set('batch')} placeholder="留空则自动用型号作为批号" /></label>
-        <label className="row">四级 计价单位：<input value={f.settlement_unit} onChange={set('settlement_unit')} required /></label>
+        <label className="row">四级 计价单位：<input list="unit-s" value={f.settlement_unit} onChange={set('settlement_unit')} required /><datalist id="unit-s">{presets.s.map((u) => <option key={u} value={u} />)}</datalist></label>
         <label className="row">默认价格（元/计价单位）：<input value={f.default_price} onChange={set('default_price')} placeholder="可空，新客户默认用它" /></label>
         <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} /></label>
         {f.conversion_unit.trim() !== '' && (
@@ -657,6 +671,7 @@ function AccountModal({ init, onClose, onDone }) {
   const [f, setF] = useState(init ? { ...init, password: '' } : emptyAcc)
   const [err, setErr] = useState('')
   const upper = (v) => v.replace(/[a-z]/g, (c) => c.toUpperCase())
+  const presets = usePresets()
   const set = (k) => (e) => setF({ ...f, [k]: ['username', 'name'].includes(k) ? upper(e.target.value) : e.target.value })
   const save = async (e) => {
     e.preventDefault()
@@ -784,6 +799,9 @@ function Settings() {
       <h2>系统配置</h2>
       <p>商家名称：<input value={s.merchant_name || ''} onChange={(e) => setS({ ...s, merchant_name: e.target.value })} /></p>
       <p>API 端口：<input value={s.api_port || '9527'} onChange={(e) => setS({ ...s, api_port: e.target.value })} /></p>
+      <p>计价单位预设（逗号分隔）：<input style={{ width: 420 }} value={s.settlement_units || ''} onChange={(e) => setS({ ...s, settlement_units: e.target.value })} /></p>
+      <p>换算单位预设（逗号分隔）：<input style={{ width: 420 }} value={s.conversion_units || ''} onChange={(e) => setS({ ...s, conversion_units: e.target.value })} /></p>
+      <p>付款方式预设（逗号分隔）：<input style={{ width: 420 }} value={s.payment_methods || ''} onChange={(e) => setS({ ...s, payment_methods: e.target.value })} /></p>
       <p>小票宽度：<select value={s.print_width || '80mm'} onChange={(e) => setS({ ...s, print_width: e.target.value })}><option>80mm</option><option>58mm</option></select></p>
       <button onClick={async () => { await api('/api/settings', { method: 'POST', body: JSON.stringify(s) }); setMsg('已保存') }}>保存</button>
       {msg && <span style={{ marginLeft: 8 }}>{msg}</span>}

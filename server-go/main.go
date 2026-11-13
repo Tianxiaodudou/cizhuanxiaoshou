@@ -182,7 +182,7 @@ func seed(db *sql.DB) {
 	}
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
-		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
+		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('settlement_units','片,箱,平方米,米,个'),('conversion_units','箱,件,托'),('payment_methods','微信,支付宝,现金,其他'),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
 	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'+'admin', 'active', ?)`, hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
 	}
 }
