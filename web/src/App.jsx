@@ -14,6 +14,9 @@ function Modal({ children, width = 720, onClose }) {
 const PREFIX = '/app/czxs'
 const money = (v) => (v == null ? '—' : v)
 const isReturnType = (t) => t.endsWith('_return')
+const isPhone = (v) => /^1\d{10}$/.test(v)
+const phoneInput = (v) => String(v).replace(/\D/g, '').slice(0, 11)
+
 const amountLabel = (t) => (t === 'receipt' ? '已收' : t === 'refund' ? '已退' : (t.endsWith('_return') ? '应退' : '应收'))
 const typeLabel = { delivery: '配送', delivery_return: '配退', pickup: '自送', pickup_return: '自退', receipt: '收款', refund: '退款', note: '备注' }
 
@@ -237,23 +240,39 @@ function OrderModal({ type, onClose, onDone }) {
   const [busy, setBusy] = useState(false)
   const [picker, setPicker] = useState(null)
   const [returns, setReturns] = useState([])
+  const [matches, setMatches] = useState([])
   const isReturn = isReturnType(type)
   const isAdmin = (localStorage.getItem('czxs_role') || 'staff') === 'admin'
   const [priceMode, setPriceMode] = useState('open')
   const [remark, setRemark] = useState('')
   useEffect(() => { api('/api/categories').then(setCats).catch(() => {}) }, [])
   const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
-  const lookup = async () => {
-    setBusy(true); setErr('')
-    try {
-      const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
-      setLooked(true); setIsNew(!c.exists)
-      setName(c.exists ? c.name : '')
-      setAddr(c.exists ? (c.addr || '') : '')
-      setPriceMode(c.exists ? (c.price_mode || 'open') : 'open')
-      if (isReturn) setReturns(await api('/api/returns/list?phone=' + encodeURIComponent(phone)))
-    } catch (e) { setErr(e.message || '查询失败') } finally { setBusy(false) }
+  const applyCustomer = async (c) => {
+    setLooked(true); setIsNew(false)
+    setPhone(c.phone); setName(c.name); setAddr(c.addr || '')
+    setPriceMode(c.price_mode || 'open'); setMatches([])
+    if (isReturn) {
+      try { setReturns(await api('/api/returns/list?phone=' + encodeURIComponent(c.phone))) } catch (x) { setErr(x.message) }
+    }
   }
+  const lookup = async () => {
+    setBusy(true); setErr(''); setMatches([])
+    try {
+      const q = phone.trim()
+      if (q.length < 2) throw new Error('请输入电话、姓名或地址关键字')
+      const list = await api('/api/customers/search?q=' + encodeURIComponent(q))
+      if (list.length === 1) {
+        await applyCustomer(list[0])
+      } else if (list.length > 1) {
+        setMatches(list)
+        setLooked(true); setIsNew(false)
+      } else {
+        setLooked(true); setIsNew(true); setName(''); setAddr(''); setPriceMode('open'); setReturns([])
+        if (!isPhone(q)) throw new Error('新客户电话必须是 11 位手机号')
+      }
+    } catch (x) { setErr(x.message || '查询失败') } finally { setBusy(false) }
+  }
+
   const loadPrice = async (i, catId, batch, fallback) => {
     if (!phone || !catId) return
     try {
@@ -277,6 +296,7 @@ function OrderModal({ type, onClose, onDone }) {
         throw new Error('退款金额超过可退金额（可退 ' + refundable + '）')
       }
       if (!name) throw new Error('请填写客户姓名')
+      if (isNew && !isPhone(phone)) throw new Error('客户电话必须是 11 位手机号')
       const items = lines.filter((l) => l.category_id && l.input_quantity).map((l) => ({
         category_id: Number(l.category_id), batch_tag: l.batch_tag, input_unit: l.input_unit,
         input_quantity: l.input_quantity, unit_price: l.locked ? undefined : l.unit_price,
@@ -290,8 +310,14 @@ function OrderModal({ type, onClose, onDone }) {
     <Modal width={780} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{typeLabel[type]}单</h3>
-        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        <div className="row">客户电话：<input value={phone} maxLength={11} onChange={(e) => { setPhone(phoneInput(e.target.value)); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
         {err && <div className="err">{err}</div>}
+        {matches.length > 0 && (
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            匹配到 {matches.length} 个客户：
+            {matches.map((c) => <button key={c.id} type="button" className="secondary" onClick={() => applyCustomer(c)}>{c.name} / {c.phone} / {c.addr || '无地址'}</button>)}
+          </div>
+        )}
         {looked && (
           <>
             <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
@@ -346,18 +372,33 @@ function PaymentModal({ type, onClose, onDone }) {
   const total = lines.reduce((s2, l) => s2 + (Number(l.amount) || 0), 0)
   const [remark, setRemark] = useState('')
   const [refundable, setRefundable] = useState(null)
+  const [matches, setMatches] = useState([])
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const lookup = async () => {
-    try {
-      const c = await api('/api/customers?phone=' + encodeURIComponent(phone))
-      setLooked(true); setName(c.exists ? c.name : ''); setAddr(c.exists ? (c.addr || '') : '')
-      if (type === 'refund') {
-        const r = await api('/api/refundable?phone=' + encodeURIComponent(phone))
-        setRefundable(r.refundable)
-      }
-    } catch (e) { setErr(e.message) }
+  const applyCustomer = async (c) => {
+    setLooked(true); setPhone(c.phone); setName(c.name); setAddr(c.addr || ''); setMatches([])
+    if (type === 'refund') {
+      try { const r = await api('/api/refundable?phone=' + encodeURIComponent(c.phone)); setRefundable(r.refundable) } catch (x) { setErr(x.message) }
+    }
   }
+  const lookup = async () => {
+    setBusy(true); setErr(''); setMatches([])
+    try {
+      const q = phone.trim()
+      if (q.length < 2) throw new Error('请输入电话、姓名或地址关键字')
+      const list = await api('/api/customers/search?q=' + encodeURIComponent(q))
+      if (list.length === 1) {
+        await applyCustomer(list[0])
+      } else if (list.length > 1) {
+        setMatches(list); setLooked(true)
+      } else {
+        setLooked(true); setName(''); setAddr('')
+        if (!isPhone(q)) throw new Error('新客户电话必须是 11 位手机号')
+      }
+    } catch (x) { setErr(x.message || '查询失败') } finally { setBusy(false) }
+  }
+
   const submit = async (e) => {
     e.preventDefault()
     try {
@@ -370,7 +411,7 @@ function PaymentModal({ type, onClose, onDone }) {
     <Modal width={520} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{type === 'receipt' ? '收款' : '退款'}</h3>
-        <div className="row">客户电话：<input value={phone} onChange={(e) => setPhone(e.target.value)} /> <button type="button" className="secondary" onClick={lookup}>查客户</button></div>
+        <div className="row">客户电话：<input value={phone} maxLength={11} onChange={(e) => { setPhone(phoneInput(e.target.value)); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
         {looked && (<>
           <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
@@ -393,6 +434,11 @@ function PaymentModal({ type, onClose, onDone }) {
         {type === 'refund' && refundable != null && <div className="muted">可退金额：{refundable}{Number(refundable) === 0 ? '（该客户无可退金额：未收款或已退完）' : ''}</div>}
         <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
         {err && <div className="err">{err}</div>}
+        {matches.length > 0 && (
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            {matches.map((c) => <button key={c.id} type="button" className="secondary" onClick={() => applyCustomer(c)}>{c.name} / {c.phone} / {c.addr || '无地址'}</button>)}
+          </div>
+        )}
         <div style={{ marginTop: 10 }}><button disabled={type === 'refund' && refundable != null && Number(refundable) <= 0}>提交</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
       </form>
     </Modal>

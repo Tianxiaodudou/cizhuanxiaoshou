@@ -342,6 +342,25 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		a.categories(w, r)
 	case strings.HasPrefix(p, "/categories/"):
 		a.categoryItem(w, r, strings.TrimPrefix(p, "/categories/"))
+	case p == "/customers/search" && r.Method == "GET":
+		q := strings.TrimSpace(r.URL.Query().Get("q"))
+		list := []map[string]any{}
+		if q != "" {
+			like := "%" + q + "%"
+			rows, err := a.db.Query(`SELECT id,name,phone,COALESCE(addr,''),COALESCE(price_mode,'open') FROM customers
+				WHERE phone LIKE ? OR name LIKE ? OR addr LIKE ?
+				ORDER BY CASE WHEN phone=? THEN 0 ELSE 1 END, id DESC LIMIT 20`, like, like, like, q)
+			if err == nil && rows != nil {
+				for rows.Next() {
+					var id int64
+					var name, phone, addr, mode string
+					_ = rows.Scan(&id, &name, &phone, &addr, &mode)
+					list = append(list, map[string]any{"id": id, "name": name, "phone": phone, "addr": addr, "price_mode": mode})
+				}
+				_ = rows.Close()
+			}
+		}
+		ok(w, list)
 	case p == "/customers" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		var cid int64
