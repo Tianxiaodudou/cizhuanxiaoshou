@@ -1,5 +1,5 @@
 ﻿appname="czxs"
-version="3.1.0"
+version="3.1.1"
 display_name="瓷砖店销售系统"
 desc="瓷砖店销售系统（czxs）：Go 服务端 + React 管理端，管理页经飞牛统一网关 /app/czxs 访问，客户端 API 走 TCP 端口（仅 JSON）。"
 maintainer="Tianxiaodudou"

@@ -247,10 +247,33 @@ func (a *App) auth(r *http.Request) (int64, bool) {
 	if !strings.HasPrefix(h, "Bearer ") {
 		return 0, false
 	}
+	tok := strings.TrimPrefix(h, "Bearer ")
+	a.mu.Lock()
+	id, ok := a.tokens[tok]
+	a.mu.Unlock()
+	if !ok {
+		return 0, false
+	}
+	// 账号被删除或被禁用后，登录态立即失效
+	var status string
+	if err := a.db.QueryRow(`SELECT status FROM accounts WHERE id=?`, id).Scan(&status); err != nil || status != "active" {
+		a.mu.Lock()
+		delete(a.tokens, tok)
+		a.mu.Unlock()
+		return 0, false
+	}
+	return id, true
+}
+
+// revokeAccount 销毁某账号的全部登录态
+func (a *App) revokeAccount(id int64) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	id, ok := a.tokens[strings.TrimPrefix(h, "Bearer ")]
-	return id, ok
+	for tk, uid := range a.tokens {
+		if uid == id {
+			delete(a.tokens, tk)
+		}
+	}
 }
 
 func (a *App) static() http.Handler {
@@ -1235,6 +1258,9 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 			return
 		}
 		_, _ = a.db.Exec(`UPDATE accounts SET status=? WHERE id=?`, v, id)
+		if v != "active" {
+			a.revokeAccount(id)
+		}
 		ok(w, map[string]any{"id": id, "status": v})
 	case len(parts) > 1 && parts[1] == "password":
 		var in struct{ Password string }
@@ -1276,6 +1302,7 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 			return
 		}
 		_, _ = a.db.Exec(`DELETE FROM accounts WHERE id=?`, id)
+		a.revokeAccount(id)
 		ok(w, map[string]any{"deleted": true})
 	default:
 		fail(w, 405, "METHOD", "不支持的方法")
