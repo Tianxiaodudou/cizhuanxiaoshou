@@ -499,7 +499,7 @@ function CategoryModal({ init, onClose, onDone }) {
   const [f, setF] = useState(init || emptyCat)
   const [err, setErr] = useState('')
   const upper = (v) => v.replace(/[a-z]/g, (c) => c.toUpperCase())
-  const set = (k) => (e) => setF({ ...f, [k]: k === 'default_price' || k === 'conversion' ? e.target.value : upper(e.target.value) })
+  const set = (k) => (e) => setF({ ...f, [k]: ['username', 'name'].includes(k) ? upper(e.target.value) : e.target.value })
   const save = async (e) => {
     e.preventDefault()
     try {
@@ -603,14 +603,14 @@ function AccountModal({ init, onClose, onDone }) {
   const [f, setF] = useState(init ? { ...init, password: '' } : emptyAcc)
   const [err, setErr] = useState('')
   const upper = (v) => v.replace(/[a-z]/g, (c) => c.toUpperCase())
-  const set = (k) => (e) => setF({ ...f, [k]: k === 'default_price' || k === 'conversion' ? e.target.value : upper(e.target.value) })
+  const set = (k) => (e) => setF({ ...f, [k]: ['username', 'name'].includes(k) ? upper(e.target.value) : e.target.value })
   const save = async (e) => {
     e.preventDefault()
     try {
       if (init?.id) {
-        await api('/api/accounts/' + init.id, { method: 'PUT', body: JSON.stringify({ name: f.name, role: f.role, status: f.status, password: f.password }) })
+        await api('/api/accounts/' + init.id, { method: 'PUT', body: JSON.stringify({ name: f.name, role: String(f.role).toLowerCase(), status: String(f.status).toLowerCase(), password: f.password }) })
       } else {
-        await api('/api/accounts', { method: 'POST', body: JSON.stringify(f) })
+        await api('/api/accounts', { method: 'POST', body: JSON.stringify({ ...f, role: String(f.role).toLowerCase(), status: String(f.status).toLowerCase() }) })
       }
       onDone()
     } catch (x) { setErr(x.message) }

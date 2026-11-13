@@ -132,6 +132,8 @@ func migrate(db *sql.DB) {
 	_, _ = db.Exec(`ALTER TABLE accounts ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN addr TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN price_mode TEXT NOT NULL DEFAULT 'open'`)
+	_, _ = db.Exec(`UPDATE accounts SET role=lower(role), status=lower(status)`)
+	_, _ = db.Exec(`UPDATE accounts SET role='admin' WHERE role IN ('administrator','管理员')`)
 	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE notes ADD COLUMN remark TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`UPDATE settings SET v='9527' WHERE k='api_port' AND v='8080'`)
@@ -1188,6 +1190,8 @@ func (a *App) accountCreate(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, "FIELD_REQUIRED", "账号、姓名、密码必填")
 		return
 	}
+	in.Role = strings.ToLower(strings.TrimSpace(in.Role))
+	in.Status = strings.ToLower(strings.TrimSpace(in.Status))
 	if in.Role == "" {
 		in.Role = "staff"
 	}
