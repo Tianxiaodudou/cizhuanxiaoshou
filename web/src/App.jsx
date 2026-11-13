@@ -44,7 +44,7 @@ async function api(path, opt = {}) {
 }
 
 function Login({ onLogin }) {
-  const [u, setU] = useState('admin')
+  const [u, setU] = useState('')
   const [p, setP] = useState('')
   const [err, setErr] = useState('')
   return (
