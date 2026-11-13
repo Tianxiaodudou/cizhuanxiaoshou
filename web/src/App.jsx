@@ -115,17 +115,18 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
       )}
       {hasItems && (
       <table>
-        <thead><tr><th>序号</th><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th><th>排序</th></tr></thead>
+        <thead><tr><th>序号</th><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th>{editing && <th>排序</th>}</tr></thead>
         <tbody>{o.items.map((i, k) => (
           <tr key={k}><td>{k + 1}</td><td>{i.group}</td><td>{i.name}</td><td>{i.batch_tag}</td>
-            <td>{editing ? <input style={{ width: 80 }} value={lines[k].input_quantity} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_quantity: e.target.value } : x))} /> : `${i.input_quantity}${i.input_unit}`}</td>
+            <td>{editing ? (<><input style={{ width: 80 }} value={lines[k].input_quantity} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_quantity: e.target.value } : x))} /> <span>{i.input_unit}</span></>) : `${i.input_quantity}${i.input_unit}`}</td>
             <td>{i.settlement_quantity}{i.settlement_unit}</td>
             <td>{blindPrice ? '***' : (editing ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price)}</td>
             <td>{blindPrice ? '***' : i.line_total}</td>
-            <td>{editing ? (<>
+            {editing && <td>
               <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (k > 0) { [a[k - 1], a[k]] = [a[k], a[k - 1]] } return a })}>↑</button>
               <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (k < a.length - 1) { [a[k + 1], a[k]] = [a[k], a[k + 1]] } return a })}>↓</button>
-            </>) : '—'}</td></tr>
+              <button type="button" className="danger" onClick={() => setLines((ls) => ls.filter((_, j) => j !== k))}>删</button>
+            </td>}</tr>
         ))}</tbody>
       </table>
       )}
