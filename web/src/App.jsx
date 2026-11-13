@@ -76,6 +76,8 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
   if (!o) return (<Modal width={720} onClose={onClose}><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></Modal>)
   const archived = o.status === 'archived'
   const hasItems = ['delivery', 'delivery_return', 'pickup', 'pickup_return'].includes(o.type)
+  const isAdmin = (localStorage.getItem('czxs_role') || 'staff') === 'admin'
+  const blindPrice = !isAdmin && o.customer_price_mode === 'hidden'
   const save = async () => {
     if (!confirm('确认保存修改？')) return
     try {
@@ -112,8 +114,8 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
           <tr key={k}><td>{i.group}</td><td>{i.name}</td><td>{i.batch_tag}</td>
             <td>{editing ? <input style={{ width: 80 }} value={lines[k].input_quantity} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_quantity: e.target.value } : x))} /> : `${i.input_quantity}${i.input_unit}`}</td>
             <td>{i.settlement_quantity}{i.settlement_unit}</td>
-            <td>{editing ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price}</td>
-            <td>{i.line_total}</td></tr>
+            <td>{blindPrice ? '***' : (editing ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price)}</td>
+            <td>{blindPrice ? '***' : i.line_total}</td></tr>
         ))}</tbody>
       </table>
       )}
@@ -387,10 +389,10 @@ function PaymentModal({ type, onClose, onDone }) {
         </table>
         <button type="button" className="secondary" onClick={() => setLines((ls) => [...ls, { method: '微信', custom: '', amount: '' }])}>+ 添加付款方式</button>
         <div className="row">合计：<b>{total.toFixed(2)}</b></div>
-        {type === 'refund' && refundable != null && <div className="muted">可退金额：{refundable}（送货 - 退货 - 收款 + 退款）</div>}
+        {type === 'refund' && refundable != null && <div className="muted">可退金额：{refundable}{Number(refundable) === 0 ? '（该客户无可退金额：未收款或已退完）' : ''}</div>}
         <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
         {err && <div className="err">{err}</div>}
-        <div style={{ marginTop: 10 }}><button>提交</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
+        <div style={{ marginTop: 10 }}><button disabled={type === 'refund' && refundable != null && Number(refundable) <= 0}>提交</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
       </form>
     </Modal>
   )
@@ -741,6 +743,7 @@ function Settings() {
 }
 
 const TABS = [['dashboard', '仪表盘'], ['orders', '单据'], ['print', '打印'], ['categories', '型号库'], ['accounts', '账号'], ['settlement', '结算'], ['settings', '配置']]
+const visibleTabs = (isAdmin) => TABS.filter(([k]) => k !== 'accounts' || isAdmin)
 
 export default function App() {
   const [acc, setAcc] = useState(() => {
@@ -749,7 +752,7 @@ export default function App() {
   })
   const [tab, setTab] = useState('dashboard')
   const isAdmin = acc?.role === 'admin'
-  const nav = useMemo(() => TABS, [])
+  const nav = useMemo(() => visibleTabs(isAdmin), [isAdmin])
   if (!acc) return <Login onLogin={setAcc} />
   return (
     <>

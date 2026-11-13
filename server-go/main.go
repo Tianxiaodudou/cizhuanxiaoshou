@@ -977,11 +977,11 @@ func (a *App) order(oid int64) map[string]any {
 		ID                                                   int64
 		No, Type, Status, Remark, Total, Created              string
 		Version                                              int
-		CName, CPhone, CAddr, AName                          string
+		CName, CPhone, CAddr, CMode, AName                   string
 	}
-	err := a.db.QueryRow(`SELECT o.id,o.order_no,o.type,o.status,COALESCE(o.remark,''),o.order_total,o.created_at,o.version,cu.name,cu.phone,COALESCE(cu.addr,''),a.name
+	err := a.db.QueryRow(`SELECT o.id,o.order_no,o.type,o.status,COALESCE(o.remark,''),o.order_total,o.created_at,o.version,cu.name,cu.phone,COALESCE(cu.addr,''),COALESCE(cu.price_mode,'open'),a.name
 		FROM orders o JOIN customers cu ON cu.id=o.customer_id JOIN accounts a ON a.id=o.account_id WHERE o.id=?`, oid).
-		Scan(&o.ID, &o.No, &o.Type, &o.Status, &o.Remark, &o.Total, &o.Created, &o.Version, &o.CName, &o.CPhone, &o.CAddr, &o.AName)
+		Scan(&o.ID, &o.No, &o.Type, &o.Status, &o.Remark, &o.Total, &o.Created, &o.Version, &o.CName, &o.CPhone, &o.CAddr, &o.CMode, &o.AName)
 	if err != nil {
 		return nil
 	}
@@ -1014,7 +1014,7 @@ func (a *App) order(oid int64) map[string]any {
 	}
 	return map[string]any{"id": o.ID, "order_no": o.No, "type": o.Type, "status": o.Status, "remark": o.Remark, "payments": payments,
 		"order_total": o.Total, "version": o.Version, "created_at": o.Created, "customer_name": o.CName,
-		"customer_phone": o.CPhone, "customer_address": o.CAddr, "account_name": o.AName, "items": items, "cumulative_total": f2(cum)}
+		"customer_phone": o.CPhone, "customer_address": o.CAddr, "customer_price_mode": o.CMode, "account_name": o.AName, "items": items, "cumulative_total": f2(cum)}
 }
 
 func (a *App) orders(where string, args []any) []map[string]any {
