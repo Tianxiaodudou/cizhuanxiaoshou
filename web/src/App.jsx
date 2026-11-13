@@ -238,6 +238,7 @@ function OrderModal({ type, onClose, onDone }) {
   const isReturn = isReturnType(type)
   const isAdmin = (localStorage.getItem('czxs_role') || 'staff') === 'admin'
   const [priceMode, setPriceMode] = useState('open')
+  const [remark, setRemark] = useState('')
   useEffect(() => { api('/api/categories').then(setCats).catch(() => {}) }, [])
   const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
   const lookup = async () => {
@@ -325,6 +326,7 @@ function OrderModal({ type, onClose, onDone }) {
           ))}</tbody>
         </table>
         <button type="button" className="secondary" onClick={() => setLines((ls) => [...ls, newLine()])}>+ 添加一行</button>
+        <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} style={{ width: '100%' }} /></div>
         <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
       </form>
       {picker !== null && <ProductPicker cats={cats} onClose={() => setPicker(null)} onPick={(c) => applyCat(picker, c)} />}
