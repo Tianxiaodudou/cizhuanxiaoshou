@@ -293,7 +293,7 @@ function OrderModal({ type, onClose, onDone }) {
   const applyCat = (i, c) => {
     const avail = isReturn ? (returns.find((r) => r.category_id === c.id && (r.batch_tag || '') === (c.batch || ''))?.available || '0') : null
     const blind = priceMode === 'hidden' && !isAdmin
-    setLine(i, { category_id: c.id, batch_tag: c.batch, input_unit: c.settlement_unit, units: [c.settlement_unit, c.conversion_unit].filter(Boolean), unit_price: '', locked: blind, available: avail, focused: false })
+    setLine(i, { category_id: c.id, batch_tag: c.batch, input_unit: c.settlement_unit, units: [c.settlement_unit, c.conversion_unit].filter(Boolean), unit_price: '', locked: blind, available: avail, focused: false, conv: Number(c.conversion) || 1, convUnit: c.conversion_unit || '' })
     if (!blind) loadPrice(i, c.id, c.batch, c.default_price)
   }
   const submit = async (e) => {
@@ -321,13 +321,16 @@ function OrderModal({ type, onClose, onDone }) {
     <Modal width={780} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{typeLabel[type]}单</h3>
-        <div className="row">客户电话：<input value={phone} maxLength={20} onChange={(e) => { setPhone(phoneInput(e.target.value)); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        <div className="row">客户电话：<input value={phone} maxLength={30} onChange={(e) => { setPhone(e.target.value); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
         {err && <div className="err">{err}</div>}
         {matches.length > 0 && (
           <div className="row" style={{ flexWrap: 'wrap' }}>
             匹配到 {matches.length} 个客户：
             {matches.map((c) => <button key={c.id} type="button" className="secondary" onClick={() => applyCustomer(c)}>{c.name} / {c.phone} / {c.addr || '无地址'}</button>)}
           </div>
+        )}
+        {looked && isNew && (
+          <div className="row">客户电话（新客户，仅数字）：<input value={phone} maxLength={20} onChange={(e) => setPhone(phoneInput(e.target.value))} /></div>
         )}
         {looked && (
           <>
@@ -354,7 +357,7 @@ function OrderModal({ type, onClose, onDone }) {
                 {(l.units.length ? l.units : ['']).map((u) => <option key={u} value={u}>{u}</option>)}
               </select></td>
               <td><input style={{ width: 90 }} value={l.input_quantity}
-                placeholder={!l.focused && !l.input_quantity && isReturn && l.available ? `可退${l.available}` : ''}
+                placeholder={!l.focused && !l.input_quantity && isReturn && l.available ? `可退${(l.convUnit && l.input_unit === l.convUnit ? Number(l.available) / (l.conv || 1) : Number(l.available)).toFixed(2).replace(/\.00$/, '')}` : ''}
                 onFocus={() => setLine(i, { focused: true })} onBlur={() => setLine(i, { focused: false })}
                 onChange={(e) => setLine(i, { input_quantity: e.target.value })} /></td>
               <td>{isReturn ? <span>{l.unit_price || '—'}</span> : <input style={{ width: 80 }} value={priceMode === 'hidden' && !isAdmin ? '' : l.unit_price}
@@ -428,7 +431,7 @@ function PaymentModal({ type, onClose, onDone }) {
     <Modal width={520} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{type === 'receipt' ? '收款' : '退款'}</h3>
-        <div className="row">客户电话：<input value={phone} maxLength={20} onChange={(e) => { setPhone(phoneInput(e.target.value)); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        <div className="row">客户电话：<input value={phone} maxLength={30} onChange={(e) => { setPhone(e.target.value); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
         {looked && (<>
           <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
