@@ -321,7 +321,7 @@ function OrderModal({ type, onClose, onDone }) {
     <Modal width={780} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{typeLabel[type]}单</h3>
-        <div className="row">客户电话：<input value={phone} maxLength={30} onChange={(e) => { setPhone(e.target.value); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        <div className="row">客户电话：<input value={phone} maxLength={30} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookup() } }} onChange={(e) => { setPhone(e.target.value); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
         {err && <div className="err">{err}</div>}
         {matches.length > 0 && (
           <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -434,7 +434,7 @@ function PaymentModal({ type, onClose, onDone }) {
     <Modal width={520} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{type === 'receipt' ? '收款' : '退款'}</h3>
-        <div className="row">客户电话：<input value={phone} maxLength={30} onChange={(e) => { setPhone(e.target.value); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        <div className="row">客户电话：<input value={phone} maxLength={30} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookup() } }} onChange={(e) => { setPhone(e.target.value); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
         {looked && (<>
           <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
