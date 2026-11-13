@@ -1,16 +1,7 @@
-name: release
+name: Release FPK
 
-# 发版工作流：服务端 FPK 与客户端 APK 用同一个版本号，一次发版同时产出两个安装包。
-# - 手动触发（workflow_dispatch）：读取仓库 VERSION，按 patch/minor 递增 → 提交回 main → 打 tag → 构建 → 发 Release
-# - 推送 v* 标签：直接按标签版本构建（不再改 VERSION）
 on:
   workflow_dispatch:
-    inputs:
-      bump:
-        description: '版本递增方式'
-        type: choice
-        options: [patch, minor, none]
-        default: patch
   push:
     tags:
       - 'v*'
@@ -18,150 +9,66 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
-  version:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.v.outputs.version }}
-      tag: ${{ steps.v.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: 计算版本号
-        id: v
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-            echo "使用标签版本 $VERSION"
-          else
-            CURRENT="$(cat VERSION)"
-            BUMP="${{ github.event.inputs.bump }}"
-            if [[ "$BUMP" == "none" ]]; then
-              VERSION="$CURRENT"
-            else
-              IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-              if [[ "$BUMP" == "minor" ]]; then MINOR=$((MINOR+1)); PATCH=0; else PATCH=$((PATCH+1)); fi
-              VERSION="$MAJOR.$MINOR.$PATCH"
-              echo "$VERSION" > VERSION
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              git add VERSION
-              git commit -m "chore(release): 版本号递增到 $VERSION [skip ci]"
-              git push origin HEAD:main
-            fi
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-          echo "本次发版版本：$VERSION"
-
-  server:
-    needs: version
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          ref: main
-      - uses: actions/setup-java@v4
+          node-version: 20
+
+      - name: Build web (React + Vite)
+        working-directory: web
+        run: |
+          npm install
+          npm run build
+          mkdir -p ../server-go/web/dist
+          cp -r dist/* ../server-go/web/dist/
+
+      - uses: actions/setup-go@v5
         with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
+          go-version: '1.22'
 
-      - name: 服务端单测 + 可运行分发
-        run: |
-          chmod +x gradlew
-          ./gradlew --no-daemon :fpk-server:app:installDist
+      - name: Test Go server
+        working-directory: server-go
+        run: go test ./...
 
-      - name: 下载内置 JRE（Temurin 17 linux x64）
-        run: |
-          curl -fsSL -o /tmp/jre.tar.gz \
-            "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jre/hotspot/normal/eclipse"
-
-      - name: 构建 FPK
+      - name: Build Go server (linux/amd64)
+        working-directory: server-go
         env:
-          VERSION: ${{ needs.version.outputs.version }}
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -trimpath -ldflags="-s -w" -o ../packaging/czxs-go/app/bin/czxs .
+
+      - name: Download fnpack
         run: |
-          DIST="$(find fpk-server/app/build/install -maxdepth 1 -mindepth 1 -type d | head -1)"
-          echo "server dist: $DIST"
-          bash packaging/fnos/build-fpk.sh "$VERSION" "$DIST" /tmp/jre.tar.gz \
-            "dist/jiancai_${VERSION}_x86_64.fpk"
+          curl -fsSL -o fnpack https://static2.fnnas.com/fnpack/linux-amd64/fnpack-1.2.3
+          chmod +x fnpack
+          ./fnpack --version
+
+      - name: Build FPK
+        run: ./fnpack build --directory packaging/czxs-go
 
       - uses: actions/upload-artifact@v4
         with:
-          name: fpk
-          path: dist/*.fpk
-          if-no-files-found: error
-
-  client:
-    needs: version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-      - name: 安装 Android SDK 包（platform + build-tools）
-        run: |
-          SDK=/usr/local/lib/android/sdk
-          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          SDKM=$(find "$SDK/cmdline-tools" -name sdkmanager -type f | head -1)
-          echo "sdkmanager: $SDKM"
-          yes | "$SDKM" --licenses > /dev/null || true
-          "$SDKM" --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
-          ls "$SDK/platforms" "$SDK/build-tools"
-
-      - name: 编译客户端 APK
-        run: |
-          chmod +x gradlew
-          ./gradlew --no-daemon :android-app:app:assembleDebug
-
-      - name: 重命名 APK
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          mkdir -p dist
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk "dist/jiancai-client_${VERSION}.apk"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: apk
-          path: dist/*.apk
-          if-no-files-found: error
+          name: czxs-fpk
+          path: ./*.fpk
 
   publish:
-    needs: [version, server, client]
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
+          name: czxs-fpk
           path: dist
-          merge-multiple: true
-      - name: 列出发版产物
-        run: ls -lh dist
-      - name: 创建 Release 并上传两个安装包
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.version.outputs.tag }}
-          name: '${{ needs.version.outputs.tag }} 建材进销存'
-          body: |
-            服务端 FPK 与客户端 APK 同版本 **${{ needs.version.outputs.version }}**。
-            - `jiancai_${{ needs.version.outputs.version }}_x86_64.fpk`：飞牛 fnOS 服务端（内置 JRE 17，默认端口 8080）
-            - `jiancai-client_${{ needs.version.outputs.version }}.apk`：Android 客户端（minSdk 26，debug 签名）
-          files: |
-            dist/*.fpk
-            dist/*.apk
-          fail_on_unmatched_files: true
+          body: 服务端功能暂且完善
+          files: dist/*.fpk
