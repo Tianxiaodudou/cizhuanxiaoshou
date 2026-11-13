@@ -14,8 +14,11 @@ function Modal({ children, width = 720, onClose }) {
 const PREFIX = '/app/czxs'
 const money = (v) => (v == null ? '—' : v)
 const isReturnType = (t) => t.endsWith('_return')
-const isPhone = (v) => /^1\d{10}$/.test(v)
-const phoneInput = (v) => String(v).replace(/\D/g, '').slice(0, 11)
+const isPhone = (v) => {
+  const s = String(v).replace(/[\s-]/g, '')
+  return /^1[3-9]\d{9}$/.test(s) || /^0\d{2,3}\d{7,8}(\d{1,6})?$/.test(s) || /^\d{5,20}$/.test(s)
+}
+const phoneInput = (v) => String(v).replace(/[^0-9-]/g, '').slice(0, 20)
 
 const amountLabel = (t) => (t === 'receipt' ? '已收' : t === 'refund' ? '已退' : (t.endsWith('_return') ? '应退' : '应收'))
 const typeLabel = { delivery: '配送', delivery_return: '配退', pickup: '自送', pickup_return: '自退', receipt: '收款', refund: '退款', note: '备注' }
@@ -268,7 +271,7 @@ function OrderModal({ type, onClose, onDone }) {
         setLooked(true); setIsNew(false)
       } else {
         setLooked(true); setIsNew(true); setName(''); setAddr(''); setPriceMode('open'); setReturns([])
-        if (!isPhone(q)) throw new Error('新客户电话必须是 11 位手机号')
+        if (!isPhone(q)) throw new Error('新客户电话格式不正确（手机号或座机号）')
       }
     } catch (x) { setErr(x.message || '查询失败') } finally { setBusy(false) }
   }
@@ -296,7 +299,7 @@ function OrderModal({ type, onClose, onDone }) {
         throw new Error('退款金额超过可退金额（可退 ' + refundable + '）')
       }
       if (!name) throw new Error('请填写客户姓名')
-      if (isNew && !isPhone(phone)) throw new Error('客户电话必须是 11 位手机号')
+      if (isNew && !isPhone(phone)) throw new Error('客户电话格式不正确（手机号 11 位，或座机含区号如 010-12345678）')
       const items = lines.filter((l) => l.category_id && l.input_quantity).map((l) => ({
         category_id: Number(l.category_id), batch_tag: l.batch_tag, input_unit: l.input_unit,
         input_quantity: l.input_quantity, unit_price: l.locked ? undefined : l.unit_price,
@@ -310,7 +313,7 @@ function OrderModal({ type, onClose, onDone }) {
     <Modal width={780} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{typeLabel[type]}单</h3>
-        <div className="row">客户电话：<input value={phone} maxLength={11} onChange={(e) => { setPhone(phoneInput(e.target.value)); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        <div className="row">客户电话：<input value={phone} maxLength={20} onChange={(e) => { setPhone(phoneInput(e.target.value)); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
         {err && <div className="err">{err}</div>}
         {matches.length > 0 && (
           <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -394,7 +397,7 @@ function PaymentModal({ type, onClose, onDone }) {
         setMatches(list); setLooked(true)
       } else {
         setLooked(true); setName(''); setAddr('')
-        if (!isPhone(q)) throw new Error('新客户电话必须是 11 位手机号')
+        if (!isPhone(q)) throw new Error('新客户电话格式不正确（手机号或座机号）')
       }
     } catch (x) { setErr(x.message || '查询失败') } finally { setBusy(false) }
   }
@@ -411,7 +414,7 @@ function PaymentModal({ type, onClose, onDone }) {
     <Modal width={520} onClose={onClose}>
       <form onSubmit={submit}>
         <h3>{type === 'receipt' ? '收款' : '退款'}</h3>
-        <div className="row">客户电话：<input value={phone} maxLength={11} onChange={(e) => { setPhone(phoneInput(e.target.value)); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
+        <div className="row">客户电话：<input value={phone} maxLength={20} onChange={(e) => { setPhone(phoneInput(e.target.value)); setMatches([]) }} placeholder="电话 / 姓名 / 地址关键字" /> <button type="button" className="secondary" disabled={busy || !phone} onClick={lookup}>{busy ? '查询中…' : '查客户'}</button></div>
         {looked && (<>
           <div className="row">客户姓名：<input value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="row">客户地址：<input value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
