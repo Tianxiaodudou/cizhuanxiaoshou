@@ -45,7 +45,7 @@ jobs:
 
       - name: Download fnpack
         run: |
-          curl -fsSL -o fnpack https://static2.fnnas.com/fnpack/linux-amd64/fnpack-1.2.3
+          curl -fsSL -o fnpack https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64
           chmod +x fnpack
           ./fnpack --version
 
