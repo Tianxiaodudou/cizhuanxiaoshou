@@ -345,6 +345,7 @@ function PaymentModal({ type, onClose, onDone }) {
   const setLine = (i, patch) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...patch } : l)))
   const total = lines.reduce((s2, l) => s2 + (Number(l.amount) || 0), 0)
   const [remark, setRemark] = useState('')
+  const [refundable, setRefundable] = useState(null)
   const [err, setErr] = useState('')
 
   const lookup = async () => {
