@@ -391,6 +391,9 @@ function PaymentModal({ type, onClose, onDone }) {
   const total = lines.reduce((s2, l) => s2 + (Number(l.amount) || 0), 0)
   const [remark, setRemark] = useState('')
   const [refundable, setRefundable] = useState(null)
+  const [discount, setDiscount] = useState('')
+  const [discountType, setDiscountType] = useState('')
+  const [outstanding, setOutstanding] = useState(null)
   const [matches, setMatches] = useState([])
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -423,7 +426,7 @@ function PaymentModal({ type, onClose, onDone }) {
     e.preventDefault()
     try {
       if (!looked) throw new Error('请先点击“查客户”')
-      await api('/api/payments', { method: 'POST', body: JSON.stringify({ phone, customer_name: name, address: addr, type, remark, payments: lines.map((l) => ({ method: l.method, custom_method: l.custom, amount: l.amount })) }) })
+      await api('/api/payments', { method: 'POST', body: JSON.stringify({ phone, customer_name: name, address: addr, type, remark, discount, discount_type: discountType, payments: lines.map((l) => ({ method: l.method, custom_method: l.custom, amount: l.amount })) }) })
       onDone()
     } catch (x) { setErr(x.message) }
   }
@@ -455,6 +458,20 @@ function PaymentModal({ type, onClose, onDone }) {
         </table>
         <button type="button" className="secondary" onClick={() => setLines((ls) => [...ls, { method: '微信', custom: '', amount: '' }])}>+ 添加付款方式</button>
         <div className="row">合计：<b>{total.toFixed(2)}</b></div>
+        {type === 'receipt' && outstanding != null && (
+          <div className="muted">应收金额：{outstanding}　实收：{total.toFixed(2)}　优惠：{Number(discount || 0).toFixed(2)}　
+            {Number(discount || 0) + total >= Number(outstanding) ? '本单可结清' : '仍有未收'}
+          </div>
+        )}
+        {type === 'receipt' && (
+          <div className="row">
+            优惠方式：<select value={discountType} onChange={(e) => setDiscountType(e.target.value)}>
+              <option value="">（无）</option>
+              {presets.disc.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+            优惠金额：<input style={{ width: 100 }} value={discount} onChange={(e) => setDiscount(e.target.value)} />
+          </div>
+        )}
         {type === 'refund' && refundable != null && <div className="muted">可退金额：{refundable}{Number(refundable) === 0 ? '（该客户无可退金额：未收款或已退完）' : ''}</div>}
         <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>
         {err && <div className="err">{err}</div>}
@@ -576,7 +593,8 @@ function usePresets() {
     api('/api/settings').then((st) => setP({
       s: (st.settlement_units || '').split(',').map((x) => x.trim()).filter(Boolean),
       c: (st.conversion_units || '').split(',').map((x) => x.trim()).filter(Boolean),
-      pay: (st.payment_methods || '').split(',').map((x) => x.trim()).filter(Boolean),
+      pay: (st.payment_methods || ''),
+      disc: (st.discount_types || '').split(',').map((x) => x.trim()).filter(Boolean),
     })).catch(() => {})
   }, [])
   return p
@@ -853,6 +871,7 @@ function Settings() {
       <PresetEditor label="计价单位预设（顺序即选择顺序）" value={s.settlement_units || ''} onChange={(v) => setS({ ...s, settlement_units: v })} />
       <PresetEditor label="换算单位预设（顺序即选择顺序）" value={s.conversion_units || ''} onChange={(v) => setS({ ...s, conversion_units: v })} />
       <PresetEditor label="付款方式预设（顺序即选择顺序）" value={s.payment_methods || ''} onChange={(v) => setS({ ...s, payment_methods: v })} />
+      <PresetEditor label="优惠方式预设（顺序即选择顺序）" value={s.discount_types || ''} onChange={(v) => setS({ ...s, discount_types: v })} />
       <p>小票宽度：<select value={s.print_width || '80mm'} onChange={(e) => setS({ ...s, print_width: e.target.value })}><option>80mm</option><option>58mm</option></select></p>
       <button onClick={async () => { await api('/api/settings', { method: 'POST', body: JSON.stringify(s) }); setMsg('已保存') }}>保存</button>
       {msg && <span style={{ marginLeft: 8 }}>{msg}</span>}

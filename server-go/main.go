@@ -137,6 +137,8 @@ func migrate(db *sql.DB) {
 	_, _ = db.Exec(`UPDATE accounts SET role='admin' WHERE role IN ('administrator','管理员')`)
 	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE notes ADD COLUMN remark TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE orders ADD COLUMN discount TEXT NOT NULL DEFAULT '0'`)
+	_, _ = db.Exec(`ALTER TABLE orders ADD COLUMN discount_type TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`UPDATE settings SET v='9527' WHERE k='api_port' AND v='8080'`)
 }
 
@@ -183,7 +185,7 @@ func seed(db *sql.DB) {
 	}
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
-		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('settlement_units',''),('conversion_units',''),('payment_methods',''),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
+		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('settlement_units',''),('conversion_units',''),('payment_methods',''),('discount_types',''),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
 	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'+'admin', 'active', ?)`, hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
 	}
 }
@@ -426,6 +428,18 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		ok(w, list)
+	case p == "/outstanding" && r.Method == "GET":
+		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
+		cid := a.customerID(phone)
+		recv, pay, rcpt, disc, ref := sql.NullFloat64{}, sql.NullFloat64{}, sql.NullFloat64{}, sql.NullFloat64{}, sql.NullFloat64{}
+		_ = a.db.QueryRow(`SELECT
+			COALESCE(SUM(CASE WHEN type IN ('delivery','pickup') THEN CAST(order_total AS REAL) ELSE 0 END),0),
+			COALESCE(SUM(CASE WHEN type IN ('delivery_return','pickup_return') THEN -CAST(order_total AS REAL) ELSE 0 END),0),
+			COALESCE(SUM(CASE WHEN type='receipt' THEN CAST(order_total AS REAL) ELSE 0 END),0),
+			COALESCE(SUM(CASE WHEN type='receipt' THEN CAST(discount AS REAL) ELSE 0 END),0),
+			COALESCE(SUM(CASE WHEN type='refund' THEN -CAST(order_total AS REAL) ELSE 0 END),0)
+			FROM orders WHERE customer_id=?`, cid).Scan(&recv, &pay, &rcpt, &disc, &ref)
+		ok(w, map[string]any{"outstanding": f2(recv.Float64 - pay.Float64 - rcpt.Float64 - disc.Float64 + ref.Float64)})
 	case p == "/refundable" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		cid := a.customerID(phone)
@@ -818,8 +832,10 @@ func (a *App) createPayment(w http.ResponseWriter, r *http.Request, acc int64) {
 		Address  string `json:"address"`
 		Type     string `json:"type"`
 		Amount   string `json:"amount"`
-		Remark   string `json:"remark"`
-		Payments []struct {
+		Remark       string `json:"remark"`
+		Discount     string `json:"discount"`
+		DiscountType string `json:"discount_type"`
+		Payments    []struct {
 			Method string `json:"method"`
 			Custom string `json:"custom_method"`
 			Amount string `json:"amount"`
@@ -886,8 +902,12 @@ func (a *App) createPayment(w http.ResponseWriter, r *http.Request, acc int64) {
 	if in.Type == "refund" {
 		total = -amt
 	}
-	res, err := a.db.Exec(`INSERT INTO orders(order_no,type,customer_id,account_id,status,remark,order_total,version,created_at) VALUES(?,?,?,?,'submitted',?,?,1,?)`,
-		no, in.Type, cid, acc, in.Remark, f2(total), now())
+	disc := bd(in.Discount)
+	if disc < 0 {
+		disc = 0
+	}
+	res, err := a.db.Exec(`INSERT INTO orders(order_no,type,customer_id,account_id,status,remark,order_total,discount,discount_type,version,created_at) VALUES(?,?,?,?,'submitted',?,?,?,?,1,?)`,
+		no, in.Type, cid, acc, in.Remark, f2(total), f2(disc), in.DiscountType, now())
 	if err != nil {
 		fail(w, 500, "DB", err.Error())
 		return
@@ -1020,11 +1040,11 @@ func (a *App) order(oid int64) map[string]any {
 		ID                                                   int64
 		No, Type, Status, Remark, Total, Created              string
 		Version                                              int
-		CName, CPhone, CAddr, CMode, AName                   string
+		CName, CPhone, CAddr, CMode, AName, Discount, DiscountType string
 	}
-	err := a.db.QueryRow(`SELECT o.id,o.order_no,o.type,o.status,COALESCE(o.remark,''),o.order_total,o.created_at,o.version,cu.name,cu.phone,COALESCE(cu.addr,''),COALESCE(cu.price_mode,'open'),a.name
+	err := a.db.QueryRow(`SELECT o.id,o.order_no,o.type,o.status,COALESCE(o.remark,''),o.order_total,o.created_at,o.version,cu.name,cu.phone,COALESCE(cu.addr,''),COALESCE(cu.price_mode,'open'),a.name,COALESCE(o.discount,'0'),COALESCE(o.discount_type,'')
 		FROM orders o JOIN customers cu ON cu.id=o.customer_id JOIN accounts a ON a.id=o.account_id WHERE o.id=?`, oid).
-		Scan(&o.ID, &o.No, &o.Type, &o.Status, &o.Remark, &o.Total, &o.Created, &o.Version, &o.CName, &o.CPhone, &o.CAddr, &o.CMode, &o.AName)
+		Scan(&o.ID, &o.No, &o.Type, &o.Status, &o.Remark, &o.Total, &o.Created, &o.Version, &o.CName, &o.CPhone, &o.CAddr, &o.CMode, &o.AName, &o.Discount, &o.DiscountType)
 	if err != nil {
 		return nil
 	}
@@ -1057,7 +1077,7 @@ func (a *App) order(oid int64) map[string]any {
 	}
 	return map[string]any{"id": o.ID, "order_no": o.No, "type": o.Type, "status": o.Status, "remark": o.Remark, "payments": payments,
 		"order_total": o.Total, "version": o.Version, "created_at": o.Created, "customer_name": o.CName,
-		"customer_phone": o.CPhone, "customer_address": o.CAddr, "customer_price_mode": o.CMode, "account_name": o.AName, "items": items, "cumulative_total": f2(cum)}
+		"customer_phone": o.CPhone, "customer_address": o.CAddr, "customer_price_mode": o.CMode, "discount": o.Discount, "discount_type": o.DiscountType, "account_name": o.AName, "items": items, "cumulative_total": f2(cum)}
 }
 
 func (a *App) orders(where string, args []any) []map[string]any {
@@ -1179,7 +1199,7 @@ func (a *App) settlementDetail(w http.ResponseWriter, raw string) {
 		return
 	}
 	orders := a.orders(`cu.id=?`, []any{cid})
-	receivable, payable, received, refunded := 0.0, 0.0, 0.0, 0.0
+	receivable, payable, received, refunded, discount := 0.0, 0.0, 0.0, 0.0, 0.0
 	for _, o := range orders {
 		v := bd(o["order_total"].(string))
 		switch o["type"].(string) {
@@ -1189,6 +1209,7 @@ func (a *App) settlementDetail(w http.ResponseWriter, raw string) {
 			payable += -v
 		case "receipt":
 			received += v
+			discount += bd(o["discount"].(string))
 		case "refund":
 			refunded += -v
 		}
