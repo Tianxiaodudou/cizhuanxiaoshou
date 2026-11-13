@@ -47,7 +47,6 @@ jobs:
         run: |
           curl -fsSL -o fnpack https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64
           chmod +x fnpack
-          ./fnpack --version
 
       - name: Build FPK
         run: ./fnpack build --directory packaging/czxs-go
