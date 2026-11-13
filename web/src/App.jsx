@@ -267,7 +267,7 @@ function OrderModal({ type, onClose, onDone }) {
     setBusy(true); setErr(''); setMatches([])
     try {
       const q = phone.trim()
-      if (q.length < 2) throw new Error('请输入电话、姓名或地址关键字')
+      if (q.length < 1) throw new Error('请输入电话、姓名或地址关键字')
       const list = await api('/api/customers/search?q=' + encodeURIComponent(q))
       if (list.length === 1) {
         await applyCustomer(list[0])
@@ -409,7 +409,7 @@ function PaymentModal({ type, onClose, onDone }) {
     setBusy(true); setErr(''); setMatches([])
     try {
       const q = phone.trim()
-      if (q.length < 2) throw new Error('请输入电话、姓名或地址关键字')
+      if (q.length < 1) throw new Error('请输入电话、姓名或地址关键字')
       const list = await api('/api/customers/search?q=' + encodeURIComponent(q))
       if (list.length === 1) {
         await applyCustomer(list[0])
