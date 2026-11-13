@@ -115,13 +115,17 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
       )}
       {hasItems && (
       <table>
-        <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th></tr></thead>
+        <thead><tr><th>序号</th><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th><th>排序</th></tr></thead>
         <tbody>{o.items.map((i, k) => (
-          <tr key={k}><td>{i.group}</td><td>{i.name}</td><td>{i.batch_tag}</td>
+          <tr key={k}><td>{k + 1}</td><td>{i.group}</td><td>{i.name}</td><td>{i.batch_tag}</td>
             <td>{editing ? <input style={{ width: 80 }} value={lines[k].input_quantity} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_quantity: e.target.value } : x))} /> : `${i.input_quantity}${i.input_unit}`}</td>
             <td>{i.settlement_quantity}{i.settlement_unit}</td>
             <td>{blindPrice ? '***' : (editing ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price)}</td>
-            <td>{blindPrice ? '***' : i.line_total}</td></tr>
+            <td>{blindPrice ? '***' : i.line_total}</td>
+            <td>{editing ? (<>
+              <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (k > 0) { [a[k - 1], a[k]] = [a[k], a[k - 1]] } return a })}>↑</button>
+              <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (k < a.length - 1) { [a[k + 1], a[k]] = [a[k], a[k + 1]] } return a })}>↓</button>
+            </>) : '—'}</td></tr>
         ))}</tbody>
       </table>
       )}
@@ -334,9 +338,10 @@ function OrderModal({ type, onClose, onDone }) {
           </>
         )}
         <table>
-          <thead><tr><th>商品</th><th>批号</th><th>单位</th><th>数量</th><th>单价</th><th></th></tr></thead>
+          <thead><tr><th>序号</th><th>商品</th><th>批号</th><th>单位</th><th>数量</th><th>单价</th><th>操作</th></tr></thead>
           <tbody>{lines.map((l, i) => (
             <tr key={i}>
+              <td>{i + 1}</td>
               <td><button type="button" className="secondary" onClick={() => setPicker(i)}>
                 {l.category_id ? (() => { const c = cats.find((x) => x.id === l.category_id); return c ? `${c.group} ${c.name} ${c.batch}` : '已选' })() : '选择商品'}
               </button></td>
@@ -352,7 +357,11 @@ function OrderModal({ type, onClose, onDone }) {
                 disabled={priceMode === 'hidden' && !isAdmin}
                 placeholder={priceMode === 'hidden' && !isAdmin ? '自动取恒定价' : ''}
                 readOnly={l.locked} onChange={(e) => setLine(i, { unit_price: e.target.value })} />}</td>
-              <td><button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button></td>
+              <td>
+                <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (i > 0) { [a[i - 1], a[i]] = [a[i], a[i - 1]] } return a })}>↑</button>
+                <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (i < a.length - 1) { [a[i + 1], a[i]] = [a[i], a[i + 1]] } return a })}>↓</button>
+                <button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button>
+              </td>
             </tr>
           ))}</tbody>
         </table>
@@ -425,11 +434,15 @@ function PaymentModal({ type, onClose, onDone }) {
           <tbody>{lines.map((l, i) => (
             <tr key={i}>
               <td><select value={l.method} onChange={(e) => setLine(i, { method: e.target.value })}>
-                {(presets.pay.length ? presets.pay : ['微信', '支付宝', '现金', '其他']).map((m) => <option key={m} value={m}>{m}</option>)}
+                {(presets.pay.length ? presets.pay : ['其他']).map((m) => <option key={m} value={m}>{m}</option>)}
               </select></td>
               <td>{l.method === '其他' ? <input value={l.custom} onChange={(e) => setLine(i, { custom: e.target.value })} placeholder="自定义方式" /> : '—'}</td>
               <td><input value={l.amount} placeholder={type === 'refund' && refundable != null ? `可退${refundable}` : ''} onChange={(e) => setLine(i, { amount: e.target.value })} /></td>
-              <td><button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button></td>
+              <td>
+                <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (i > 0) { [a[i - 1], a[i]] = [a[i], a[i - 1]] } return a })}>↑</button>
+                <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (i < a.length - 1) { [a[i + 1], a[i]] = [a[i], a[i + 1]] } return a })}>↓</button>
+                <button type="button" className="secondary" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))}>删</button>
+              </td>
             </tr>
           ))}</tbody>
         </table>
@@ -554,9 +567,9 @@ function usePresets() {
   const [p, setP] = useState({ s: [], c: [], pay: [] })
   useEffect(() => {
     api('/api/settings').then((st) => setP({
-      s: (st.settlement_units || '片,箱').split(',').map((x) => x.trim()).filter(Boolean),
-      c: (st.conversion_units || '箱').split(',').map((x) => x.trim()).filter(Boolean),
-      pay: (st.payment_methods || '微信,支付宝,现金,其他').split(',').map((x) => x.trim()).filter(Boolean),
+      s: (st.settlement_units || '').split(',').map((x) => x.trim()).filter(Boolean),
+      c: (st.conversion_units || '').split(',').map((x) => x.trim()).filter(Boolean),
+      pay: (st.payment_methods || '').split(',').map((x) => x.trim()).filter(Boolean),
     })).catch(() => {})
   }, [])
   return p
@@ -790,6 +803,37 @@ function Settlement() {
   )
 }
 
+function PresetEditor({ label, value, onChange }) {
+  const items = value ? value.split(',').map((x) => x.trim()).filter(Boolean) : []
+  const [draft, setDraft] = useState('')
+  const set = (arr) => onChange(arr.join(','))
+  const move = (i, d) => {
+    const a = [...items]; const j = i + d
+    if (j < 0 || j >= a.length) return
+    ;[a[i], a[j]] = [a[j], a[i]]
+    set(a)
+  }
+  return (
+    <div style={{ margin: '8px 0' }}>
+      <div>{label}：</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '4px 0' }}>
+        {items.map((it, i) => (
+          <span key={it + i} style={{ border: '1px solid #cfd6df', borderRadius: 4, padding: '2px 6px' }}>
+            {i + 1}. {it}
+            <button type="button" className="secondary" style={{ marginLeft: 4 }} onClick={() => move(i, -1)}>↑</button>
+            <button type="button" className="secondary" onClick={() => move(i, 1)}>↓</button>
+            <button type="button" className="danger" onClick={() => set(items.filter((_, k) => k !== i))}>×</button>
+          </span>
+        ))}
+        {items.length === 0 && <span className="muted">（尚未设置）</span>}
+      </div>
+      <input value={draft} placeholder="输入后回车添加" onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter' && draft.trim()) { e.preventDefault(); set([...items, draft.trim()]); setDraft('') } }} />
+      <button type="button" className="secondary" style={{ marginLeft: 6 }} onClick={() => { if (draft.trim()) { set([...items, draft.trim()]); setDraft('') } }}>添加</button>
+    </div>
+  )
+}
+
 function Settings() {
   const [s, setS] = useState({})
   const [msg, setMsg] = useState('')
@@ -799,9 +843,9 @@ function Settings() {
       <h2>系统配置</h2>
       <p>商家名称：<input value={s.merchant_name || ''} onChange={(e) => setS({ ...s, merchant_name: e.target.value })} /></p>
       <p>API 端口：<input value={s.api_port || '9527'} onChange={(e) => setS({ ...s, api_port: e.target.value })} /></p>
-      <p>计价单位预设（逗号分隔）：<input style={{ width: 420 }} value={s.settlement_units || ''} onChange={(e) => setS({ ...s, settlement_units: e.target.value })} /></p>
-      <p>换算单位预设（逗号分隔）：<input style={{ width: 420 }} value={s.conversion_units || ''} onChange={(e) => setS({ ...s, conversion_units: e.target.value })} /></p>
-      <p>付款方式预设（逗号分隔）：<input style={{ width: 420 }} value={s.payment_methods || ''} onChange={(e) => setS({ ...s, payment_methods: e.target.value })} /></p>
+      <PresetEditor label="计价单位预设（顺序即选择顺序）" value={s.settlement_units || ''} onChange={(v) => setS({ ...s, settlement_units: v })} />
+      <PresetEditor label="换算单位预设（顺序即选择顺序）" value={s.conversion_units || ''} onChange={(v) => setS({ ...s, conversion_units: v })} />
+      <PresetEditor label="付款方式预设（顺序即选择顺序）" value={s.payment_methods || ''} onChange={(v) => setS({ ...s, payment_methods: v })} />
       <p>小票宽度：<select value={s.print_width || '80mm'} onChange={(e) => setS({ ...s, print_width: e.target.value })}><option>80mm</option><option>58mm</option></select></p>
       <button onClick={async () => { await api('/api/settings', { method: 'POST', body: JSON.stringify(s) }); setMsg('已保存') }}>保存</button>
       {msg && <span style={{ marginLeft: 8 }}>{msg}</span>}

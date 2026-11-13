@@ -133,6 +133,7 @@ func migrate(db *sql.DB) {
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN addr TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN price_mode TEXT NOT NULL DEFAULT 'open'`)
 	_, _ = db.Exec(`UPDATE accounts SET role=lower(role), status=lower(status)`)
+	_, _ = db.Exec(`UPDATE settings SET v='' WHERE k IN ('settlement_units','conversion_units','payment_methods') AND v='片,箱,平方米,米,个' OR k IN ('settlement_units','conversion_units','payment_methods') AND v='箱,件,托' OR k IN ('settlement_units','conversion_units','payment_methods') AND v='微信,支付宝,现金,其他'`)
 	_, _ = db.Exec(`UPDATE accounts SET role='admin' WHERE role IN ('administrator','管理员')`)
 	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE notes ADD COLUMN remark TEXT NOT NULL DEFAULT ''`)
@@ -182,7 +183,7 @@ func seed(db *sql.DB) {
 	}
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
-		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('settlement_units','片,箱,平方米,米,个'),('conversion_units','箱,件,托'),('payment_methods','微信,支付宝,现金,其他'),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
+		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('settlement_units',''),('conversion_units',''),('payment_methods',''),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
 	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'+'admin', 'active', ?)`, hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
 	}
 }
