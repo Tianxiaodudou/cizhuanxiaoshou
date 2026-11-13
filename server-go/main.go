@@ -367,9 +367,17 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	case p == "/customers" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
 		var cid int64
-		var name, addr, mode string
-		err := a.db.QueryRow(`SELECT id,name,COALESCE(addr,''),COALESCE(price_mode,'open') FROM customers WHERE phone=?`, phone).Scan(&cid, &name, &addr, &mode)
-		ok(w, map[string]any{"exists": err == nil, "name": name, "addr": addr, "price_mode": mode, "id": cid, "phone": phone})
+		var name, addr, mode, foundPhone string
+		err := a.db.QueryRow(`SELECT id,name,COALESCE(addr,''),COALESCE(price_mode,'open'),phone FROM customers WHERE phone=?`, phone).
+			Scan(&cid, &name, &addr, &mode, &foundPhone)
+		if err != nil {
+			// 兼容：传入的是姓名/地址片段时，按模糊匹配返回首个命中客户
+			like := "%" + phone + "%"
+			err = a.db.QueryRow(`SELECT id,name,COALESCE(addr,''),COALESCE(price_mode,'open'),phone FROM customers
+				WHERE name LIKE ? OR addr LIKE ? ORDER BY id DESC LIMIT 1`, like, like).
+				Scan(&cid, &name, &addr, &mode, &foundPhone)
+		}
+		ok(w, map[string]any{"exists": err == nil, "name": name, "addr": addr, "price_mode": mode, "id": cid, "phone": foundPhone})
 	case p == "/customers" && r.Method == "GET" && false:
 	case p == "/prices" && r.Method == "GET":
 		phone := strings.NewReplacer(" ", "", "-", "").Replace(r.URL.Query().Get("phone"))
