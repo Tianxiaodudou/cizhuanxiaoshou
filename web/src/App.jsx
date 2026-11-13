@@ -116,8 +116,8 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
       {hasItems && (
       <table>
         <thead><tr><th>序号</th><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th>{editing && <th>排序</th>}</tr></thead>
-        <tbody>{o.items.map((i, k) => (
-          <tr key={k}><td>{k + 1}</td><td>{i.group}</td><td>{i.name}</td><td>{i.batch_tag}</td>
+        <tbody>{lines.map((i, k) => (
+          <tr key={i.id || k}><td>{k + 1}</td><td>{i.group}</td><td>{i.name}</td><td>{i.batch_tag}</td>
             <td>{editing ? (<><input style={{ width: 80 }} value={lines[k].input_quantity} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_quantity: e.target.value } : x))} /> <span>{i.input_unit}</span></>) : `${i.input_quantity}${i.input_unit}`}</td>
             <td>{i.settlement_quantity}{i.settlement_unit}</td>
             <td>{blindPrice ? '***' : (editing ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price)}</td>
@@ -314,6 +314,9 @@ function OrderModal({ type, onClose, onDone }) {
       onDone()
     } catch (x) { setErr(x.message) }
   }
+  const returnCats = isReturn
+    ? cats.filter((c) => returns.some((r) => r.category_id === c.id && (r.batch_tag || '') === (c.batch || '')))
+    : cats
   return (
     <Modal width={780} onClose={onClose}>
       <form onSubmit={submit}>
@@ -370,7 +373,7 @@ function OrderModal({ type, onClose, onDone }) {
         <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} style={{ width: '100%' }} /></div>
         <div style={{ marginTop: 10 }}><button>提交打印</button> <button type="button" className="secondary" onClick={onClose}>取消</button></div>
       </form>
-      {picker !== null && <ProductPicker cats={cats} onClose={() => setPicker(null)} onPick={(c) => applyCat(picker, c)} />}
+      {picker !== null && <ProductPicker cats={returnCats} onClose={() => setPicker(null)} onPick={(c) => applyCat(picker, c)} />}
     </Modal>
   )
 }
