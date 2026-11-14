@@ -179,11 +179,17 @@
       td { vertical-align: middle; white-space: nowrap; }
       td input { max-width: 150px; }
 
-      .preset { border: 1px solid var(--stone-200); border-radius: var(--radius-sm); background: #fff; margin: 8px 0; overflow: hidden; }
+      .preset {
+        display: inline-block; vertical-align: top;
+        width: 260px; max-width: 100%;
+        border: 1px solid var(--stone-200); border-radius: var(--radius-sm);
+        background: #fff; margin: 6px 8px 6px 0; overflow: hidden;
+      }
       .preset > summary {
         list-style: none; cursor: pointer; padding: 9px 12px;
         display: flex; align-items: center; gap: 10px; justify-content: space-between;
         font-weight: 600; color: var(--ink-2); transition: background .15s var(--ease);
+        font-size: 13px;
       }
       .preset > summary::-webkit-details-marker { display: none; }
       .preset > summary::after { content: '▾'; color: var(--ink-3); font-size: 12px; transition: transform .18s var(--ease); }
