@@ -588,12 +588,12 @@ function PrintPage() {
 const emptyCat = { group: '', name: '', batch: '', settlement_unit: '', conversion_unit: '', conversion: '1', default_price: '' }
 
 function usePresets() {
-  const [p, setP] = useState({ s: [], c: [], pay: [] })
+  const [p, setP] = useState({ s: [], c: [], pay: [], disc: [] })
   useEffect(() => {
     api('/api/settings').then((st) => setP({
       s: (st.settlement_units || '').split(',').map((x) => x.trim()).filter(Boolean),
       c: (st.conversion_units || '').split(',').map((x) => x.trim()).filter(Boolean),
-      pay: (st.payment_methods || ''),
+      pay: (st.payment_methods || '').split(',').map((x) => x.trim()).filter(Boolean),
       disc: (st.discount_types || '').split(',').map((x) => x.trim()).filter(Boolean),
     })).catch(() => {})
   }, [])

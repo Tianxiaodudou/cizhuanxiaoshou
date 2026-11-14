@@ -23,8 +23,8 @@
         --danger-soft: #fdecea;
         --gold: #b08a4f;
         --surface: #ffffff;
-        --radius: 14px;
-        --radius-sm: 10px;
+        --radius: 12px;
+        --radius-sm: 8px;
         --shadow-sm: 0 1px 2px rgba(22, 24, 28, .06), 0 1px 1px rgba(22, 24, 28, .04);
         --shadow-md: 0 6px 24px -8px rgba(22, 24, 28, .18), 0 2px 6px rgba(22, 24, 28, .06);
         --shadow-lg: 0 24px 60px -24px rgba(22, 24, 28, .35);
@@ -38,8 +38,8 @@
       body {
         margin: 0;
         font-family: var(--sans);
-        font-size: 14.5px;
-        line-height: 1.6;
+        font-size: 13.5px;
+        line-height: 1.5;
         color: var(--ink);
         background:
           radial-gradient(1200px 500px at 12% -10%, #eef6f4 0%, transparent 60%),
@@ -56,7 +56,7 @@
         display: flex;
         align-items: center;
         gap: 20px;
-        padding: 10px 22px;
+        padding: 8px 16px;
         color: #f7f5f1;
         background: linear-gradient(120deg, #14181d 0%, #1c2a2a 55%, #14201f 100%);
         box-shadow: 0 1px 0 rgba(255, 255, 255, .06), 0 10px 30px -18px rgba(0, 0, 0, .8);
@@ -82,22 +82,22 @@
       header .who { margin-left: auto; font-size: 12.5px; color: #a7b3ad; white-space: nowrap; }
       header .who a { color: #e8efe9 !important; }
 
-      main { padding: 26px 22px 60px; max-width: 1180px; margin: 0 auto; }
+      main { padding: 16px 16px 40px; max-width: 1180px; margin: 0 auto; }
 
       h2 {
         font-family: var(--display);
-        font-size: 22px;
+        font-size: 18px;
         letter-spacing: .04em;
         font-weight: 600;
-        margin: 6px 0 18px;
+        margin: 2px 0 12px;
         color: var(--ink);
         text-shadow: 0 1px 0 rgba(255, 255, 255, .8), 0 10px 24px rgba(15, 118, 110, .10);
       }
       h3 {
         font-family: var(--display);
-        font-size: 18px;
+        font-size: 16px;
         letter-spacing: .03em;
-        margin: 0 0 14px;
+        margin: 0 0 10px;
         color: var(--ink);
       }
 
@@ -110,13 +110,13 @@
         overflow: hidden;
         box-shadow: var(--shadow-md);
       }
-      th, td { padding: 10px 12px; text-align: left; font-size: 13.5px; border-bottom: 1px solid var(--stone-200); }
+      th, td { padding: 6px 10px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--stone-200); }
       th {
         background: linear-gradient(180deg, #f7f4ef, #f1ece4);
         color: var(--ink-2);
         font-weight: 600;
-        font-size: 12.5px;
-        letter-spacing: .04em;
+        font-size: 12px;
+        letter-spacing: .03em;
         position: sticky;
         top: 0;
       }
@@ -126,9 +126,9 @@
 
       button {
         font-family: var(--sans);
-        font-size: 13.5px;
+        font-size: 13px;
         font-weight: 500;
-        padding: 7px 14px;
+        padding: 5px 11px;
         border: 0;
         border-radius: 999px;
         background: linear-gradient(180deg, var(--jade-2), var(--jade));
@@ -160,7 +160,7 @@
       input, select, textarea {
         font-family: var(--sans);
         font-size: 14px;
-        padding: 8px 11px;
+        padding: 6px 9px;
         border: 1px solid var(--stone-300);
         border-radius: var(--radius-sm);
         background: #fff;
@@ -174,8 +174,8 @@
         outline: none;
       }
 
-      .row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-      label.row { display: block; margin: 10px 0; }
+      .row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+      label.row { display: block; margin: 6px 0; }
       label.row input { width: 320px; }
 
       .muted { color: var(--ink-3); font-size: 12.5px; }
@@ -192,18 +192,18 @@
       dialog {
         border: 1px solid var(--stone-200);
         border-radius: var(--radius);
-        padding: 20px 24px;
+        padding: 14px 18px;
         box-shadow: var(--shadow-lg);
       }
       dialog::backdrop { background: rgba(16, 20, 24, .45); }
 
       .login {
         max-width: 400px;
-        margin: 80px auto;
+        margin: 56px auto;
         background: var(--surface);
         border: 1px solid var(--stone-200);
         border-radius: 20px;
-        padding: 32px 30px;
+        padding: 24px 22px;
         box-shadow: var(--shadow-lg);
       }
       .login h1, .login h2 { margin-top: 0; }
