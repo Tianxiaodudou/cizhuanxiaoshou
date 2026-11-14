@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 function Modal({ children, width = 720, onClose }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', background: '#fff', borderRadius: 12, padding: '16px 20px', maxHeight: '90vh', overflow: 'auto', width: 'fit-content', minWidth: 300, maxWidth: width ? `min(94vw, ${width}px)` : '94vw', boxShadow: '0 12px 40px rgba(0,0,0,.25)' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', background: '#fff', borderRadius: 12, padding: '16px 20px', maxHeight: '90vh', overflow: 'auto', width: 'fit-content', minWidth: 300, maxWidth: '96vw', boxShadow: '0 12px 40px rgba(0,0,0,.25)' }}>
         <button onClick={onClose} title="关闭" style={{ position: 'absolute', top: 8, right: 10, background: 'transparent', color: '#666', fontSize: 20, lineHeight: '20px', padding: '4px 8px' }}>×</button>
         {children}
       </div>
