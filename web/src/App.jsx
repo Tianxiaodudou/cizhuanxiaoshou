@@ -859,21 +859,16 @@ function PresetEditor({ label, value, onChange }) {
   )
 }
 
-function PresetField({ label, value, onChange }) {
-  const [open, setOpen] = useState(false)
+function PresetField({ label, value, onChange, open }) {
   const items = value ? value.split(',').map((x) => x.trim()).filter(Boolean) : []
   return (
-    <div className="row" style={{ justifyContent: 'space-between' }}>
-      <span>{label}：<span className="muted">{items.length ? items.map((x, i) => `${i + 1}.${x}`).join('  ') : '未设置'}</span></span>
-      <button type="button" className="secondary" onClick={() => setOpen(true)}>编辑</button>
-      {open && (
-        <Modal width={560} onClose={() => setOpen(false)}>
-          <h3>{label}</h3>
-          <PresetEditor label="顺序即选择顺序" value={value} onChange={onChange} />
-          <div style={{ marginTop: 8 }}><button onClick={() => setOpen(false)}>完成</button></div>
-        </Modal>
-      )}
-    </div>
+    <details className="preset" open={open}>
+      <summary>
+        <span>{label}</span>
+        <span className="muted">{items.length ? `${items.length} 项 · ${items.map((x, i) => `${i + 1}.${x}`).join('  ')}` : '未设置'}</span>
+      </summary>
+      <PresetEditor label="拖动顺序即选择顺序（↑↓ 调整）" value={value} onChange={onChange} />
+    </details>
   )
 }
 
