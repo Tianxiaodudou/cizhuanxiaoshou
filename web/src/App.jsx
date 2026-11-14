@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 function Modal({ children, width = 720, onClose }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', background: '#fff', borderRadius: 10, padding: '18px 22px', maxHeight: '88vh', overflow: 'auto', width, boxShadow: '0 12px 40px rgba(0,0,0,.25)' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', background: '#fff', borderRadius: 12, padding: '16px 20px', maxHeight: '90vh', overflow: 'auto', width: 'fit-content', minWidth: 300, maxWidth: width ? `min(94vw, ${width}px)` : '94vw', boxShadow: '0 12px 40px rgba(0,0,0,.25)' }}>
         <button onClick={onClose} title="关闭" style={{ position: 'absolute', top: 8, right: 10, background: 'transparent', color: '#666', fontSize: 20, lineHeight: '20px', padding: '4px 8px' }}>×</button>
         {children}
       </div>
@@ -626,11 +626,7 @@ function CategoryModal({ init, onClose, onDone }) {
         <label className="row">一级 品类：<input value={f.group} onChange={set('group')} required /></label>
         <label className="row">二级 型号：<input value={f.name} onChange={set('name')} required /></label>
         <label className="row">三级 批号（可空，保存时默认等于型号）：<input value={f.batch} onChange={set('batch')} placeholder="留空则自动用型号作为批号" /></label>
-        <label className="row">四级 计价单位：<select value={f.settlement_unit} onChange={set('settlement_unit')} required>
-                <option value="">请选择</option>
-                {presets.s.map((u) => <option key={u} value={u}>{u}</option>)}
-                {f.settlement_unit && !presets.s.includes(f.settlement_unit) && <option value={f.settlement_unit}>{f.settlement_unit}</option>}
-              </select></label>
+        <label className="row">四级 计价单位：<UnitSelect value={f.settlement_unit} options={presets.s} onChange={(v) => setF({ ...f, settlement_unit: v })} /></label>
         <label className="row">默认价格（元/计价单位）：<input value={f.default_price} onChange={set('default_price')} placeholder="可空，新客户默认用它" /></label>
         <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} /></label>
         {f.conversion_unit.trim() !== '' && (
@@ -874,6 +870,26 @@ function PresetEditor({ label, value, onChange }) {
         onKeyDown={(e) => { if (e.key === 'Enter' && draft.trim()) { e.preventDefault(); set([...items, draft.trim()]); setDraft('') } }} />
       <button type="button" className="secondary" style={{ marginLeft: 6 }} onClick={() => { if (draft.trim()) { set([...items, draft.trim()]); setDraft('') } }}>添加</button>
     </div>
+  )
+}
+
+function UnitSelect({ value, options, onChange, allowEmpty, emptyLabel }) {
+  const known = options || []
+  const isCustom = value !== '' && !known.includes(value)
+  const [custom, setCustom] = useState(isCustom)
+  useEffect(() => { setCustom(value !== '' && !known.includes(value)) }, [value, known.join('|')])
+  return (
+    <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+      <select value={custom ? '__custom__' : value} onChange={(e) => {
+        if (e.target.value === '__custom__') { setCustom(true); onChange('') } else { setCustom(false); onChange(e.target.value) }
+      }}>
+        {allowEmpty && <option value="">{emptyLabel || '无'}</option>}
+        {!allowEmpty && <option value="">请选择</option>}
+        {known.map((u) => <option key={u} value={u}>{u}</option>)}
+        <option value="__custom__">自定义…</option>
+      </select>
+      {custom && <input style={{ width: 110 }} value={value} placeholder="输入单位" onChange={(e) => onChange(e.target.value)} />}
+    </span>
   )
 }
 
