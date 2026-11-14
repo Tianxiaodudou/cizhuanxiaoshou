@@ -19,12 +19,12 @@ jobs:
       - name: Bump version
         id: bump
         run: |
-          cur="$(cat VERSION | tr -d '[:space:]')"
+          cur="$(sed 's/^\xEF\xBB\xBF//' VERSION | tr -d '[:space:]')"
           major="$(echo "$cur" | cut -d. -f1)"
           minor="$(echo "$cur" | cut -d. -f2)"
           patch="$(echo "$cur" | cut -d. -f3)"
           new="$major.$minor.$((patch + 1))"
-          echo "$new" > VERSION
+          printf '%s' "$new" > VERSION
           sed -i -E "s/^[[:space:]]*version[[:space:]]*=.*/version               = $new/" packaging/czxs-go/manifest
           echo "version=$new" >> "$GITHUB_OUTPUT"
           echo "bumped to $new"
