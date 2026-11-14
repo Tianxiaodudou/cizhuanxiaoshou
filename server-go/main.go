@@ -245,6 +245,12 @@ func fail(w http.ResponseWriter, code int, c, m string) {
 func f2(v float64) string { return strconv.FormatFloat(v+0.0000001, 'f', 2, 64) }
 func bd(s string) float64 { v, _ := strconv.ParseFloat(strings.TrimSpace(s), 64); return v }
 
+func (a *App) isAdminAccount(id int64) bool {
+	var role string
+	_ = a.db.QueryRow(`SELECT role FROM accounts WHERE id=?`, id).Scan(&role)
+	return role == "admin"
+}
+
 func (a *App) auth(r *http.Request) (int64, bool) {
 	h := r.Header.Get("Authorization")
 	if !strings.HasPrefix(h, "Bearer ") {
@@ -342,9 +348,9 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		_ = a.db.QueryRow(`SELECT name,role FROM accounts WHERE id=?`, id).Scan(&n, &role)
 		ok(w, map[string]any{"id": id, "name": n, "role": role})
 	case p == "/categories":
-		a.categories(w, r)
+		a.categories(w, r, id)
 	case strings.HasPrefix(p, "/categories/"):
-		a.categoryItem(w, r, strings.TrimPrefix(p, "/categories/"))
+		a.categoryItem(w, r, strings.TrimPrefix(p, "/categories/"), id)
 	case p == "/customers/search" && r.Method == "GET":
 		q := strings.TrimSpace(r.URL.Query().Get("q"))
 		list := []map[string]any{}
@@ -576,7 +582,7 @@ type Category struct {
 	DefaultPrice   string  `json:"default_price"`
 }
 
-func (a *App) categories(w http.ResponseWriter, r *http.Request) {
+func (a *App) categories(w http.ResponseWriter, r *http.Request, acc int64) {
 	if r.Method == "GET" {
 		rows, _ := a.db.Query(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE status!='deleted' ORDER BY id DESC`)
 		list := []Category{}
@@ -589,6 +595,10 @@ func (a *App) categories(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		ok(w, list)
+		return
+	}
+	if !a.isAdminAccount(acc) {
+		fail(w, 403, "FORBIDDEN", "仅管理员可维护型号库")
 		return
 	}
 	var in Category
@@ -618,7 +628,11 @@ func (a *App) categories(w http.ResponseWriter, r *http.Request) {
 	ok(w, map[string]any{"id": id})
 }
 
-func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string) {
+func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string, acc int64) {
+	if !a.isAdminAccount(acc) {
+		fail(w, 403, "FORBIDDEN", "仅管理员可维护型号库")
+		return
+	}
 	parts := strings.Split(rest, "/")
 	id, _ := strconv.ParseInt(parts[0], 10, 64)
 	if id <= 0 {

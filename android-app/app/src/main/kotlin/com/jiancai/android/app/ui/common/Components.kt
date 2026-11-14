@@ -42,6 +42,7 @@ fun PageScaffold(
     title: String,
     onBack: (() -> Unit)? = null,
     bottomBar: @Composable () -> Unit = {},
+    scroll: Boolean = true,
     content: @Composable (Modifier) -> Unit,
 ) {
     Scaffold(
@@ -59,10 +60,8 @@ fun PageScaffold(
         },
         bottomBar = bottomBar,
     ) { inner ->
-        val modifier = Modifier
-            .fillMaxWidth()
-            .padding(inner)
-            .verticalScroll(rememberScrollState())
+        val base = Modifier.fillMaxWidth().padding(inner)
+        val modifier = if (scroll) base.verticalScroll(rememberScrollState()) else base
         content(modifier)
     }
 }

@@ -81,6 +81,7 @@ class CzxsApi(private val prefs: SharedPreferences) {
         type: String,
         phone: String,
         name: String,
+        address: String,
         remark: String,
         items: List<JSONObject>,
     ): JSONObject {
@@ -89,6 +90,7 @@ class CzxsApi(private val prefs: SharedPreferences) {
             .put("type", type)
             .put("phone", phone)
             .put("customer_name", name)
+            .put("address", address)
             .put("remark", remark)
             .put("items", JSONArray(items))
         return request("POST", "/api/orders", body).getJSONObject("data")

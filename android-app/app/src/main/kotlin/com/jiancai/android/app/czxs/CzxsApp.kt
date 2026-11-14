@@ -83,7 +83,8 @@ private val TABS = listOf("单据" to Route.Orders, "查询" to Route.Query, "�
 /** czxs 客户端根：登录守卫 + 底栏 + 页面栈（单 Activity，状态驱动）。 */
 @Composable
 fun CzxsApp(api: CzxsApi) {
-    var route by remember { mutableStateOf<Route>(if (api.token.isNullOrBlank()) Route.Login else Route.Home) }
+    val stack = remember { mutableStateListOf<Route>(if (api.token.isNullOrBlank()) Route.Login else Route.Home) }
+    val route = stack.last()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -91,11 +92,17 @@ fun CzxsApp(api: CzxsApi) {
         route == Route.Categories || route == Route.Settlement || route == Route.Settings
 
     fun goBack() {
-        route = Route.Home
+        if (stack.size > 1) stack.removeAt(stack.lastIndex)
     }
 
+    fun navigate(r: Route) {
+        if (stack.lastOrNull() != r) stack.add(r)
+    }
+
+    androidx.activity.compose.BackHandler(enabled = stack.size > 1) { goBack() }
+
     if (route == Route.Login) {
-        LoginScreen(api) { route = Route.Home }
+        LoginScreen(api) { stack.clear(); stack.add(Route.Home) }
         return
     }
 
@@ -109,10 +116,10 @@ fun CzxsApp(api: CzxsApi) {
                 CzxsDrawerContent(
                     api = api,
                     current = route,
-                    onNavigate = { route = it; scope.launch { drawerState.close() } },
+                    onNavigate = { navigate(it); scope.launch { drawerState.close() } },
                     onLogout = {
                         api.logout()
-                        route = Route.Login
+                        stack.clear(); stack.add(Route.Login)
                         scope.launch { drawerState.close() }
                     },
                 )
@@ -121,18 +128,18 @@ fun CzxsApp(api: CzxsApi) {
     ) {
         val current = route
         when (current) {
-            Route.Home -> HomeScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query }, onNavigate = { route = it })
-            Route.Orders -> OrdersScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query }, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
-            Route.PrintJobs -> PrintScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query })
-            Route.Categories -> CategoriesScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query })
-            Route.Settlement -> SettlementScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query })
-            Route.Settings -> SettingsScreen(api, onMenu = openDrawer, onBack = { route = Route.Home }) { route = Route.Login }
+            Route.Home -> HomeScreen(api, onMenu = openDrawer, onSearch = { navigate(Route.Query) }, onNavigate = { navigate(it) })
+            Route.Orders -> OrdersScreen(api, onMenu = openDrawer, onSearch = { navigate(Route.Query) }, onBack = ::goBack) { id -> navigate(Route.Order("edit", id)) }
+            Route.PrintJobs -> PrintScreen(api, onMenu = openDrawer, onSearch = { navigate(Route.Query) })
+            Route.Categories -> CategoriesScreen(api, onMenu = openDrawer, onSearch = { navigate(Route.Query) })
+            Route.Settlement -> SettlementScreen(api, onMenu = openDrawer, onSearch = { navigate(Route.Query) })
+            Route.Settings -> SettingsScreen(api, onMenu = openDrawer, onBack = ::goBack) { stack.clear(); stack.add(Route.Login) }
             Route.Query -> QueryScreen(api, onBack = ::goBack)
             Route.Today -> TodayScreen(api, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
-            Route.Note -> NoteScreen(api, onPick = { route = Route.PickOrder }, onBack = ::goBack)
+            Route.Note -> NoteScreen(api, onPick = { navigate(Route.PickOrder) }, onBack = ::goBack)
             Route.PickOrder -> PickOrderScreen(api, onBack = ::goBack)
-            is Route.Order -> OrderScreen(api, current.type, current.orderId, onBack = ::goBack) { route = Route.Home }
-            is Route.Payment -> PaymentScreen(api, current.type, onBack = ::goBack) { route = Route.Home }
+            is Route.Order -> OrderScreen(api, current.type, current.orderId, onBack = ::goBack) { stack.clear(); stack.add(Route.Home) }
+            is Route.Payment -> PaymentScreen(api, current.type, onBack = ::goBack) { stack.clear(); stack.add(Route.Home) }
             Route.Login -> Unit
         }
     }
@@ -328,6 +335,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
 
     var phone by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
     var nameLocked by remember { mutableStateOf(false) }
     var remark by remember { mutableStateOf("") }
     var categories by remember { mutableStateOf(emptyList<JSONObject>()) }
@@ -353,6 +361,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 val order = withContext(Dispatchers.IO) { api.order(orderId) }
                 phone = order.optString("customer_phone")
                 name = order.optString("customer_name")
+                address = order.optString("customer_address")
                 nameLocked = true
                 remark = order.optString("remark")
                 version = order.optInt("version", 1)
@@ -365,7 +374,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                     lines += DraftLine(
                         key = seq++,
                         categoryId = it.optLong("category_id"),
-                        categoryName = it.optString("category_name"),
+                        categoryName = it.optString("name"),
                         batchType = cat?.optString("batch_type") ?: "none",
                         batchTag = it.optString("batch_tag"),
                         units = unitsOf(cat),
@@ -384,6 +393,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
     fun applyCustomer(c: JSONObject) {
         phone = c.optString("phone")
         name = c.optString("name")
+        address = c.optString("addr")
         nameLocked = true
         priceMode = c.optString("price_mode", "open")
         matches = emptyList()
@@ -494,7 +504,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 }
                 val result = withContext(Dispatchers.IO) {
                     if (orderId != null) api.updateOrder(orderId, version, remark, items)
-                    else api.createOrder(type, phone, name, remark, items)
+                    else api.createOrder(type, phone, name, address, remark, items)
                 }
                 submitted = result
             } catch (e: ApiException) {
@@ -519,6 +529,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                     Text("${c.optString("name")} / ${c.optString("phone")} / ${c.optString("addr").ifBlank { "无地址" }}")
                 }
             }
+            AppTextField("客户地址", address, { address = it })
             AppTextField(
                 "客户姓名",
                 name,
@@ -723,7 +734,7 @@ private fun QueryScreen(api: CzxsApi, onBack: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
 
-    PageScaffold("查询", onBack = onBack, bottomBar = { BottomTabs(Route.Query, {}) }) { modifier ->
+    PageScaffold("查询", onBack = onBack, scroll = false) { modifier ->
         Column(modifier.padding(PagePadding)) {
             AppTextField("客户电话", phone, { phone = it }, numeric = true)
             Button(
@@ -792,7 +803,7 @@ private fun TodayScreen(api: CzxsApi, onBack: () -> Unit, onEdit: (Long) -> Unit
         }
     }
 
-    PageScaffold("改当日单", onBack = onBack, bottomBar = { BottomTabs(Route.Today, {}) }) { modifier ->
+    PageScaffold("改当日单", onBack = onBack, scroll = false) { modifier ->
         Column(modifier.padding(PagePadding)) {
             error?.let { ErrorText(it) }
             if (loading) LoadingRow()
