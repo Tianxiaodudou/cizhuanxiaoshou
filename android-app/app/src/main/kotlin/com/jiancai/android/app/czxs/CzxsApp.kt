@@ -1422,34 +1422,166 @@ private fun PrintScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) 
 private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) {
     var list by remember { mutableStateOf(listOf<JSONObject>()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var keyword by remember { mutableStateOf("") }
+    var editTarget by remember { mutableStateOf<JSONObject?>(null) }
+    var showEditor by remember { mutableStateOf(false) }
+    var unitsS by remember { mutableStateOf(emptyList<String>()) }
+    var unitsC by remember { mutableStateOf(emptyList<String>()) }
+    val scope = rememberCoroutineScope()
+
+    fun reload() {
+        scope.launch {
+            try {
+                list = withContext(Dispatchers.IO) { api.categories() }.let { arr -> (0 until arr.length()).map { arr.getJSONObject(it) } }
+            } catch (e: Exception) { error = e.message }
+        }
+    }
 
     LaunchedEffect(Unit) {
-        try {
-            list = withContext(Dispatchers.IO) { api.categories() }.let { arr -> (0 until arr.length()).map { arr.getJSONObject(it) } }
-        } catch (e: Exception) { error = e.message }
+        reload()
+        runCatching {
+            unitsS = withContext(Dispatchers.IO) { api.presets("settlement_units", emptyList()) }
+            unitsC = withContext(Dispatchers.IO) { api.presets("conversion_units", emptyList()) }
+        }
+    }
+
+    val filtered = list.filter {
+        keyword.isBlank() || it.optString("group").contains(keyword) || it.optString("name").contains(keyword) || it.optString("batch").contains(keyword)
     }
 
     AppScaffold("型号库", onMenu = onMenu, onSearch = onSearch) { inner ->
         Column(Modifier.fillMaxWidth().padding(inner).padding(PagePadding)) {
             error?.let { ErrorText(it) }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                AppTextField("搜索品类/型号/批号", keyword, { keyword = it }, modifier = Modifier.weight(1f))
+                if (api.isAdmin) {
+                    Button(onClick = { editTarget = null; showEditor = true }) { Text("新增") }
+                }
+            }
+            Text(if (api.isAdmin) "管理员可维护型号库" else "业务员只读", style = MaterialTheme.typography.bodySmall)
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(list.size) { index ->
-                    val c = list[index]
+                items(filtered.size) { index ->
+                    val c = filtered[index]
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(10.dp)) {
                             Text("${c.optString("group")} · ${c.optString("name")}", fontWeight = FontWeight.SemiBold)
                             Text(
-                                "批号 ${c.optString("batch").ifBlank { "无" }}　计价单位 ${c.optString("settlement_unit")}" +
-                                    (c.optString("conversion_unit").takeIf { it.isNotBlank() }?.let { "　换算 $it" } ?: ""),
+                                "批号 ${c.optString("batch").ifBlank { "无" }}　计价 ${c.optString("settlement_unit")}" +
+                                    (c.optString("conversion_unit").takeIf { it.isNotBlank() }?.let { "　换算 $it（1$it=${c.optString("conversion")}${c.optString("settlement_unit")}）" } ?: ""),
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            Text("默认价 ${c.optString("default_price").ifBlank { "无" }}　${c.optString("status")}", style = MaterialTheme.typography.bodySmall)
+                            Text("默认价 ${c.optString("default_price").ifBlank { "无" }}　${if (c.optString("status") == "active") "启用" else "禁用"}", style = MaterialTheme.typography.bodySmall)
+                            if (api.isAdmin) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    OutlinedButton(onClick = { editTarget = c; showEditor = true }) { Text("编辑") }
+                                    OutlinedButton(onClick = {
+                                        scope.launch {
+                                            try {
+                                                withContext(Dispatchers.IO) { api.deleteCategory(c.optLong("id")) }
+                                                reload()
+                                            } catch (e: Exception) { error = e.message }
+                                        }
+                                    }) { Text("删除") }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
+
+    if (showEditor) {
+        CategoryEditorDialog(
+            initial = editTarget,
+            settlementUnits = unitsS,
+            conversionUnits = unitsC,
+            onDismiss = { showEditor = false },
+            onSave = { body ->
+                scope.launch {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val id = editTarget?.optLong("id") ?: 0L
+                            if (id > 0) api.updateCategory(id, body) else api.createCategory(body)
+                        }
+                        showEditor = false
+                        reload()
+                    } catch (e: Exception) { error = e.message }
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun CategoryEditorDialog(
+    initial: JSONObject?,
+    settlementUnits: List<String>,
+    conversionUnits: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (JSONObject) -> Unit,
+) {
+    var group by remember { mutableStateOf(initial?.optString("group") ?: "") }
+    var name by remember { mutableStateOf(initial?.optString("name") ?: "") }
+    var batch by remember { mutableStateOf(initial?.optString("batch") ?: "") }
+    var unit by remember { mutableStateOf(initial?.optString("settlement_unit") ?: "") }
+    var convUnit by remember { mutableStateOf(initial?.optString("conversion_unit") ?: "") }
+    var conversion by remember { mutableStateOf(initial?.optString("conversion") ?: "1") }
+    var defaultPrice by remember { mutableStateOf(initial?.optString("default_price") ?: "") }
+    var unitMenu by remember { mutableStateOf(false) }
+    var convMenu by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                if (group.isBlank() || name.isBlank() || unit.isBlank()) {
+                    err = "品类、型号、计价单位必填"
+                    return@TextButton
+                }
+                onSave(
+                    JSONObject()
+                        .put("group", group)
+                        .put("name", name)
+                        .put("batch", batch.ifBlank { name })
+                        .put("settlement_unit", unit)
+                        .put("conversion_unit", convUnit)
+                        .put("conversion", conversion.ifBlank { "1" })
+                        .put("default_price", defaultPrice),
+                )
+            }) { Text("保存") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+        title = { Text(if (initial == null) "新增型号" else "编辑型号") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                AppTextField("品类", group, { group = it })
+                AppTextField("型号", name, { name = it })
+                AppTextField("批号（留空=型号）", batch, { batch = it })
+                Box {
+                    OutlinedButton(onClick = { unitMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("计价单位：${unit.ifBlank { "请选择" }}")
+                    }
+                    DropdownMenu(expanded = unitMenu, onDismissRequest = { unitMenu = false }) {
+                        settlementUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { unitMenu = false; unit = u }) }
+                    }
+                }
+                Box {
+                    OutlinedButton(onClick = { convMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("换算单位：${convUnit.ifBlank { "无" }}")
+                    }
+                    DropdownMenu(expanded = convMenu, onDismissRequest = { convMenu = false }) {
+                        DropdownMenuItem(text = { Text("无") }, onClick = { convMenu = false; convUnit = "" })
+                        conversionUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { convMenu = false; convUnit = u }) }
+                    }
+                }
+                AppTextField("换算系数", conversion, { conversion = it }, numeric = true)
+                AppTextField("默认价", defaultPrice, { defaultPrice = it }, numeric = true)
+                err?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        },
+    )
 }
 
 // ---------- 设置 ----------

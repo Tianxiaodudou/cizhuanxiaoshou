@@ -53,6 +53,12 @@ class CzxsApi(private val prefs: SharedPreferences) {
 
     fun categories(): JSONArray = request("GET", "/api/categories").getJSONArray("data")
 
+    fun createCategory(body: JSONObject) = request("POST", "/api/categories", body)
+
+    fun updateCategory(id: Long, body: JSONObject) = request("PUT", "/api/categories/$id", body)
+
+    fun deleteCategory(id: Long) = request("DELETE", "/api/categories/$id")
+
     fun customer(phone: String): JSONObject =
         request("GET", "/api/customers", query = mapOf("phone" to phone)).getJSONObject("data")
 

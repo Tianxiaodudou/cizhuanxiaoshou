@@ -1,25 +1,55 @@
-name: Release FPK
+name: Release (FPK + APK)
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version
+        id: bump
+        run: |
+          cur="$(cat VERSION | tr -d '[:space:]')"
+          major="$(echo "$cur" | cut -d. -f1)"
+          minor="$(echo "$cur" | cut -d. -f2)"
+          patch="$(echo "$cur" | cut -d. -f3)"
+          new="$major.$minor.$((patch + 1))"
+          echo "$new" > VERSION
+          sed -i -E "s/^[[:space:]]*version[[:space:]]*=.*/version               = $new/" packaging/czxs-go/manifest
+          echo "version=$new" >> "$GITHUB_OUTPUT"
+          echo "bumped to $new"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION packaging/czxs-go/manifest
+          git commit -m "release: v${{ steps.bump.outputs.version }}"
+          git push
+
+  fpk:
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Build web (React + Vite)
+      - name: Build web
         working-directory: web
         run: |
           npm install
@@ -31,34 +61,59 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Test Go server
-        working-directory: server-go
-        run: go test ./...
-
-      - name: Build Go server (linux/amd64)
+      - name: Test + build Go server
         working-directory: server-go
         env:
           CGO_ENABLED: '0'
           GOOS: linux
           GOARCH: amd64
-        run: go build -trimpath -ldflags="-s -w" -o ../packaging/czxs-go/app/bin/czxs .
-
-      - name: Download fnpack
         run: |
-          curl -fsSL -o fnpack https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64
-          chmod +x fnpack
+          go test ./...
+          go build -trimpath -ldflags="-s -w" -o ../packaging/czxs-go/app/bin/czxs .
 
       - name: Build FPK
-        run: ./fnpack build --directory packaging/czxs-go
+        run: |
+          curl -fsSL https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64 -o fnpack
+          chmod +x fnpack
+          ./fnpack build --directory packaging/czxs-go
 
       - uses: actions/upload-artifact@v4
         with:
           name: czxs-fpk
           path: ./*.fpk
 
+  apk:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: chmod +x gradlew
+
+      - name: Build APK
+        run: ./gradlew :android-app:app:assembleDebug --no-daemon
+
+      - name: Collect APK
+        run: |
+          mkdir -p out
+          find android-app/app/build/outputs/apk -name '*.apk' -exec cp {} out/czxs-client-${{ needs.prepare.outputs.version }}.apk \;
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: czxs-apk
+          path: out/*.apk
+
   publish:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [prepare, fpk, apk]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -66,8 +121,22 @@ jobs:
           name: czxs-fpk
           path: dist
 
-      - name: Publish GitHub Release
+      - uses: actions/download-artifact@v4
+        with:
+          name: czxs-apk
+          path: dist
+
+      - name: Rename FPK
+        run: |
+          for f in dist/*.fpk; do
+            mv "$f" "dist/czxs_${{ needs.prepare.outputs.version }}_x86_64.fpk"
+          done
+          ls -l dist
+
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          body: 服务端功能暂且完善
-          files: dist/*.fpk
+          tag_name: v${{ needs.prepare.outputs.version }}
+          name: v${{ needs.prepare.outputs.version }}
+          body: 服务端 FPK + Android 客户端 APK
+          files: dist/*

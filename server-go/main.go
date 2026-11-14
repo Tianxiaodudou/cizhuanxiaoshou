@@ -535,7 +535,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(p, "/accounts/"):
 		a.accountItem(w, r, strings.TrimPrefix(p, "/accounts/"))
 	case p == "/settings":
-		a.settings(w, r)
+		a.settings(w, r, id)
 	case p == "/dashboard":
 		ok(w, a.dashboard())
 	default:
@@ -1373,7 +1373,7 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 	}
 }
 
-func (a *App) settings(w http.ResponseWriter, r *http.Request) {
+func (a *App) settings(w http.ResponseWriter, r *http.Request, acc int64) {
 	if r.Method == "GET" {
 		rows, _ := a.db.Query(`SELECT k,v FROM settings`)
 		m := map[string]string{}
@@ -1386,6 +1386,10 @@ func (a *App) settings(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		ok(w, m)
+		return
+	}
+	if !a.isAdminAccount(acc) {
+		fail(w, 403, "FORBIDDEN", "仅管理员可修改系统配置")
 		return
 	}
 	var in map[string]string
