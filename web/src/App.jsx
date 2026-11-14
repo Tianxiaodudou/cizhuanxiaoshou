@@ -859,15 +859,42 @@ function PresetEditor({ label, value, onChange }) {
   )
 }
 
-function PresetField({ label, value, onChange, open }) {
+function PresetField({ label, value, onChange }) {
   const items = value ? value.split(',').map((x) => x.trim()).filter(Boolean) : []
+  const [draft, setDraft] = useState('')
+  const set = (arr) => onChange(arr.join(','))
+  const move = (i, d) => {
+    const a = [...items]; const j = i + d
+    if (j < 0 || j >= a.length) return
+    ;[a[i], a[j]] = [a[j], a[i]]
+    set(a)
+  }
   return (
-    <details className="preset" open={open}>
+    <details className="preset">
       <summary>
-        <span>{label}</span>
-        <span className="muted">{items.length ? `${items.length} 项 · ${items.map((x, i) => `${i + 1}.${x}`).join('  ')}` : '未设置'}</span>
+        <span>{label}：</span>
+        <span className="muted" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {items.length ? items.map((x, i) => `${i + 1}.${x}`).join('、') : '未设置'}
+        </span>
       </summary>
-      <PresetEditor label="拖动顺序即选择顺序（↑↓ 调整）" value={value} onChange={onChange} />
+      <div>
+        {items.map((it, i) => (
+          <div key={it + i} className="preset-item">
+            <span className="idx">{i + 1}.</span>
+            <span className="name">{it}</span>
+            <span className="ops">
+              <button type="button" className="secondary" onClick={() => move(i, -1)}>↑</button>
+              <button type="button" className="secondary" onClick={() => move(i, 1)}>↓</button>
+              <button type="button" className="danger" onClick={() => set(items.filter((_, k) => k !== i))}>删</button>
+            </span>
+          </div>
+        ))}
+        <div className="row" style={{ marginTop: 6 }}>
+          <input value={draft} placeholder="新增一项，回车确认" onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && draft.trim()) { e.preventDefault(); set([...items, draft.trim()]); setDraft('') } }} />
+          <button type="button" className="secondary" onClick={() => { if (draft.trim()) { set([...items, draft.trim()]); setDraft('') } }}>添加</button>
+        </div>
+      </div>
     </details>
   )
 }
