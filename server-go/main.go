@@ -1057,16 +1057,17 @@ func (a *App) order(oid int64) map[string]any {
 		return nil
 	}
 	items := []map[string]any{}
-	rows, _ := a.db.Query(`SELECT i.category_id,c.grp,c.name,c.batch,i.batch_tag,i.input_unit,i.input_quantity,i.settlement_unit,i.settlement_quantity,i.unit_price,i.line_total
+	rows, _ := a.db.Query(`SELECT i.category_id,c.grp,c.name,c.batch,i.batch_tag,i.input_unit,i.input_quantity,i.settlement_unit,i.settlement_quantity,i.unit_price,i.line_total,COALESCE(c.conversion_unit,''),COALESCE(c.conversion,1)
 		FROM order_items i JOIN categories c ON c.id=i.category_id WHERE i.order_id=?`, oid)
 	if rows != nil {
 		defer rows.Close()
 		for rows.Next() {
 			var catID int64
-			var grp, nm, bat, bt, iu, iq, su, sq, up, lt string
-			_ = rows.Scan(&catID, &grp, &nm, &bat, &bt, &iu, &iq, &su, &sq, &up, &lt)
+			var grp, nm, bat, bt, iu, iq, su, sq, up, lt, cu string
+			var conv float64
+			_ = rows.Scan(&catID, &grp, &nm, &bat, &bt, &iu, &iq, &su, &sq, &up, &lt, &cu, &conv)
 			items = append(items, map[string]any{"category_id": catID, "group": grp, "name": nm, "batch": bat, "batch_tag": bt,
-				"input_unit": iu, "input_quantity": iq, "settlement_unit": su, "settlement_quantity": sq, "unit_price": up, "line_total": lt})
+				"input_unit": iu, "input_quantity": iq, "settlement_unit": su, "settlement_quantity": sq, "unit_price": up, "line_total": lt, "conversion_unit": cu, "conversion": conv})
 		}
 	}
 	var cum float64

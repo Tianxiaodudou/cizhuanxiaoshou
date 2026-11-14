@@ -118,7 +118,10 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
         <thead><tr><th>序号</th><th>品类</th><th>型号</th><th>批号</th><th>录入</th><th>结算</th><th>单价</th><th>小计</th>{editing && <th>排序</th>}</tr></thead>
         <tbody>{lines.map((i, k) => (
           <tr key={i.id || k}><td>{k + 1}</td><td>{i.group}</td><td>{i.name}</td><td>{i.batch_tag}</td>
-            <td>{editing ? (<><input style={{ width: 80 }} value={lines[k].input_quantity} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_quantity: e.target.value } : x))} /> <span>{i.input_unit}</span></>) : `${i.input_quantity}${i.input_unit}`}</td>
+            <td>{editing ? (<><input style={{ width: 80 }} value={lines[k].input_quantity} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_quantity: e.target.value } : x))} />
+              <select value={lines[k].input_unit} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, input_unit: e.target.value } : x))}>
+                {[i.settlement_unit, i.conversion_unit].filter((u, idx, arr) => u && arr.indexOf(u) === idx).map((u) => <option key={u} value={u}>{u}</option>)}
+              </select></>) : `${i.input_quantity}${i.input_unit}`}</td>
             <td>{i.settlement_quantity}{i.settlement_unit}</td>
             <td>{blindPrice ? '***' : (editing ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price)}</td>
             <td>{blindPrice ? '***' : i.line_total}</td>
@@ -623,7 +626,11 @@ function CategoryModal({ init, onClose, onDone }) {
         <label className="row">一级 品类：<input value={f.group} onChange={set('group')} required /></label>
         <label className="row">二级 型号：<input value={f.name} onChange={set('name')} required /></label>
         <label className="row">三级 批号（可空，保存时默认等于型号）：<input value={f.batch} onChange={set('batch')} placeholder="留空则自动用型号作为批号" /></label>
-        <label className="row">四级 计价单位：<input list="unit-s" value={f.settlement_unit} onChange={set('settlement_unit')} required /><datalist id="unit-s">{presets.s.map((u) => <option key={u} value={u} />)}</datalist></label>
+        <label className="row">四级 计价单位：<select value={f.settlement_unit} onChange={set('settlement_unit')} required>
+                <option value="">请选择</option>
+                {presets.s.map((u) => <option key={u} value={u}>{u}</option>)}
+                {f.settlement_unit && !presets.s.includes(f.settlement_unit) && <option value={f.settlement_unit}>{f.settlement_unit}</option>}
+              </select></label>
         <label className="row">默认价格（元/计价单位）：<input value={f.default_price} onChange={set('default_price')} placeholder="可空，新客户默认用它" /></label>
         <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} /></label>
         {f.conversion_unit.trim() !== '' && (
