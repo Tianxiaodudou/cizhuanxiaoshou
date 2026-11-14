@@ -270,39 +270,91 @@ private fun LoginScreen(api: CzxsApi, onLoggedIn: () -> Unit) {
 // ---------- 首页 ----------
 @Composable
 private fun HomeScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit, onNavigate: (Route) -> Unit) {
-    AppScaffold("首页", onMenu = onMenu, onSearch = onSearch) { inner ->
-        Column(
-            Modifier.fillMaxWidth().padding(inner).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text("店员：${api.accountName.ifBlank { "未登录" }}", style = MaterialTheme.typography.titleMedium)
+    var orders by remember { mutableStateOf(listOf<JSONObject>()) }
+    var detail by remember { mutableStateOf<JSONObject?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var loading by remember { mutableStateOf(true) }
 
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OrderEntry("配送", Modifier.weight(1f)) { onNavigate(Route.Order("delivery")) }
-                        OrderEntry("配退", Modifier.weight(1f)) { onNavigate(Route.Order("delivery_return")) }
+    LaunchedEffect(Unit) {
+        try {
+            orders = withContext(Dispatchers.IO) { api.today() }.let { arr -> (0 until arr.length()).map { arr.getJSONObject(it) } }
+        } catch (e: Exception) {
+            error = e.message
+        } finally {
+            loading = false
+        }
+    }
+
+    AppScaffold("首页", onMenu = onMenu, onSearch = onSearch) { inner ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(inner).padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("店员：${api.accountName.ifBlank { "未登录" }}", style = MaterialTheme.typography.titleMedium)
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                OrderEntry("配送", Modifier.weight(1f)) { onNavigate(Route.Order("delivery")) }
+                                OrderEntry("配退", Modifier.weight(1f)) { onNavigate(Route.Order("delivery_return")) }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                OrderEntry("自送", Modifier.weight(1f)) { onNavigate(Route.Order("pickup")) }
+                                OrderEntry("自退", Modifier.weight(1f)) { onNavigate(Route.Order("pickup_return")) }
+                            }
+                        }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OrderEntry("自送", Modifier.weight(1f)) { onNavigate(Route.Order("pickup")) }
-                        OrderEntry("自退", Modifier.weight(1f)) { onNavigate(Route.Order("pickup_return")) }
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                OrderEntry("备注", Modifier.weight(1f)) { onNavigate(Route.Note) }
+                                OrderEntry("收款", Modifier.weight(1f)) { onNavigate(Route.Payment("receipt")) }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                OrderEntry("退款", Modifier.weight(1f)) { onNavigate(Route.Payment("refund")) }
+                                OrderEntry("结算", Modifier.weight(1f)) { onNavigate(Route.Settlement) }
+                            }
+                        }
                     }
                 }
             }
 
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OrderEntry("备注", Modifier.weight(1f)) { onNavigate(Route.Note) }
-                        OrderEntry("收款", Modifier.weight(1f)) { onNavigate(Route.Payment("receipt")) }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OrderEntry("退款", Modifier.weight(1f)) { onNavigate(Route.Payment("refund")) }
-                        OrderEntry("结算", Modifier.weight(1f)) { onNavigate(Route.Settlement) }
+            item { SectionLabel("今日单据（${orders.size}）") }
+            error?.let { msg -> item { ErrorText(msg) } }
+            if (loading) item { LoadingRow() }
+            if (!loading && orders.isEmpty() && error == null) item { EmptyHint("今天还没有单据") }
+
+            items(orders.size) { index ->
+                val o = orders[index]
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("${o.optString("order_no")}  ${typeLabel(o.optString("type"))}", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "${o.optString("customer_name")}-${o.optString("customer_phone")}-${o.optString("customer_address").ifBlank { "无" }}",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            Text("${amountLabel(o.optString("type"))} ${o.optString("order_total")}")
+                            OutlinedButton(onClick = { detail = o }) { Text("详情") }
+                        }
                     }
                 }
             }
         }
+    }
+
+    detail?.let { o ->
+        OrderDetailDialog(
+            order = o,
+            isAdmin = api.isAdmin,
+            onClose = { detail = null },
+            onEdit = { id -> detail = null; onNavigate(Route.Order("edit", id)) },
+        )
     }
 }
 
