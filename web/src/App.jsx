@@ -859,6 +859,24 @@ function PresetEditor({ label, value, onChange }) {
   )
 }
 
+function PresetField({ label, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const items = value ? value.split(',').map((x) => x.trim()).filter(Boolean) : []
+  return (
+    <div className="row" style={{ justifyContent: 'space-between' }}>
+      <span>{label}：<span className="muted">{items.length ? items.map((x, i) => `${i + 1}.${x}`).join('  ') : '未设置'}</span></span>
+      <button type="button" className="secondary" onClick={() => setOpen(true)}>编辑</button>
+      {open && (
+        <Modal width={560} onClose={() => setOpen(false)}>
+          <h3>{label}</h3>
+          <PresetEditor label="顺序即选择顺序" value={value} onChange={onChange} />
+          <div style={{ marginTop: 8 }}><button onClick={() => setOpen(false)}>完成</button></div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
 function Settings() {
   const [s, setS] = useState({})
   const [msg, setMsg] = useState('')
@@ -868,10 +886,10 @@ function Settings() {
       <h2>系统配置</h2>
       <p>商家名称：<input value={s.merchant_name || ''} onChange={(e) => setS({ ...s, merchant_name: e.target.value })} /></p>
       <p>API 端口：<input value={s.api_port || '9527'} onChange={(e) => setS({ ...s, api_port: e.target.value })} /></p>
-      <PresetEditor label="计价单位预设（顺序即选择顺序）" value={s.settlement_units || ''} onChange={(v) => setS({ ...s, settlement_units: v })} />
-      <PresetEditor label="换算单位预设（顺序即选择顺序）" value={s.conversion_units || ''} onChange={(v) => setS({ ...s, conversion_units: v })} />
-      <PresetEditor label="付款方式预设（顺序即选择顺序）" value={s.payment_methods || ''} onChange={(v) => setS({ ...s, payment_methods: v })} />
-      <PresetEditor label="优惠方式预设（顺序即选择顺序）" value={s.discount_types || ''} onChange={(v) => setS({ ...s, discount_types: v })} />
+      <PresetField label="计价单位预设" value={s.settlement_units || ''} onChange={(v) => setS({ ...s, settlement_units: v })} />
+      <PresetField label="换算单位预设" value={s.conversion_units || ''} onChange={(v) => setS({ ...s, conversion_units: v })} />
+      <PresetField label="付款方式预设" value={s.payment_methods || ''} onChange={(v) => setS({ ...s, payment_methods: v })} />
+      <PresetField label="优惠方式预设" value={s.discount_types || ''} onChange={(v) => setS({ ...s, discount_types: v })} />
       <p>小票宽度：<select value={s.print_width || '80mm'} onChange={(e) => setS({ ...s, print_width: e.target.value })}><option>80mm</option><option>58mm</option></select></p>
       <button onClick={async () => { await api('/api/settings', { method: 'POST', body: JSON.stringify(s) }); setMsg('已保存') }}>保存</button>
       {msg && <span style={{ marginLeft: 8 }}>{msg}</span>}
