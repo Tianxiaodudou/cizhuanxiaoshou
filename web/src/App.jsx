@@ -831,7 +831,18 @@ function Settlement() {
 function PresetEditor({ label, value, onChange }) {
   const items = value ? value.split(',').map((x) => x.trim()).filter(Boolean) : []
   const [draft, setDraft] = useState('')
-  const set = (arr) => onChange(arr.join(','))
+  const [saved, setSaved] = useState('')
+  const set = async (arr) => {
+    const v = arr.join(',')
+    onChange(v)
+    if (settingKey) {
+      try {
+        await api('/api/settings', { method: 'POST', body: JSON.stringify({ [settingKey]: v }) })
+        setSaved('已保存')
+        setTimeout(() => setSaved(''), 1500)
+      } catch (e) { setSaved('保存失败：' + e.message) }
+    }
+  }
   const move = (i, d) => {
     const a = [...items]; const j = i + d
     if (j < 0 || j >= a.length) return
@@ -859,10 +870,21 @@ function PresetEditor({ label, value, onChange }) {
   )
 }
 
-function PresetField({ label, value, onChange }) {
+function PresetField({ label, settingKey, value, onChange }) {
   const items = value ? value.split(',').map((x) => x.trim()).filter(Boolean) : []
   const [draft, setDraft] = useState('')
-  const set = (arr) => onChange(arr.join(','))
+  const [saved, setSaved] = useState('')
+  const set = async (arr) => {
+    const v = arr.join(',')
+    onChange(v)
+    if (settingKey) {
+      try {
+        await api('/api/settings', { method: 'POST', body: JSON.stringify({ [settingKey]: v }) })
+        setSaved('已保存')
+        setTimeout(() => setSaved(''), 1500)
+      } catch (e) { setSaved('保存失败：' + e.message) }
+    }
+  }
   const move = (i, d) => {
     const a = [...items]; const j = i + d
     if (j < 0 || j >= a.length) return
@@ -874,7 +896,7 @@ function PresetField({ label, value, onChange }) {
       <summary>
         <span>{label}：</span>
         <span className="muted" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {items.length ? items.map((x, i) => `${i + 1}.${x}`).join('、') : '未设置'}
+          {items.length ? items.map((x, i) => `${i + 1}.${x}`).join('、') : '未设置'}{saved ? ` · ${saved}` : ''}
         </span>
       </summary>
       <div>
@@ -908,10 +930,10 @@ function Settings() {
       <h2>系统配置</h2>
       <p>商家名称：<input value={s.merchant_name || ''} onChange={(e) => setS({ ...s, merchant_name: e.target.value })} /></p>
       <p>API 端口：<input value={s.api_port || '9527'} onChange={(e) => setS({ ...s, api_port: e.target.value })} /></p>
-      <PresetField label="计价单位预设" value={s.settlement_units || ''} onChange={(v) => setS({ ...s, settlement_units: v })} />
-      <PresetField label="换算单位预设" value={s.conversion_units || ''} onChange={(v) => setS({ ...s, conversion_units: v })} />
-      <PresetField label="付款方式预设" value={s.payment_methods || ''} onChange={(v) => setS({ ...s, payment_methods: v })} />
-      <PresetField label="优惠方式预设" value={s.discount_types || ''} onChange={(v) => setS({ ...s, discount_types: v })} />
+      <PresetField label="计价单位预设" settingKey="settlement_units" value={s.settlement_units || ''} onChange={(v) => setS({ ...s, settlement_units: v })} />
+      <PresetField label="换算单位预设" settingKey="conversion_units" value={s.conversion_units || ''} onChange={(v) => setS({ ...s, conversion_units: v })} />
+      <PresetField label="付款方式预设" settingKey="payment_methods" value={s.payment_methods || ''} onChange={(v) => setS({ ...s, payment_methods: v })} />
+      <PresetField label="优惠方式预设" settingKey="discount_types" value={s.discount_types || ''} onChange={(v) => setS({ ...s, discount_types: v })} />
       <p>小票宽度：<select value={s.print_width || '80mm'} onChange={(e) => setS({ ...s, print_width: e.target.value })}><option>80mm</option><option>58mm</option></select></p>
       <button onClick={async () => { await api('/api/settings', { method: 'POST', body: JSON.stringify(s) }); setMsg('已保存') }}>保存</button>
       {msg && <span style={{ marginLeft: 8 }}>{msg}</span>}
