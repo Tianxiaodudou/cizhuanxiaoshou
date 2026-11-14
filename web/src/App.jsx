@@ -875,21 +875,13 @@ function PresetEditor({ label, value, onChange }) {
 
 function UnitSelect({ value, options, onChange, allowEmpty, emptyLabel }) {
   const known = options || []
-  const isCustom = value !== '' && !known.includes(value)
-  const [custom, setCustom] = useState(isCustom)
-  useEffect(() => { setCustom(value !== '' && !known.includes(value)) }, [value, known.join('|')])
+  const legacy = value && !known.includes(value) ? value : ''
   return (
-    <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-      <select value={custom ? '__custom__' : value} onChange={(e) => {
-        if (e.target.value === '__custom__') { setCustom(true); onChange('') } else { setCustom(false); onChange(e.target.value) }
-      }}>
-        {allowEmpty && <option value="">{emptyLabel || '无'}</option>}
-        {!allowEmpty && <option value="">请选择</option>}
-        {known.map((u) => <option key={u} value={u}>{u}</option>)}
-        <option value="__custom__">自定义…</option>
-      </select>
-      {custom && <input style={{ width: 110 }} value={value} placeholder="输入单位" onChange={(e) => onChange(e.target.value)} />}
-    </span>
+    <select value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{allowEmpty ? (emptyLabel || '无') : '请选择'}</option>
+      {known.map((u) => <option key={u} value={u}>{u}</option>)}
+      {legacy && <option value={legacy}>{legacy}</option>}
+    </select>
   )
 }
 
