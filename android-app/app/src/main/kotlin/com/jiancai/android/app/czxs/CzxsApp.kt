@@ -1378,28 +1378,145 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
 @Composable
 private fun SettingsScreen(api: CzxsApi, onMenu: () -> Unit, onBack: () -> Unit, onLoggedOut: () -> Unit) {
     var server by remember { mutableStateOf(api.baseUrl) }
-    var print by remember { mutableStateOf<JSONObject?>(null) }
+    var settings by remember { mutableStateOf(JSONObject()) }
     var message by remember { mutableStateOf<String?>(null) }
+    var port by remember { mutableStateOf("") }
+    val editable = api.isAdmin
 
     LaunchedEffect(Unit) {
-        print = runCatching { withContext(Dispatchers.IO) { api.printStatus() } }.getOrNull()
+        runCatching {
+            val st = withContext(Dispatchers.IO) { api.settings() }
+            settings = st
+            port = st.optString("api_port", "9527")
+        }.onFailure { message = it.message }
     }
 
-    PageScaffold("设置", onBack = onBack, bottomBar = { BottomTabs(Route.Settings, {}) }) { modifier ->
-        Column(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            KeyValueRow("当前账号", api.accountName)
-            KeyValueRow("服务端", api.baseUrl + GATEWAY_PREFIX)
-            KeyValueRow("打印机", if (print?.optBoolean("printer_online") == true) "在线" else "离线")
-            KeyValueRow("待打印", print?.optString("pending") ?: "0")
-            SectionLabel("NAS 域名")
-            AppTextField("域名", server, { server = it })
+    AppScaffold("设置", onMenu = onMenu) { inner ->
+        Column(
+            Modifier.fillMaxSize().padding(inner).padding(PagePadding),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            SectionLabel("账号")
+            KeyValueRow("当前账号", "${api.accountName}（${if (api.isAdmin) "管理员" else "业务员"}）")
+
+            SectionLabel("服务端")
+            KeyValueRow("地址", api.baseUrl + GATEWAY_PREFIX)
+            KeyValueRow("商家名称", settings.optString("merchant_name").ifBlank { "未设置" })
+            Text("商家名称在安装向导中初始化，不可修改；如需更改需重装服务端。", style = MaterialTheme.typography.bodySmall)
+            if (editable) {
+                AppTextField("API 端口", port, { port = it }, numeric = true)
+                Button(onClick = {
+                    runCatching { api.saveSetting("api_port", port) }
+                        .onSuccess { message = "端口已保存，重启应用后生效" }
+                        .onFailure { message = "保存失败：${it.message}" }
+                }) { Text("保存端口") }
+            } else {
+                KeyValueRow("API 端口", settings.optString("api_port", "9527"))
+            }
+
+            SectionLabel("小票宽度")
+            if (editable) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("80mm", "58mm").forEach { w ->
+                        val selected = (settings.optString("print_width", "80mm")) == w
+                        if (selected) Button(onClick = {}) { Text(w) } else OutlinedButton(onClick = {
+                            runCatching { api.saveSetting("print_width", w) }
+                                .onSuccess { settings = JSONObject(settings.toString()).put("print_width", w); message = "已保存" }
+                                .onFailure { message = "保存失败：${it.message}" }
+                        }) { Text(w) }
+                    }
+                }
+            } else {
+                KeyValueRow("小票宽度", settings.optString("print_width", "80mm"))
+            }
+
+            PresetSection("计价单位预设", "settlement_units", settings, editable) { k, v ->
+                runCatching { api.saveSetting(k, v) }
+                    .onSuccess { settings = JSONObject(settings.toString()).put(k, v); message = "已保存" }
+                    .onFailure { message = "保存失败：${it.message}" }
+            }
+            PresetSection("换算单位预设", "conversion_units", settings, editable) { k, v ->
+                runCatching { api.saveSetting(k, v) }
+                    .onSuccess { settings = JSONObject(settings.toString()).put(k, v); message = "已保存" }
+                    .onFailure { message = "保存失败：${it.message}" }
+            }
+            PresetSection("付款方式预设", "payment_methods", settings, editable) { k, v ->
+                runCatching { api.saveSetting(k, v) }
+                    .onSuccess { settings = JSONObject(settings.toString()).put(k, v); message = "已保存" }
+                    .onFailure { message = "保存失败：${it.message}" }
+            }
+            PresetSection("优惠方式预设", "discount_types", settings, editable) { k, v ->
+                runCatching { api.saveSetting(k, v) }
+                    .onSuccess { settings = JSONObject(settings.toString()).put(k, v); message = "已保存" }
+                    .onFailure { message = "保存失败：${it.message}" }
+            }
+
+            SectionLabel("NAS 地址")
+            AppTextField("http://192.168.1.20:9527", server, { server = it })
             Button(onClick = {
                 runCatching { api.saveServer(server) }
-                    .onSuccess { message = "已保存" }
-                    .onFailure { message = "格式不对：${it.message}" }
+                    .onSuccess { message = "已保存，返回登录页生效" }
+                    .onFailure { message = "格式错误：${it.message}" }
             }, modifier = Modifier.fillMaxWidth()) { Text("保存地址") }
-            message?.let { Text(it) }
+
+            message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             OutlinedButton(onClick = { api.logout(); onLoggedOut() }, modifier = Modifier.fillMaxWidth()) { Text("退出登录") }
         }
     }
 }
+
+@Composable
+private fun PresetSection(
+    label: String,
+    key: String,
+    settings: JSONObject,
+    editable: Boolean,
+    onSave: (String, String) -> Unit,
+) {
+    val items = settings.optString(key).split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    var draft by remember { mutableStateOf("") }
+    fun commit(list: List<String>) = onSave(key, list.joinToString(","))
+
+    SectionLabel(label)
+    if (items.isEmpty()) Text("未设置", style = MaterialTheme.typography.bodySmall)
+    items.forEachIndexed { index, item ->
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Text("${index + 1}. $item")
+            if (editable) {
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    OutlinedButton(onClick = {
+                        if (index > 0) {
+                            val list = items.toMutableList()
+                            val tmp = list[index - 1]; list[index - 1] = list[index]; list[index] = tmp
+                            commit(list)
+                        }
+                    }) { Text("↑") }
+                    OutlinedButton(onClick = {
+                        if (index < items.size - 1) {
+                            val list = items.toMutableList()
+                            val tmp = list[index + 1]; list[index + 1] = list[index]; list[index] = tmp
+                            commit(list)
+                        }
+                    }) { Text("↓") }
+                    OutlinedButton(onClick = { commit(items.filterIndexed { i, _ -> i != index }) }) { Text("删") }
+                }
+            }
+        }
+    }
+    if (editable) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            AppTextField("新增一项", draft, { draft = it }, modifier = Modifier.weight(1f))
+            Button(onClick = {
+                if (draft.isNotBlank()) {
+                    commit(items + draft.trim())
+                    draft = ""
+                }
+            }) { Text("添加") }
+        }
+    }
+}
+

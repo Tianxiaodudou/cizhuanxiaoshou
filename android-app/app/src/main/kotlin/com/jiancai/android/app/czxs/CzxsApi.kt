@@ -145,6 +145,10 @@ class CzxsApi(private val prefs: SharedPreferences) {
 
     fun settings(): JSONObject = request("GET", "/api/settings").getJSONObject("data")
 
+    fun saveSetting(key: String, value: String) {
+        request("POST", "/api/settings", JSONObject().put(key, value))
+    }
+
     fun presets(key: String, fallback: List<String>): List<String> {
         val raw = runCatching { settings().optString(key, "") }.getOrDefault("")
         return raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { fallback }
