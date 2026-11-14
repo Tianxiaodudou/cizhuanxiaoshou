@@ -598,27 +598,33 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                         val pickerCats = if (isReturn)
                             categories.filter { c -> returnables.any { r -> r.optLong("category_id") == c.optLong("id") } }
                         else categories
-                        CategoryPicker(pickerCats, line.categoryName) { cat ->
+                        CategoryPicker(
+                            categories = pickerCats,
+                            selectedLabel = line.categoryName,
+                            batchesFor = { catId ->
+                                if (isReturn) {
+                                    returnBatchesFor(catId)
+                                } else {
+                                    categories.firstOrNull { it.optLong("id") == catId }
+                                        ?.let { listOf(it.optString("batch") to "") } ?: emptyList()
+                                }
+                            },
+                        ) { cat, batch ->
+                            val avail = if (isReturn) {
+                                returnBatchesFor(cat.optLong("id")).firstOrNull { it.first == batch }?.second
+                            } else null
                             lines[index] = line.copy(
                                 categoryId = cat.optLong("id"),
-                                categoryName = cat.optString("name") + " " + cat.optString("spec"),
+                                categoryName = cat.optString("name"),
                                 batchType = cat.optString("batch_type"),
+                                batchTag = batch,
                                 units = unitsOf(cat),
                                 unit = unitsOf(cat).firstOrNull()?.first ?: "",
                                 price = "",
                                 priceLocked = false,
+                                available = avail,
                             )
                             refreshPrice(index)
-                            refreshBatches(index)
-                        }
-                        if (isReturn) {
-                            val opts = returnBatchesFor(line.categoryId)
-                            if (opts.isNotEmpty()) {
-                                BatchPicker("可退批次", opts, line.batchTag) { batch, available ->
-                                    lines[index] = line.copy(batchTag = batch, available = available)
-                                    refreshPrice(index)
-                                }
-                            }
                         }
                         if (line.batchType == "color" || line.batchType == "date") {
                             val label = if (line.batchType == "color") "色号" else "日期"
@@ -711,21 +717,93 @@ private fun trim(value: Double): String =
     if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
 
 @Composable
-private fun CategoryPicker(categories: List<JSONObject>, selected: String, onPick: (JSONObject) -> Unit) {
+private fun CategoryPicker(
+    categories: List<JSONObject>,
+    selectedLabel: String,
+    batchesFor: (Long) -> List<Pair<String, String>>,
+    onPick: (JSONObject, String) -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
-    Column {
-        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(selected.ifBlank { "选择型号" })
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            categories.forEach { cat ->
-                DropdownMenuItem(
-                    text = { Text(cat.optString("name") + " " + cat.optString("spec")) },
-                    onClick = { open = false; onPick(cat) },
-                )
-            }
-        }
+    OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+        Text(selectedLabel.ifBlank { "选择商品（品类 / 型号 / 批号）" })
     }
+    if (!open) return
+
+    val groups = categories.map { it.optString("group") }.distinct()
+    var group by remember { mutableStateOf(groups.firstOrNull() ?: "") }
+    val names = categories.filter { it.optString("group") == group }.map { it.optString("name") }.distinct()
+    var name by remember { mutableStateOf(names.firstOrNull() ?: "") }
+    val cats = categories.filter { it.optString("group") == group && it.optString("name") == name }
+    val cat = cats.firstOrNull()
+    val batchOptions = cat?.let { c -> batchesFor(c.optLong("id")).ifEmpty { listOf(c.optString("batch") to "") } } ?: emptyList()
+    var batch by remember { mutableStateOf(batchOptions.firstOrNull()?.first ?: "") }
+
+    var groupMenu by remember { mutableStateOf(false) }
+    var nameMenu by remember { mutableStateOf(false) }
+    var batchMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(group) {
+        name = categories.filter { it.optString("group") == group }.map { it.optString("name") }.distinct().firstOrNull() ?: ""
+    }
+    LaunchedEffect(group, name) {
+        val c = categories.firstOrNull { it.optString("group") == group && it.optString("name") == name }
+        val opts = c?.let { cc -> batchesFor(cc.optLong("id")).ifEmpty { listOf(cc.optString("batch") to "") } } ?: emptyList()
+        batch = opts.firstOrNull()?.first ?: ""
+    }
+
+    AlertDialog(
+        onDismissRequest = { open = false },
+        confirmButton = {
+            TextButton(onClick = {
+                val c = categories.firstOrNull { it.optString("group") == group && it.optString("name") == name }
+                if (c != null) onPick(c, batch)
+                open = false
+            }) { Text("确定") }
+        },
+        dismissButton = { TextButton(onClick = { open = false }) { Text("取消") } },
+        title = { Text("选择商品") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box {
+                    OutlinedButton(onClick = { groupMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("品类：${group.ifBlank { "请选择" }}")
+                    }
+                    DropdownMenu(expanded = groupMenu, onDismissRequest = { groupMenu = false }) {
+                        groups.forEach { g -> DropdownMenuItem(text = { Text(g) }, onClick = { groupMenu = false; group = g }) }
+                    }
+                }
+                Box {
+                    OutlinedButton(onClick = { nameMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("型号：${name.ifBlank { "请选择" }}")
+                    }
+                    DropdownMenu(expanded = nameMenu, onDismissRequest = { nameMenu = false }) {
+                        names.forEach { n -> DropdownMenuItem(text = { Text(n) }, onClick = { nameMenu = false; name = n }) }
+                    }
+                }
+                Box {
+                    OutlinedButton(onClick = { batchMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("批号：${batch.ifBlank { "无" }}")
+                    }
+                    DropdownMenu(expanded = batchMenu, onDismissRequest = { batchMenu = false }) {
+                        batchOptions.forEach { (b, avail) ->
+                            DropdownMenuItem(
+                                text = { Text(if (avail.isBlank()) b.ifBlank { "无" } else "$b（可退 $avail）") },
+                                onClick = { batchMenu = false; batch = b },
+                            )
+                        }
+                    }
+                }
+                cat?.let {
+                    val units = unitsOf(it)
+                    Text(
+                        "计价单位 ${it.optString("settlement_unit")}" +
+                            (units.filter { u -> u.first != it.optString("settlement_unit") }.joinToString("") { u -> "　换算 ${u.first}" }),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
+    )
 }
 
 @Composable
