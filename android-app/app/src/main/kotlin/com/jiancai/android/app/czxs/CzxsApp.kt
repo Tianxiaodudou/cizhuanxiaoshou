@@ -225,6 +225,10 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
     var submitted by remember { mutableStateOf<JSONObject?>(null) }
     var version by remember { mutableStateOf(1) }
     var orderNo by remember { mutableStateOf("") }
+    var matches by remember { mutableStateOf(listOf<JSONObject>()) }
+    var priceMode by remember { mutableStateOf("open") }
+    var returnables by remember { mutableStateOf(listOf<JSONObject>()) }
+    val hiddenStaff = priceMode == "hidden" && !api.isAdmin
 
     LaunchedEffect(Unit) {
         try {
@@ -263,15 +267,39 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
         }
     }
 
+    fun applyCustomer(c: JSONObject) {
+        phone = c.optString("phone")
+        name = c.optString("name")
+        nameLocked = true
+        priceMode = c.optString("price_mode", "open")
+        matches = emptyList()
+        if (isReturn) {
+            scope.launch {
+                try {
+                    returnables = withContext(Dispatchers.IO) { api.returnableList(phone) }.let { arr ->
+                        (0 until arr.length()).map { arr.getJSONObject(it) }
+                    }
+                } catch (e: Exception) { error = e.message }
+            }
+        }
+    }
+
     fun lookupCustomer() {
         scope.launch {
             try {
-                val c = withContext(Dispatchers.IO) { api.customer(phone) }
-                if (c.optBoolean("exists")) {
-                    name = c.optString("name")
-                    nameLocked = true
-                } else {
-                    nameLocked = false
+                matches = emptyList()
+                val q = phone.trim()
+                if (q.isEmpty()) { error = "请输入电话 / 姓名 / 地址"; return@launch }
+                val list = withContext(Dispatchers.IO) { api.searchCustomers(q) }
+                when {
+                    list.length() == 1 -> applyCustomer(list.getJSONObject(0))
+                    list.length() == 0 -> {
+                        nameLocked = false
+                        name = ""
+                        priceMode = "open"
+                        returnables = emptyList()
+                    }
+                    else -> matches = (0 until list.length()).map { list.getJSONObject(it) }
                 }
             } catch (e: Exception) {
                 error = e.message
@@ -297,20 +325,17 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
         }
     }
 
+    fun returnBatchesFor(catId: Long?): List<Pair<String, String>> =
+        returnables.filter { it.optLong("category_id") == catId }
+            .map { it.optString("batch_tag") to it.optString("available") }
+
     fun refreshBatches(index: Int) {
         val line = lines.getOrNull(index) ?: return
-        val catId = line.categoryId ?: return
-        if (!isReturn || phone.isBlank()) return
-        scope.launch {
-            try {
-                val list = withContext(Dispatchers.IO) { api.returns(phone, catId) }
-                batches = list
-                if (list.isNotEmpty()) {
-                    lines[index] = line.copy(batchTag = list.first().first, available = list.first().second)
-                }
-            } catch (e: Exception) {
-                error = e.message
-            }
+        if (!isReturn) return
+        val list = returnBatchesFor(line.categoryId)
+        batches = list
+        if (list.isNotEmpty()) {
+            lines[index] = line.copy(batchTag = list.first().first, available = list.first().second)
         }
     }
 
@@ -337,7 +362,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 error = "请移除或替换待审核型号的明细行"
                 return
             }
-            if (!it.priceLocked && it.price.isBlank()) {
+            if (!hiddenStaff && !it.priceLocked && it.price.isBlank()) {
                 error = "该批次无价格，请录入单价"
                 return
             }
@@ -351,7 +376,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                         .put("batch_tag", line.batchTag)
                         .put("input_unit", line.unit)
                         .put("input_quantity", line.quantity)
-                        .put("unit_price", line.price)
+                        .put("unit_price", if (hiddenStaff) "" else line.price)
                 }
                 val result = withContext(Dispatchers.IO) {
                     if (orderId != null) api.updateOrder(orderId, version, remark, items)
@@ -375,6 +400,11 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 AppTextField("客户电话", phone, { phone = it; if (it.length >= 7) Unit }, modifier = Modifier.weight(1f), numeric = true)
                 OutlinedButton(onClick = ::lookupCustomer, enabled = !editing) { Text("查客户") }
             }
+            matches.forEach { c ->
+                OutlinedButton(onClick = { applyCustomer(c) }, modifier = Modifier.fillMaxWidth()) {
+                    Text("${c.optString("name")} / ${c.optString("phone")} / ${c.optString("addr").ifBlank { "无地址" }}")
+                }
+            }
             AppTextField(
                 "客户姓名",
                 name,
@@ -387,7 +417,10 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
             lines.forEachIndexed { index, line ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        CategoryPicker(categories, line.categoryName) { cat ->
+                        val pickerCats = if (isReturn)
+                            categories.filter { c -> returnables.any { r -> r.optLong("category_id") == c.optLong("id") } }
+                        else categories
+                        CategoryPicker(pickerCats, line.categoryName) { cat ->
                             lines[index] = line.copy(
                                 categoryId = cat.optLong("id"),
                                 categoryName = cat.optString("name") + " " + cat.optString("spec"),
@@ -399,6 +432,15 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                             )
                             refreshPrice(index)
                             refreshBatches(index)
+                        }
+                        if (isReturn) {
+                            val opts = returnBatchesFor(line.categoryId)
+                            if (opts.isNotEmpty()) {
+                                BatchPicker("可退批次", opts, line.batchTag) { batch, available ->
+                                    lines[index] = line.copy(batchTag = batch, available = available)
+                                    refreshPrice(index)
+                                }
+                            }
                         }
                         if (line.batchType == "color" || line.batchType == "date") {
                             val label = if (line.batchType == "color") "色号" else "日期"
@@ -413,7 +455,11 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                                     refreshPrice(index)
                                 })
                             }
-                            line.available?.let { Text("可退余量：$it", style = MaterialTheme.typography.bodySmall) }
+                            line.available?.let {
+                                val convHint = line.units.firstOrNull { u -> u.first == line.unit }?.second ?: 1.0
+                                val shown = (it.toDoubleOrNull() ?: 0.0) / (if (convHint != 0.0) convHint else 1.0)
+                                Text("可退 ${trim(shown)}${line.unit}", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             UnitPicker(line.units, line.unit) { u -> lines[index] = line.copy(unit = u) }
@@ -427,14 +473,18 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AppTextField(
-                                if (line.priceLocked) "单价（只读）" else "单价（首单录入）",
-                                line.price,
-                                { lines[index] = line.copy(price = it) },
-                                modifier = Modifier.weight(1f),
-                                numeric = true,
-                                readOnly = line.priceLocked,
-                            )
+                            if (hiddenStaff) {
+                                Text("单价：***（暗价客户，业务员不可见）", modifier = Modifier.weight(1f))
+                            } else {
+                                AppTextField(
+                                    if (line.priceLocked) "单价（只读）" else "单价（首单录入）",
+                                    line.price,
+                                    { lines[index] = line.copy(price = it) },
+                                    modifier = Modifier.weight(1f),
+                                    numeric = true,
+                                    readOnly = line.priceLocked,
+                                )
+                            }
                             OutlinedButton(onClick = { lines.removeAt(index) }) { Text("删除") }
                         }
                     }
