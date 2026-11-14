@@ -135,7 +135,7 @@ fun CzxsApp(api: CzxsApi) {
             Route.Settlement -> SettlementScreen(api, onMenu = openDrawer, onSearch = { navigate(Route.Query) })
             Route.Settings -> SettingsScreen(api, onMenu = openDrawer, onBack = ::goBack) { stack.clear(); stack.add(Route.Login) }
             Route.Query -> QueryScreen(api, onBack = ::goBack)
-            Route.Today -> TodayScreen(api, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
+            Route.Today -> TodayScreen(api, onBack = ::goBack) { id -> navigate(Route.Order("edit", id)) }
             Route.Note -> NoteScreen(api, onPick = { navigate(Route.PickOrder) }, onBack = ::goBack)
             Route.PickOrder -> PickOrderScreen(api, onBack = ::goBack)
             is Route.Order -> OrderScreen(api, current.type, current.orderId, onBack = ::goBack) { stack.clear(); stack.add(Route.Home) }
