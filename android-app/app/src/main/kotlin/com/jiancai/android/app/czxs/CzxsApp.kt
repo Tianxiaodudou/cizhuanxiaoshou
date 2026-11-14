@@ -12,6 +12,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -63,6 +73,8 @@ sealed interface Route {
     data object Note : Route
     data object PickOrder : Route
     data object Settlement : Route
+    data object PrintJobs : Route
+    data object Categories : Route
     data object Settings : Route
 }
 
@@ -72,31 +84,118 @@ private val TABS = listOf("单据" to Route.Orders, "查询" to Route.Query, "�
 @Composable
 fun CzxsApp(api: CzxsApi) {
     var route by remember { mutableStateOf<Route>(if (api.token.isNullOrBlank()) Route.Login else Route.Home) }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    val topLevel = route == Route.Home || route == Route.Orders || route == Route.PrintJobs ||
+        route == Route.Categories || route == Route.Settlement || route == Route.Settings
 
     fun goBack() {
-        route = when (route) {
-            is Route.Order -> Route.Home
-            is Route.Payment -> Route.Home
-            Route.PickOrder -> Route.Note
-            Route.Today, Route.Query, Route.Settings, Route.Settlement, Route.Orders -> Route.Home
-            else -> Route.Home
-        }
+        route = Route.Home
     }
 
-    val current = route
-    when (current) {
-        Route.Login -> LoginScreen(api) { route = Route.Home }
-        Route.Home -> HomeScreen(api, ::goBack) { route = it }
-        is Route.Order -> OrderScreen(api, current.type, current.orderId, onBack = ::goBack) { route = Route.Home }
-        is Route.Payment -> PaymentScreen(api, current.type, onBack = ::goBack) { route = Route.Home }
-        Route.Query -> QueryScreen(api, onBack = ::goBack)
-        Route.Today -> TodayScreen(api, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
-        Route.Orders -> OrdersScreen(api, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
-        Route.Note -> NoteScreen(api, onPick = { route = Route.PickOrder }, onBack = ::goBack)
-        Route.PickOrder -> PickOrderScreen(api, onBack = ::goBack)
-        Route.Settlement -> SettlementScreen(api, onBack = ::goBack)
-        Route.Settings -> SettingsScreen(api, onBack = ::goBack) { route = Route.Login }
+    if (route == Route.Login) {
+        LoginScreen(api) { route = Route.Home }
+        return
     }
+
+    val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = topLevel,
+        drawerContent = {
+            ModalDrawerSheet {
+                CzxsDrawerContent(
+                    api = api,
+                    current = route,
+                    onNavigate = { route = it; scope.launch { drawerState.close() } },
+                    onLogout = {
+                        api.logout()
+                        route = Route.Login
+                        scope.launch { drawerState.close() }
+                    },
+                )
+            }
+        },
+    ) {
+        val current = route
+        when (current) {
+            Route.Home -> HomeScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query }, onNavigate = { route = it })
+            Route.Orders -> OrdersScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query }, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
+            Route.PrintJobs -> PrintScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query })
+            Route.Categories -> CategoriesScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query })
+            Route.Settlement -> SettlementScreen(api, onMenu = openDrawer, onSearch = { route = Route.Query })
+            Route.Settings -> SettingsScreen(api, onMenu = openDrawer, onBack = { route = Route.Home }) { route = Route.Login }
+            Route.Query -> QueryScreen(api, onBack = ::goBack)
+            Route.Today -> TodayScreen(api, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
+            Route.Note -> NoteScreen(api, onPick = { route = Route.PickOrder }, onBack = ::goBack)
+            Route.PickOrder -> PickOrderScreen(api, onBack = ::goBack)
+            is Route.Order -> OrderScreen(api, current.type, current.orderId, onBack = ::goBack) { route = Route.Home }
+            is Route.Payment -> PaymentScreen(api, current.type, onBack = ::goBack) { route = Route.Home }
+            Route.Login -> Unit
+        }
+    }
+}
+
+@Composable
+private fun CzxsDrawerContent(api: CzxsApi, current: Route, onNavigate: (Route) -> Unit, onLogout: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text("瓷砖店销售系统", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text("${api.accountName.ifBlank { "未登录" }}（${if (api.isAdmin) "管理员" else "业务员"}）", style = MaterialTheme.typography.bodySmall)
+        Text(api.baseUrl, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+    }
+    HorizontalDivider()
+    val items = listOf(
+        "首页" to Route.Home,
+        "单据库" to Route.Orders,
+        "打印" to Route.PrintJobs,
+        "型号库" to Route.Categories,
+        "结算" to Route.Settlement,
+    )
+    items.forEach { (label, r) ->
+        NavigationDrawerItem(
+            label = { Text(label) },
+            selected = current == r,
+            onClick = { onNavigate(r) },
+            modifier = Modifier.padding(horizontal = 10.dp),
+        )
+    }
+    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+    NavigationDrawerItem(
+        label = { Text("⚙ 设置") },
+        selected = current == Route.Settings,
+        onClick = { onNavigate(Route.Settings) },
+        modifier = Modifier.padding(horizontal = 10.dp),
+    )
+    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+    NavigationDrawerItem(
+        label = { Text("🚪 退出账号") },
+        selected = false,
+        onClick = onLogout,
+        modifier = Modifier.padding(horizontal = 10.dp),
+    )
+}
+
+/** 统一顶栏：左侧 ☰、右侧 🔍（不强制滚动，页面自己决定 LazyColumn 或滚动 Column）。 */
+@Composable
+private fun AppScaffold(
+    title: String,
+    onMenu: () -> Unit,
+    onSearch: (() -> Unit)? = null,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = { IconButton(onClick = onMenu) { Text("☰", style = MaterialTheme.typography.titleLarge) } },
+                actions = {
+                    if (onSearch != null) IconButton(onClick = onSearch) { Text("🔍", style = MaterialTheme.typography.titleLarge) }
+                },
+            )
+        },
+    ) { inner -> content(inner) }
 }
 
 @Composable
@@ -163,25 +262,38 @@ private fun LoginScreen(api: CzxsApi, onLoggedIn: () -> Unit) {
 
 // ---------- 首页 ----------
 @Composable
-private fun HomeScreen(api: CzxsApi, onBack: () -> Unit, onNavigate: (Route) -> Unit) {
-    PageScaffold("首页", bottomBar = { BottomTabs(Route.Home, onNavigate) }) { modifier ->
-        Column(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun HomeScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit, onNavigate: (Route) -> Unit) {
+    AppScaffold("首页", onMenu = onMenu, onSearch = onSearch) { inner ->
+        Column(
+            Modifier.fillMaxWidth().padding(inner).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
             Text("店员：${api.accountName.ifBlank { "未登录" }}", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OrderEntry("配送", Modifier.weight(1f)) { onNavigate(Route.Order("delivery")) }
-                OrderEntry("配退", Modifier.weight(1f)) { onNavigate(Route.Order("delivery_return")) }
+
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OrderEntry("配送", Modifier.weight(1f)) { onNavigate(Route.Order("delivery")) }
+                        OrderEntry("配退", Modifier.weight(1f)) { onNavigate(Route.Order("delivery_return")) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OrderEntry("自送", Modifier.weight(1f)) { onNavigate(Route.Order("pickup")) }
+                        OrderEntry("自退", Modifier.weight(1f)) { onNavigate(Route.Order("pickup_return")) }
+                    }
+                }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OrderEntry("自送", Modifier.weight(1f)) { onNavigate(Route.Order("pickup")) }
-                OrderEntry("自退", Modifier.weight(1f)) { onNavigate(Route.Order("pickup_return")) }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OrderEntry("备注", Modifier.weight(1f)) { onNavigate(Route.Note) }
-                OrderEntry("收款", Modifier.weight(1f)) { onNavigate(Route.Payment("receipt")) }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OrderEntry("退款", Modifier.weight(1f)) { onNavigate(Route.Payment("refund")) }
-                OrderEntry("结算", Modifier.weight(1f)) { onNavigate(Route.Settlement) }
+
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OrderEntry("备注", Modifier.weight(1f)) { onNavigate(Route.Note) }
+                        OrderEntry("收款", Modifier.weight(1f)) { onNavigate(Route.Payment("receipt")) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OrderEntry("退款", Modifier.weight(1f)) { onNavigate(Route.Payment("refund")) }
+                        OrderEntry("结算", Modifier.weight(1f)) { onNavigate(Route.Settlement) }
+                    }
+                }
             }
         }
     }
@@ -959,7 +1071,7 @@ private fun PaymentScreen(api: CzxsApi, type: String, onBack: () -> Unit, onDone
 
 // ---------- 结算 ----------
 @Composable
-private fun SettlementScreen(api: CzxsApi, onBack: () -> Unit) {
+private fun SettlementScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) {
     var list by remember { mutableStateOf(listOf<JSONObject>()) }
     var error by remember { mutableStateOf<String?>(null) }
     var detail by remember { mutableStateOf<JSONObject?>(null) }
@@ -971,8 +1083,8 @@ private fun SettlementScreen(api: CzxsApi, onBack: () -> Unit) {
         } catch (e: Exception) { error = e.message }
     }
 
-    PageScaffold("结算", onBack = onBack) { modifier ->
-        LazyColumn(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    AppScaffold("结算", onMenu = onMenu, onSearch = onSearch) { inner ->
+        LazyColumn(Modifier.fillMaxWidth().padding(inner).padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { error?.let { ErrorText(it) } }
             items(list.size) { index ->
                 val r = list[index]
@@ -1081,7 +1193,7 @@ private fun OrderDetailDialog(
 }
 
 @Composable
-private fun OrdersScreen(api: CzxsApi, onBack: () -> Unit, onEdit: (Long) -> Unit) {
+private fun OrdersScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit, onBack: () -> Unit, onEdit: (Long) -> Unit) {
     var orders by remember { mutableStateOf(listOf<JSONObject>()) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -1097,8 +1209,8 @@ private fun OrdersScreen(api: CzxsApi, onBack: () -> Unit, onEdit: (Long) -> Uni
         }
     }
 
-    PageScaffold("单据库", onBack = onBack) { modifier ->
-        Column(modifier.padding(PagePadding)) {
+    AppScaffold("单据库", onMenu = onMenu, onSearch = onSearch) { inner ->
+        Column(Modifier.fillMaxWidth().padding(inner).padding(PagePadding)) {
             error?.let { ErrorText(it) }
             if (loading) LoadingRow()
             if (!loading && orders.isEmpty()) EmptyHint("暂无单据")
@@ -1136,9 +1248,71 @@ private fun OrdersScreen(api: CzxsApi, onBack: () -> Unit, onEdit: (Long) -> Uni
     }
 }
 
+
+// ---------- 打印 ----------
+@Composable
+private fun PrintScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) {
+    var status by remember { mutableStateOf<JSONObject?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            status = withContext(Dispatchers.IO) { api.printStatus() }
+        } catch (e: Exception) { error = e.message }
+    }
+
+    AppScaffold("打印", onMenu = onMenu, onSearch = onSearch) { inner ->
+        Column(Modifier.fillMaxWidth().padding(inner).padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            error?.let { ErrorText(it) }
+            status?.let { s ->
+                SectionLabel("打印队列")
+                KeyValueRow("待打印", s.optString("pending", "0"))
+                KeyValueRow("已打印", s.optString("printed", "0"))
+                KeyValueRow("失败", s.optString("failed", "0"))
+                Text("小票由服务端生成，客户端不直接驱动打印机。", style = MaterialTheme.typography.bodySmall)
+            } ?: LoadingRow("读取中…")
+        }
+    }
+}
+
+// ---------- 型号库 ----------
+@Composable
+private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) {
+    var list by remember { mutableStateOf(listOf<JSONObject>()) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            list = withContext(Dispatchers.IO) { api.categories() }.let { arr -> (0 until arr.length()).map { arr.getJSONObject(it) } }
+        } catch (e: Exception) { error = e.message }
+    }
+
+    AppScaffold("型号库", onMenu = onMenu, onSearch = onSearch) { inner ->
+        Column(Modifier.fillMaxWidth().padding(inner).padding(PagePadding)) {
+            error?.let { ErrorText(it) }
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(list.size) { index ->
+                    val c = list[index]
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text("${c.optString("group")} · ${c.optString("name")}", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "批号 ${c.optString("batch").ifBlank { "无" }}　计价单位 ${c.optString("settlement_unit")}" +
+                                    (c.optString("conversion_unit").takeIf { it.isNotBlank() }?.let { "　换算 $it" } ?: ""),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text("默认价 ${c.optString("default_price").ifBlank { "无" }}　${c.optString("status")}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ---------- 设置 ----------
 @Composable
-private fun SettingsScreen(api: CzxsApi, onBack: () -> Unit, onLoggedOut: () -> Unit) {
+private fun SettingsScreen(api: CzxsApi, onMenu: () -> Unit, onBack: () -> Unit, onLoggedOut: () -> Unit) {
     var server by remember { mutableStateOf(api.baseUrl) }
     var print by remember { mutableStateOf<JSONObject?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
