@@ -152,7 +152,7 @@ function OrderTable({ rows, onDetail, onDelete, onArchive, canEdit = true }) {
       <tbody>{(rows || []).map((o) => (
         <tr key={o.id}>
           <td>{o.order_no}</td><td>{typeLabel[o.type] || o.type}</td>
-          <td>{o.customer_phone}<br />{o.customer_name}<br />{o.customer_address || ''}</td>
+          <td>{o.customer_name}--{o.customer_phone}--{o.customer_address || '无'}</td>
           <td>{amountLabel(o.type)} {Math.abs(Number(o.order_total)).toFixed(2)}</td><td>{o.status === 'archived' ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}</td>
           <td>
             <button className="secondary" onClick={() => onDetail(o.id)}>详情</button>
@@ -925,19 +925,30 @@ function Settings() {
   const [s, setS] = useState({})
   const [msg, setMsg] = useState('')
   useEffect(() => { api('/api/settings').then(setS).catch(() => {}) }, [])
+  const saveOne = async (k, v) => {
+    setS((x) => ({ ...x, [k]: v }))
+    try { await api('/api/settings', { method: 'POST', body: JSON.stringify({ [k]: v }) }) } catch (e) { setMsg('保存失败：' + e.message) }
+  }
   return (
     <>
       <h2>系统配置</h2>
-      <p>商家名称：<input value={s.merchant_name || ''} onChange={(e) => setS({ ...s, merchant_name: e.target.value })} /></p>
-      <p>API 端口：<input value={s.api_port || '9527'} onChange={(e) => setS({ ...s, api_port: e.target.value })} /></p>
+      <div className="row">
+        API 端口：
+        <input style={{ width: 120 }} value={s.api_port || '9527'} onChange={(e) => setS({ ...s, api_port: e.target.value })} />
+        <button type="button" onClick={async () => { await saveOne('api_port', s.api_port || '9527'); setMsg('已保存，重启应用后生效') }}>保存</button>
+        {msg && <span className="muted">{msg}</span>}
+      </div>
+      <div className="row">
+        小票宽度：
+        <select value={s.print_width || '80mm'} onChange={(e) => saveOne('print_width', e.target.value)}>
+          <option>80mm</option><option>58mm</option>
+        </select>
+      </div>
       <PresetField label="计价单位预设" settingKey="settlement_units" value={s.settlement_units || ''} onChange={(v) => setS({ ...s, settlement_units: v })} />
       <PresetField label="换算单位预设" settingKey="conversion_units" value={s.conversion_units || ''} onChange={(v) => setS({ ...s, conversion_units: v })} />
       <PresetField label="付款方式预设" settingKey="payment_methods" value={s.payment_methods || ''} onChange={(v) => setS({ ...s, payment_methods: v })} />
       <PresetField label="优惠方式预设" settingKey="discount_types" value={s.discount_types || ''} onChange={(v) => setS({ ...s, discount_types: v })} />
-      <p>小票宽度：<select value={s.print_width || '80mm'} onChange={(e) => setS({ ...s, print_width: e.target.value })}><option>80mm</option><option>58mm</option></select></p>
-      <button onClick={async () => { await api('/api/settings', { method: 'POST', body: JSON.stringify(s) }); setMsg('已保存') }}>保存</button>
-      {msg && <span style={{ marginLeft: 8 }}>{msg}</span>}
-      <p className="muted">默认端口 9527；修改后需重启应用生效，客户端需同步更新地址。</p>
+      <p className="muted">预设与小票宽度修改后立即保存生效；端口修改需重启应用；商家名称在安装向导中初始化，不可修改。</p>
     </>
   )
 }
