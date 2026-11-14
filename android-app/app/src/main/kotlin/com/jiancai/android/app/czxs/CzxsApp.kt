@@ -59,13 +59,14 @@ sealed interface Route {
     data class Payment(val type: String) : Route
     data object Query : Route
     data object Today : Route
+    data object Orders : Route
     data object Note : Route
     data object PickOrder : Route
     data object Settlement : Route
     data object Settings : Route
 }
 
-private val TABS = listOf("查询" to Route.Query, "改当日单" to Route.Today, "结算" to Route.Settlement, "设置" to Route.Settings)
+private val TABS = listOf("单据" to Route.Orders, "查询" to Route.Query, "改当日单" to Route.Today, "结算" to Route.Settlement, "设置" to Route.Settings)
 
 /** czxs 客户端根：登录守卫 + 底栏 + 页面栈（单 Activity，状态驱动）。 */
 @Composable
@@ -77,7 +78,7 @@ fun CzxsApp(api: CzxsApi) {
             is Route.Order -> Route.Home
             is Route.Payment -> Route.Home
             Route.PickOrder -> Route.Note
-            Route.Today, Route.Query, Route.Settings, Route.Settlement -> Route.Home
+            Route.Today, Route.Query, Route.Settings, Route.Settlement, Route.Orders -> Route.Home
             else -> Route.Home
         }
     }
@@ -90,6 +91,7 @@ fun CzxsApp(api: CzxsApi) {
         is Route.Payment -> PaymentScreen(api, current.type, onBack = ::goBack) { route = Route.Home }
         Route.Query -> QueryScreen(api, onBack = ::goBack)
         Route.Today -> TodayScreen(api, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
+        Route.Orders -> OrdersScreen(api, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
         Route.Note -> NoteScreen(api, onPick = { route = Route.PickOrder }, onBack = ::goBack)
         Route.PickOrder -> PickOrderScreen(api, onBack = ::goBack)
         Route.Settlement -> SettlementScreen(api, onBack = ::goBack)
@@ -584,6 +586,13 @@ private fun BatchPicker(label: String, batches: List<Pair<String, String>>, sele
     }
 }
 
+private fun amountLabel(type: String): String = when {
+    type == "receipt" -> "已收"
+    type == "refund" -> "已退"
+    type.endsWith("_return") -> "应退"
+    else -> "应收"
+}
+
 private fun typeLabel(type: String) = when (type) {
     "delivery" -> "配送送货单"
     "delivery_return" -> "配送退货单"
@@ -1009,6 +1018,121 @@ private fun SettlementScreen(api: CzxsApi, onBack: () -> Unit) {
                 }
             },
         )
+    }
+}
+
+
+// ---------- 单据库 ----------
+@Composable
+private fun OrderDetailDialog(
+    order: JSONObject,
+    isAdmin: Boolean,
+    onClose: () -> Unit,
+    onEdit: (Long) -> Unit,
+) {
+    val type = order.optString("type")
+    val editable = isAdmin && (type == "delivery" || type == "delivery_return" || type == "pickup" || type == "pickup_return") &&
+        order.optString("status") != "archived"
+    AlertDialog(
+        onDismissRequest = onClose,
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (editable) TextButton(onClick = { onEdit(order.optLong("id")); onClose() }) { Text("编辑") }
+                TextButton(onClick = onClose) { Text("关闭") }
+            }
+        },
+        title = { Text("${order.optString("order_no")} · ${typeLabel(type)}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                KeyValueRow("客户", "${order.optString("customer_name")}--${order.optString("customer_phone")}--${order.optString("customer_address").ifBlank { "无" }}")
+                KeyValueRow("时间", order.optString("created_at").take(16).replace('T', ' '))
+                KeyValueRow("状态", order.optString("status"))
+                KeyValueRow("备注", order.optString("remark").ifBlank { "（空）" })
+                if (order.optString("discount_type").isNotBlank() || order.optString("discount").toDoubleOrNull() ?: 0.0 > 0.0) {
+                    KeyValueRow("优惠", "${order.optString("discount_type")} ${order.optString("discount")}")
+                }
+                KeyValueRow(amountLabel(type), order.optString("order_total"), emphasize = true)
+
+                val linesArr = order.optJSONArray("items") ?: JSONArray()
+                if (linesArr.length() > 0) {
+                    SectionLabel("明细")
+                    LazyColumn(Modifier.height(180.dp)) {
+                        items(linesArr.length()) { i ->
+                            val line = linesArr.getJSONObject(i)
+                            Text(
+                                "${i + 1}. ${line.optString("name")} ${line.optString("batch_tag")} " +
+                                    "${line.optString("input_quantity")}${line.optString("input_unit")} × ${line.optString("unit_price")} = ${line.optString("line_total")}",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                }
+                val payments = order.optJSONArray("payments") ?: JSONArray()
+                if (payments.length() > 0) {
+                    SectionLabel("付款方式")
+                    for (i in 0 until payments.length()) {
+                        val pay = payments.getJSONObject(i)
+                        Text("${pay.optString("method")}　${pay.optString("amount")}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun OrdersScreen(api: CzxsApi, onBack: () -> Unit, onEdit: (Long) -> Unit) {
+    var orders by remember { mutableStateOf(listOf<JSONObject>()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    var detail by remember { mutableStateOf<JSONObject?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            orders = withContext(Dispatchers.IO) { api.ordersAll() }.let { arr -> (0 until arr.length()).map { arr.getJSONObject(it) } }
+        } catch (e: Exception) {
+            error = e.message
+        } finally {
+            loading = false
+        }
+    }
+
+    PageScaffold("单据库", onBack = onBack) { modifier ->
+        Column(modifier.padding(PagePadding)) {
+            error?.let { ErrorText(it) }
+            if (loading) LoadingRow()
+            if (!loading && orders.isEmpty()) EmptyHint("暂无单据")
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(orders.size) { index ->
+                    val o = orders[index]
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("${o.optString("order_no")}  ${typeLabel(o.optString("type"))}", fontWeight = FontWeight.SemiBold)
+                                Text("${amountLabel(o.optString("type"))} ${o.optString("order_total")}")
+                            }
+                            Text(
+                                "${o.optString("customer_name")}--${o.optString("customer_phone")}--${o.optString("customer_address").ifBlank { "无" }}",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                                OutlinedButton(onClick = { detail = o }) { Text("详情") }
+                                val type = o.optString("type")
+                                if (api.isAdmin && o.optString("status") != "archived" &&
+                                    (type == "delivery" || type == "delivery_return" || type == "pickup" || type == "pickup_return")
+                                ) {
+                                    OutlinedButton(onClick = { onEdit(o.optLong("id")) }) { Text("编辑") }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    detail?.let { o ->
+        OrderDetailDialog(order = o, isAdmin = api.isAdmin, onClose = { detail = null }, onEdit = onEdit)
     }
 }
 
