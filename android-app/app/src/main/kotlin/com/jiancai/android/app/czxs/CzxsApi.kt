@@ -1,4 +1,4 @@
-﻿package com.jiancai.android.app.czxs
+package com.jiancai.android.app.czxs
 
 import android.content.SharedPreferences
 import org.json.JSONArray
@@ -21,7 +21,7 @@ class ApiException(val code: String, override val message: String) : Exception(m
 class CzxsApi(private val prefs: SharedPreferences) {
 
     var baseUrl: String
-        get() = prefs.getString(KEY_BASE, "http://127.0.0.1:8080") ?: "http://127.0.0.1:8080"
+        get() = prefs.getString(KEY_BASE, "http://127.0.0.1:9527") ?: "http://127.0.0.1:9527"
         private set(value) = prefs.edit().putString(KEY_BASE, value).apply()
 
     val token: String? get() = prefs.getString(KEY_TOKEN, null)
@@ -42,12 +42,13 @@ class CzxsApi(private val prefs: SharedPreferences) {
         prefs.edit()
             .putString(KEY_TOKEN, tokenValue)
             .putString(KEY_NAME, account.optString("name"))
+            .putString(KEY_ROLE, account.optString("role", "staff"))
             .apply()
     }
 
     fun logout() {
         runCatching { request("POST", "/api/auth/logout", JSONObject()) }
-        prefs.edit().remove(KEY_TOKEN).remove(KEY_NAME).apply()
+        prefs.edit().remove(KEY_TOKEN).remove(KEY_NAME).remove(KEY_ROLE).apply()
     }
 
     fun categories(): JSONArray = request("GET", "/api/categories").getJSONArray("data")
@@ -118,6 +119,69 @@ class CzxsApi(private val prefs: SharedPreferences) {
 
     fun printStatus(): JSONObject = request("GET", "/api/print/status").getJSONObject("data")
 
+    // ---------- czxs 服务端扩展（3.x） ----------
+
+    val isAdmin: Boolean get() = prefs.getString(KEY_ROLE, "staff") == "admin"
+
+    /** 客户模糊搜索：电话 / 姓名 / 地址关键字。 */
+    fun searchCustomers(q: String): JSONArray =
+        request("GET", "/api/customers/search", query = mapOf("q" to q)).getJSONArray("data")
+
+    /** 该客户全部可退商品（客户+型号+批次，available>0）。 */
+    fun returnableList(phone: String): JSONArray =
+        request("GET", "/api/returns/list", query = mapOf("phone" to phone)).getJSONArray("data")
+
+    fun refundable(phone: String): String {
+        val d = request("GET", "/api/refundable", query = mapOf("phone" to phone)).getJSONObject("data")
+        return d.optString("refundable", "0")
+    }
+
+    fun outstanding(phone: String): String {
+        val d = request("GET", "/api/outstanding", query = mapOf("phone" to phone)).getJSONObject("data")
+        return d.optString("outstanding", "0")
+    }
+
+    fun settings(): JSONObject = request("GET", "/api/settings").getJSONObject("data")
+
+    fun presets(key: String, fallback: List<String>): List<String> {
+        val raw = runCatching { settings().optString(key, "") }.getOrDefault("")
+        return raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { fallback }
+    }
+
+    /** 收款 / 退款，支持多付款方式与优惠。 */
+    fun createPayment(
+        type: String,
+        phone: String,
+        name: String,
+        address: String,
+        payments: List<JSONObject>,
+        discount: String = "",
+        discountType: String = "",
+        remark: String = "",
+    ): JSONObject {
+        val body = JSONObject()
+            .put("type", type)
+            .put("phone", phone)
+            .put("customer_name", name)
+            .put("address", address)
+            .put("remark", remark)
+            .put("discount", discount)
+            .put("discount_type", discountType)
+            .put("payments", JSONArray(payments))
+        return request("POST", "/api/payments", body).getJSONObject("data")
+    }
+
+    /** 把备注写入已有单据（不再生成独立备注单）。 */
+    fun setRemark(orderId: Long, remark: String): JSONObject =
+        request("POST", "/api/orders/$orderId/remark", JSONObject().put("remark", remark)).getJSONObject("data")
+
+    fun ordersAll(): JSONArray = request("GET", "/api/orders/all").getJSONArray("data")
+
+    fun settlement(): JSONArray = request("GET", "/api/settlement").getJSONArray("data")
+
+    fun settlementDetail(customerId: Long): JSONObject =
+        request("GET", "/api/settlement/$customerId").getJSONObject("data")
+
     // ---------- HTTP ----------
     private fun request(method: String, path: String, body: JSONObject? = null, query: Map<String, String> = emptyMap()): JSONObject {
         val qs = if (query.isEmpty()) "" else "?" + query.entries.joinToString("&") {
@@ -155,5 +219,6 @@ class CzxsApi(private val prefs: SharedPreferences) {
         const val KEY_BASE = "nas_base"
         const val KEY_TOKEN = "token"
         const val KEY_NAME = "account_name"
+        const val KEY_ROLE = "account_role"
     }
 }

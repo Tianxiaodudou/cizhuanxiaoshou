@@ -1,8 +1,9 @@
-﻿@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 
 package com.jiancai.android.app.czxs
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -21,6 +23,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,14 +56,16 @@ sealed interface Route {
     data object Login : Route
     data object Home : Route
     data class Order(val type: String, val orderId: Long? = null) : Route
+    data class Payment(val type: String) : Route
     data object Query : Route
     data object Today : Route
     data object Note : Route
     data object PickOrder : Route
+    data object Settlement : Route
     data object Settings : Route
 }
 
-private val TABS = listOf("查询" to Route.Query, "改当日单" to Route.Today, "设置" to Route.Settings)
+private val TABS = listOf("查询" to Route.Query, "改当日单" to Route.Today, "结算" to Route.Settlement, "设置" to Route.Settings)
 
 /** czxs 客户端根：登录守卫 + 底栏 + 页面栈（单 Activity，状态驱动）。 */
 @Composable
@@ -70,8 +75,9 @@ fun CzxsApp(api: CzxsApi) {
     fun goBack() {
         route = when (route) {
             is Route.Order -> Route.Home
+            is Route.Payment -> Route.Home
             Route.PickOrder -> Route.Note
-            Route.Today, Route.Query, Route.Settings -> Route.Home
+            Route.Today, Route.Query, Route.Settings, Route.Settlement -> Route.Home
             else -> Route.Home
         }
     }
@@ -81,10 +87,12 @@ fun CzxsApp(api: CzxsApi) {
         Route.Login -> LoginScreen(api) { route = Route.Home }
         Route.Home -> HomeScreen(api, ::goBack) { route = it }
         is Route.Order -> OrderScreen(api, current.type, current.orderId, onBack = ::goBack) { route = Route.Home }
+        is Route.Payment -> PaymentScreen(api, current.type, onBack = ::goBack) { route = Route.Home }
         Route.Query -> QueryScreen(api, onBack = ::goBack)
         Route.Today -> TodayScreen(api, onBack = ::goBack) { id -> route = Route.Order("edit", id) }
         Route.Note -> NoteScreen(api, onPick = { route = Route.PickOrder }, onBack = ::goBack)
         Route.PickOrder -> PickOrderScreen(api, onBack = ::goBack)
+        Route.Settlement -> SettlementScreen(api, onBack = ::goBack)
         Route.Settings -> SettingsScreen(api, onBack = ::goBack) { route = Route.Login }
     }
 }
@@ -158,14 +166,21 @@ private fun HomeScreen(api: CzxsApi, onBack: () -> Unit, onNavigate: (Route) -> 
         Column(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("店员：${api.accountName.ifBlank { "未登录" }}", style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OrderEntry("配送送货", Modifier.weight(1f)) { onNavigate(Route.Order("delivery")) }
-                OrderEntry("配送退货", Modifier.weight(1f)) { onNavigate(Route.Order("delivery_return")) }
+                OrderEntry("配送", Modifier.weight(1f)) { onNavigate(Route.Order("delivery")) }
+                OrderEntry("配退", Modifier.weight(1f)) { onNavigate(Route.Order("delivery_return")) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OrderEntry("自提送货", Modifier.weight(1f)) { onNavigate(Route.Order("pickup")) }
-                OrderEntry("自提退货", Modifier.weight(1f)) { onNavigate(Route.Order("pickup_return")) }
+                OrderEntry("自送", Modifier.weight(1f)) { onNavigate(Route.Order("pickup")) }
+                OrderEntry("自退", Modifier.weight(1f)) { onNavigate(Route.Order("pickup_return")) }
             }
-            Button(onClick = { onNavigate(Route.Note) }, modifier = Modifier.fillMaxWidth()) { Text("备 注 单") }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OrderEntry("备注", Modifier.weight(1f)) { onNavigate(Route.Note) }
+                OrderEntry("收款", Modifier.weight(1f)) { onNavigate(Route.Payment("receipt")) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OrderEntry("退款", Modifier.weight(1f)) { onNavigate(Route.Payment("refund")) }
+                OrderEntry("结算", Modifier.weight(1f)) { onNavigate(Route.Settlement) }
+            }
         }
     }
 }
@@ -632,59 +647,48 @@ private fun TodayScreen(api: CzxsApi, onBack: () -> Unit, onEdit: (Long) -> Unit
     }
 }
 
-// ---------- 备注单 ----------
+// ---------- 备注（写入选中单据） ----------
 @Composable
 private fun NoteScreen(api: CzxsApi, onPick: () -> Unit, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val selected = SelectedOrder.holder
-    var diffType by remember { mutableStateOf("short") }
-    var qty by remember { mutableStateOf("") }
     var remark by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
-    var created by remember { mutableStateOf<JSONObject?>(null) }
-    var open by remember { mutableStateOf(false) }
+    var done by remember { mutableStateOf(false) }
 
-    PageScaffold("备注单", onBack = onBack) { modifier ->
+    LaunchedEffect(selected) {
+        remark = selected?.optString("remark") ?: ""
+        done = false
+    }
+
+    PageScaffold("备注", onBack = onBack) { modifier ->
         Column(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onPick, modifier = Modifier.fillMaxWidth()) {
-                Text(if (selected == null) "选择原单" else "原单：${selected.optString("order_no")}")
+                Text(if (selected == null) "选择要备注的单据" else "单据：${selected.optString("order_no")}")
             }
             selected?.let { order ->
-                KeyValueRow("客户", order.optString("customer_name"))
-                KeyValueRow("合计", order.optString("order_total"))
+                KeyValueRow("客户", "${order.optString("customer_name")} ${order.optString("customer_phone")}")
+                KeyValueRow("类型", typeLabel(order.optString("type")))
+                KeyValueRow("金额", order.optString("order_total"))
             }
-            SectionLabel("差异")
-            OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (diffType == "short") "少" else if (diffType == "over") "多" else "破损")
-            }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                listOf("short" to "少", "over" to "多", "damaged" to "破损").forEach { (v, l) ->
-                    DropdownMenuItem(text = { Text(l) }, onClick = { open = false; diffType = v })
-                }
-            }
-            AppTextField("差异数量", qty, { qty = it }, numeric = true)
-            AppTextField("说明", remark, { remark = it })
+            AppTextField("备注文字", remark, { remark = it })
             error?.let { ErrorText(it) }
-            created?.let { KeyValueRow("备注单号", it.optString("note_no")) }
+            if (done) Text("备注已保存", color = MaterialTheme.colorScheme.primary)
             Button(
                 onClick = {
-                    val order = selected ?: run { error = "请先选择原单"; return@Button }
-                    val line = JSONObject()
-                        .put("category_id", order.optJSONArray("items")?.optJSONObject(0)?.optLong("category_id") ?: 0)
-                        .put("batch_tag", order.optJSONArray("items")?.optJSONObject(0)?.optString("batch_tag") ?: "")
-                        .put("diff_type", diffType)
-                        .put("diff_quantity", qty)
-                        .put("remark", remark)
+                    val order = selected ?: run { error = "请先选择单据"; return@Button }
                     scope.launch {
                         try {
-                            created = withContext(Dispatchers.IO) { api.createNote(order.optString("order_no"), listOf(line)) }
+                            withContext(Dispatchers.IO) { api.setRemark(order.optLong("id"), remark) }
+                            done = true
+                            error = null
                         } catch (e: Exception) {
                             error = e.message
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("提交打印") }
+            ) { Text("保存备注") }
         }
     }
 }
@@ -692,27 +696,35 @@ private fun NoteScreen(api: CzxsApi, onPick: () -> Unit, onBack: () -> Unit) {
 @Composable
 private fun PickOrderScreen(api: CzxsApi, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
-    var phone by remember { mutableStateOf("") }
+    var keyword by remember { mutableStateOf("") }
     var orders by remember { mutableStateOf(listOf<JSONObject>()) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    PageScaffold("选择原单", onBack = onBack) { modifier ->
+    PageScaffold("选择单据", onBack = onBack) { modifier ->
         Column(modifier.padding(PagePadding)) {
-            AppTextField("客户电话", phone, { phone = it }, numeric = true)
+            AppTextField("电话 / 姓名 / 地址", keyword, { keyword = it })
             Button(
                 onClick = {
                     scope.launch {
                         try {
-                            orders = withContext(Dispatchers.IO) { api.recent(phone, 3) }.let { arr ->
+                            val q = keyword.trim()
+                            val customers = withContext(Dispatchers.IO) { api.searchCustomers(q) }
+                            if (customers.length() == 0) {
+                                error = "未找到该客户"
+                                orders = emptyList()
+                                return@launch
+                            }
+                            val phone = customers.getJSONObject(0).optString("phone")
+                            orders = withContext(Dispatchers.IO) { api.recent(phone, 365) }.let { arr ->
                                 (0 until arr.length()).map { arr.getJSONObject(it) }
                             }
-                            if (orders.isEmpty()) error = "该电话近三日无单据"
+                            error = if (orders.isEmpty()) "该客户暂无单据" else null
                         } catch (e: Exception) {
                             error = e.message
                         }
                     }
                 },
-                enabled = phone.isNotBlank(),
+                enabled = keyword.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             ) { Text("查询") }
             error?.let { ErrorText(it) }
@@ -723,11 +735,7 @@ private fun PickOrderScreen(api: CzxsApi, onBack: () -> Unit) {
                         Column(Modifier.padding(10.dp)) {
                             Text("${o.optString("created_at").take(16).replace('T', ' ')}  ${typeLabel(o.optString("type"))}")
                             Text(o.optString("order_no"), style = MaterialTheme.typography.bodySmall)
-                            val items = o.optJSONArray("items") ?: JSONArray()
-                            for (i in 0 until items.length()) {
-                                val line = items.getJSONObject(i)
-                                Text("${line.optString("category_name")} ${line.optString("batch_tag")} ${line.optString("input_quantity")}${line.optString("input_unit")}")
-                            }
+                            Text("${o.optString("customer_name")} · ${o.optString("customer_phone")}")
                             MoneyText(o.optString("order_total"))
                             OutlinedButton(onClick = {
                                 SelectedOrder.holder = o
@@ -744,6 +752,214 @@ private fun PickOrderScreen(api: CzxsApi, onBack: () -> Unit) {
 /** 选原单结果（页面间共享）。 */
 object SelectedOrder {
     var holder: JSONObject? = null
+}
+
+
+// ---------- 收款 / 退款 ----------
+private data class PayRow(val method: String, val amount: String)
+
+@Composable
+private fun PaymentScreen(api: CzxsApi, type: String, onBack: () -> Unit, onDone: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val isRefund = type == "refund"
+    var keyword by remember { mutableStateOf("") }
+    var matches by remember { mutableStateOf(listOf<JSONObject>()) }
+    var customer by remember { mutableStateOf<JSONObject?>(null) }
+    var refundable by remember { mutableStateOf("") }
+    var outstanding by remember { mutableStateOf("") }
+    val rows = remember { mutableStateListOf(PayRow("现金", "")) }
+    var discount by remember { mutableStateOf("") }
+    var discountType by remember { mutableStateOf("") }
+    var methods by remember { mutableStateOf(listOf("其他")) }
+    var discountTypes by remember { mutableStateOf(emptyList<String>()) }
+    var openRow by remember { mutableStateOf(-1) }
+    var openDiscount by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var done by remember { mutableStateOf<JSONObject?>(null) }
+
+    LaunchedEffect(Unit) {
+        runCatching {
+            withContext(Dispatchers.IO) {
+                methods = api.presets("payment_methods", listOf("其他"))
+                discountTypes = api.presets("discount_types", emptyList())
+            }
+        }
+        if (rows.isNotEmpty() && methods.isNotEmpty()) rows[0] = rows[0].copy(method = methods.first())
+    }
+
+    val total = rows.sumOf { it.amount.toDoubleOrNull() ?: 0.0 }
+
+    fun pickCustomer(c: JSONObject) {
+        customer = c
+        matches = emptyList()
+        keyword = c.optString("phone")
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    if (isRefund) refundable = api.refundable(c.optString("phone")) else outstanding = api.outstanding(c.optString("phone"))
+                }
+            } catch (e: Exception) { error = e.message }
+        }
+    }
+
+    PageScaffold(if (isRefund) "退款" else "收款", onBack = onBack) { modifier ->
+        Column(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppTextField("电话 / 姓名 / 地址", keyword, { keyword = it })
+            Button(
+                onClick = {
+                    scope.launch {
+                        try {
+                            val list = withContext(Dispatchers.IO) { api.searchCustomers(keyword.trim()) }
+                            if (list.length() == 1) pickCustomer(list.getJSONObject(0))
+                            else if (list.length() == 0) error = "未找到客户" else {
+                                matches = (0 until list.length()).map { list.getJSONObject(it) }
+                            }
+                        } catch (e: Exception) { error = e.message }
+                    }
+                },
+                enabled = keyword.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("查客户") }
+
+            matches.forEach { c ->
+                OutlinedButton(onClick = { pickCustomer(c) }, modifier = Modifier.fillMaxWidth()) {
+                    Text("${c.optString("name")} / ${c.optString("phone")} / ${c.optString("addr").ifBlank { "无地址" }}")
+                }
+            }
+
+            customer?.let { c ->
+                KeyValueRow("客户", "${c.optString("name")} ${c.optString("phone")}")
+                if (isRefund) KeyValueRow("可退金额", refundable) else KeyValueRow("应收金额", outstanding)
+            }
+
+            SectionLabel("付款方式")
+            rows.forEachIndexed { index, row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { openRow = index }) { Text(row.method) }
+                    DropdownMenu(expanded = openRow == index, onDismissRequest = { openRow = -1 }) {
+                        methods.forEach { m ->
+                            DropdownMenuItem(text = { Text(m) }, onClick = { openRow = -1; rows[index] = row.copy(method = m) })
+                        }
+                    }
+                    Box(Modifier.weight(1f)) {
+                        AppTextField("金额", row.amount, { v -> rows[index] = row.copy(amount = v) }, numeric = true)
+                    }
+                    OutlinedButton(onClick = { rows.removeAt(index) }) { Text("删") }
+                }
+            }
+            OutlinedButton(onClick = { rows.add(PayRow(methods.firstOrNull() ?: "现金", "")) }, modifier = Modifier.fillMaxWidth()) { Text("+ 添加付款方式") }
+            KeyValueRow("实收合计", String.format("%.2f", total))
+
+            if (!isRefund) {
+                if (discountTypes.isNotEmpty()) {
+                    OutlinedButton(onClick = { openDiscount = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (discountType.isBlank()) "优惠方式（可选）" else "优惠方式：$discountType")
+                    }
+                    DropdownMenu(expanded = openDiscount, onDismissRequest = { openDiscount = false }) {
+                        discountTypes.forEach { d ->
+                            DropdownMenuItem(text = { Text(d) }, onClick = { openDiscount = false; discountType = d })
+                        }
+                    }
+                }
+                AppTextField("优惠金额", discount, { discount = it }, numeric = true)
+            }
+
+            error?.let { ErrorText(it) }
+            done?.let {
+                Text("已生成 ${it.optString("order_no")}", color = MaterialTheme.colorScheme.primary)
+                Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("完成") }
+            }
+            Button(
+                onClick = {
+                    val c = customer ?: run { error = "请先查客户"; return@Button }
+                    scope.launch {
+                        try {
+                            val payments = rows.map { JSONObject().put("method", it.method).put("amount", it.amount) }
+                            val out = withContext(Dispatchers.IO) {
+                                api.createPayment(
+                                    type = type,
+                                    phone = c.optString("phone"),
+                                    name = c.optString("name"),
+                                    address = c.optString("addr"),
+                                    payments = payments,
+                                    discount = if (isRefund) "" else discount,
+                                    discountType = if (isRefund) "" else discountType,
+                                )
+                            }
+                            done = out
+                            error = null
+                        } catch (e: Exception) { error = e.message }
+                    }
+                },
+                enabled = done == null,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (isRefund) "提交退款" else "提交收款") }
+        }
+    }
+}
+
+// ---------- 结算 ----------
+@Composable
+private fun SettlementScreen(api: CzxsApi, onBack: () -> Unit) {
+    var list by remember { mutableStateOf(listOf<JSONObject>()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var detail by remember { mutableStateOf<JSONObject?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        try {
+            list = withContext(Dispatchers.IO) { api.settlement() }.let { arr -> (0 until arr.length()).map { arr.getJSONObject(it) } }
+        } catch (e: Exception) { error = e.message }
+    }
+
+    PageScaffold("结算", onBack = onBack) { modifier ->
+        LazyColumn(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { error?.let { ErrorText(it) } }
+            items(list.size) { index ->
+                val r = list[index]
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(10.dp)) {
+                        Text(r.optString("name"), fontWeight = FontWeight.SemiBold)
+                        Text(r.optString("phone"), style = MaterialTheme.typography.bodySmall)
+                        Text("累计结算：${r.optString("total")}")
+                        OutlinedButton(onClick = {
+                            scope.launch {
+                                try {
+                                    detail = withContext(Dispatchers.IO) { api.settlementDetail(r.optLong("id")) }
+                                } catch (e: Exception) { error = e.message }
+                            }
+                        }) { Text("详情") }
+                    }
+                }
+            }
+        }
+    }
+
+    detail?.let { d ->
+        val orders = d.optJSONArray("orders") ?: JSONArray()
+        AlertDialog(
+            onDismissRequest = { detail = null },
+            confirmButton = { TextButton(onClick = { detail = null }) { Text("关闭") } },
+            title = { Text("结算详情 · ${d.optJSONObject("customer")?.optString("name") ?: ""}") },
+            text = {
+                Column {
+                    KeyValueRow("送货合计", d.optString("receivable"))
+                    KeyValueRow("退货合计", d.optString("payable"))
+                    KeyValueRow("收款合计", d.optString("received"))
+                    KeyValueRow("退款合计", d.optString("refunded"))
+                    KeyValueRow("优惠合计", d.optString("discount"))
+                    val out = d.optString("outstanding", "0").toDoubleOrNull() ?: 0.0
+                    KeyValueRow("结余", if (out > 0) "现应收 $out" else if (out < 0) "现应退 ${-out}" else "已结清")
+                    LazyColumn(Modifier.height(220.dp)) {
+                        items(orders.length()) { i ->
+                            val o = orders.getJSONObject(i)
+                            Text("${o.optString("order_no")}  ${typeLabel(o.optString("type"))}  ${o.optString("order_total")}")
+                        }
+                    }
+                }
+            },
+        )
+    }
 }
 
 // ---------- 设置 ----------
