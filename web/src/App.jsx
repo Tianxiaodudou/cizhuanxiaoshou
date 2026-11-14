@@ -628,7 +628,7 @@ function CategoryModal({ init, onClose, onDone }) {
         <label className="row">三级 批号（可空，保存时默认等于型号）：<input value={f.batch} onChange={set('batch')} placeholder="留空则自动用型号作为批号" /></label>
         <label className="row">四级 计价单位：<UnitSelect value={f.settlement_unit} options={presets.s} onChange={(v) => setF({ ...f, settlement_unit: v })} /></label>
         <label className="row">默认价格（元/计价单位）：<input value={f.default_price} onChange={set('default_price')} placeholder="可空，新客户默认用它" /></label>
-        <label className="row">五级 换算单位（可选）：<input value={f.conversion_unit} onChange={set('conversion_unit')} /></label>
+        <label className="row">五级 换算单位（可选）：<UnitSelect value={f.conversion_unit} options={presets.c} allowEmpty onChange={(v) => setF({ ...f, conversion_unit: v })} /></label>
         {f.conversion_unit.trim() !== '' && (
           <div className="row">换算系数：1 <b>{f.conversion_unit}</b> = <input style={{ width: 70 }} value={f.conversion} onChange={set('conversion')} /> <b>{f.settlement_unit || '暂无'}</b></div>
         )}
