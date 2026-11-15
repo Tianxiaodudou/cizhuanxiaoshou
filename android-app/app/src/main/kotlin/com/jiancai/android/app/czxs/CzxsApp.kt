@@ -1655,6 +1655,8 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
     var showEditor by remember { mutableStateOf(false) }
     var unitsS by remember { mutableStateOf(emptyList<String>()) }
     var unitsC by remember { mutableStateOf(emptyList<String>()) }
+    var toggleReq by remember { mutableStateOf<Pair<JSONObject, Boolean>?>(null) }
+    var deleteReq by remember { mutableStateOf<JSONObject?>(null) }
     val scope = rememberCoroutineScope()
 
     fun reload() {
@@ -1728,14 +1730,7 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                         Modifier
                                             .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f), androidx.compose.foundation.shape.RoundedCornerShape(50))
                                             .border(1.dp, MaterialTheme.colorScheme.error, androidx.compose.foundation.shape.RoundedCornerShape(50))
-                                            .clickable {
-                                                scope.launch {
-                                                    try {
-                                                        withContext(Dispatchers.IO) { api.deleteCategory(c.optLong("id")) }
-                                                        reload()
-                                                    } catch (e: Exception) { error = e.message }
-                                                }
-                                            }
+                                            .clickable { deleteReq = c }
                                             .padding(horizontal = 9.dp, vertical = 4.dp),
                                     ) {
                                         Text("删除", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
@@ -1743,14 +1738,7 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                 }
                                 androidx.compose.material3.Switch(
                                     checked = c.optString("status") == "active",
-                                    onCheckedChange = { active ->
-                                        scope.launch {
-                                            try {
-                                                withContext(Dispatchers.IO) { api.setCategoryStatus(c.optLong("id"), active) }
-                                                reload()
-                                            } catch (e: Exception) { error = e.message }
-                                        }
-                                    },
+                                    onCheckedChange = { active -> toggleReq = c to active },
                                 )
                             }
                         }
@@ -1758,6 +1746,50 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                 }
             }
         }
+    }
+
+    toggleReq?.let { (cat, active) ->
+        AlertDialog(
+            onDismissRequest = { toggleReq = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    toggleReq = null
+                    scope.launch {
+                        try {
+                            withContext(Dispatchers.IO) { api.setCategoryStatus(cat.optLong("id"), active) }
+                            reload()
+                        } catch (e: Exception) { error = e.message }
+                    }
+                }) { Text("确认") }
+            },
+            dismissButton = { TextButton(onClick = { toggleReq = null }) { Text("取消") } },
+            title = { Text(if (active) "启用型号" else "禁用型号") },
+            text = {
+                Text("确认将「${cat.optString("group")} · ${cat.optString("name")} · ${cat.optString("batch")}」设为${if (active) "启用" else "禁用"}？")
+            },
+        )
+    }
+
+    deleteReq?.let { cat ->
+        AlertDialog(
+            onDismissRequest = { deleteReq = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleteReq = null
+                    scope.launch {
+                        try {
+                            withContext(Dispatchers.IO) { api.deleteCategory(cat.optLong("id")) }
+                            reload()
+                        } catch (e: Exception) { error = e.message }
+                    }
+                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { deleteReq = null }) { Text("取消") } },
+            title = { Text("删除型号") },
+            text = {
+                Text("确认删除「${cat.optString("group")} · ${cat.optString("name")} · ${cat.optString("batch")}」？删除后不可恢复。")
+            },
+        )
     }
 
     if (showEditor) {
