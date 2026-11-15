@@ -698,6 +698,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                     CategoryPicker(
                         categories = pickerCats,
                         selectedLabel = line.categoryName,
+                        onCancel = { pickerFor = -1 },
                         batchesFor = { catId ->
                             if (isReturn) {
                                 returnBatchesFor(catId)
@@ -835,14 +836,9 @@ private fun CategoryPicker(
     categories: List<JSONObject>,
     selectedLabel: String,
     batchesFor: (Long) -> List<Pair<String, String>>,
+    onCancel: () -> Unit = {},
     onPick: (JSONObject, String) -> Unit,
 ) {
-    var open by remember { mutableStateOf(false) }
-    OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
-        Text(selectedLabel.ifBlank { "选择商品（品类 / 型号 / 批号）" })
-    }
-    if (!open) return
-
     val groups = categories.map { it.optString("group") }.distinct()
     var gi by remember { mutableStateOf(0) }
     val names = categories.filter { it.optString("group") == groups.getOrNull(gi) }
@@ -860,17 +856,16 @@ private fun CategoryPicker(
     LaunchedEffect(gi, ni) { bi = 0 }
 
     AlertDialog(
-        onDismissRequest = { open = false },
+        onDismissRequest = onCancel,
         confirmButton = {
             TextButton(onClick = {
                 val c = categories.firstOrNull {
                     it.optString("group") == groups.getOrNull(gi) && it.optString("name") == names.getOrNull(ni)
                 }
                 if (c != null) onPick(c, batchOptions.getOrNull(bi)?.first ?: c.optString("batch"))
-                open = false
             }) { Text("确定") }
         },
-        dismissButton = { TextButton(onClick = { open = false }) { Text("取消") } },
+        dismissButton = { TextButton(onClick = onCancel) { Text("取消") } },
         title = { Text("选择商品") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1539,6 +1534,20 @@ private fun PrintScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) 
 }
 
 // ---------- 型号库 ----------
+private data class CardTint(
+    val bg: androidx.compose.ui.graphics.Color,
+    val a: androidx.compose.ui.graphics.Color,
+    val b: androidx.compose.ui.graphics.Color,
+    val c: androidx.compose.ui.graphics.Color,
+)
+
+private val cardTints = listOf(
+    CardTint(androidx.compose.ui.graphics.Color(0xFFE6F4F2), androidx.compose.ui.graphics.Color(0xFF0F766E), androidx.compose.ui.graphics.Color(0xFF0E7490), androidx.compose.ui.graphics.Color(0xFFB45309)),
+    CardTint(androidx.compose.ui.graphics.Color(0xFFFDF1E6), androidx.compose.ui.graphics.Color(0xFFB45309), androidx.compose.ui.graphics.Color(0xFF7C3AED), androidx.compose.ui.graphics.Color(0xFF0F766E)),
+    CardTint(androidx.compose.ui.graphics.Color(0xFFEDEBFB), androidx.compose.ui.graphics.Color(0xFF6D28D9), androidx.compose.ui.graphics.Color(0xFFB91C1C), androidx.compose.ui.graphics.Color(0xFF0E7490)),
+    CardTint(androidx.compose.ui.graphics.Color(0xFFE9F2E6), androidx.compose.ui.graphics.Color(0xFF3F6212), androidx.compose.ui.graphics.Color(0xFFB45309), androidx.compose.ui.graphics.Color(0xFF6D28D9)),
+)
+
 @Composable
 private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) {
     var list by remember { mutableStateOf(listOf<JSONObject>()) }
@@ -1567,7 +1576,8 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
     }
 
     val filtered = list.filter {
-        keyword.isBlank() || it.optString("group").contains(keyword) || it.optString("name").contains(keyword) || it.optString("batch").contains(keyword)
+        keyword.isBlank() || it.optString("group").contains(keyword) ||
+            it.optString("name").contains(keyword) || it.optString("batch").contains(keyword)
     }
 
     AppScaffold("型号库", onMenu = onMenu, onSearch = onSearch) { inner ->
@@ -1575,35 +1585,55 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
             error?.let { ErrorText(it) }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 AppTextField("搜索品类/型号/批号", keyword, { keyword = it }, modifier = Modifier.weight(1f))
-                if (api.isAdmin) {
-                    Button(onClick = { editTarget = null; showEditor = true }) { Text("新增") }
-                }
+                if (api.isAdmin) Button(onClick = { editTarget = null; showEditor = true }) { Text("新增") }
             }
             Text(if (api.isAdmin) "管理员可维护型号库" else "业务员只读", style = MaterialTheme.typography.bodySmall)
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(filtered.size) { index ->
                     val c = filtered[index]
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(10.dp)) {
-                            Text("${c.optString("group")} · ${c.optString("name")}", fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "批号 ${c.optString("batch").ifBlank { "无" }}　计价 ${c.optString("settlement_unit")}" +
-                                    (c.optString("conversion_unit").takeIf { it.isNotBlank() }?.let { "　换算 $it（1$it=${c.optString("conversion")}${c.optString("settlement_unit")}）" } ?: ""),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            Text("默认价 ${c.optString("default_price").ifBlank { "无" }}　${if (c.optString("status") == "active") "启用" else "禁用"}", style = MaterialTheme.typography.bodySmall)
-                            if (api.isAdmin) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    OutlinedButton(onClick = { editTarget = c; showEditor = true }) { Text("编辑") }
-                                    OutlinedButton(onClick = {
+                    val tint = cardTints[index % cardTints.size]
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 6.dp),
+                        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = tint.bg),
+                    ) {
+                        Column(Modifier.padding(12.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        listOf(c.optString("group"), c.optString("name"), c.optString("batch").ifBlank { "无批号" })
+                                            .joinToString(" · "),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text("计价 ${c.optString("settlement_unit")}", color = tint.a, style = MaterialTheme.typography.labelMedium)
+                                        Text("换算 ${c.optString("conversion_unit").ifBlank { "无" }}", color = tint.b, style = MaterialTheme.typography.labelMedium)
+                                        Text("默认价 ${c.optString("default_price").ifBlank { "无" }}", color = tint.c, style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
+                                androidx.compose.material3.Switch(
+                                    checked = c.optString("status") == "active",
+                                    onCheckedChange = { active ->
                                         scope.launch {
                                             try {
-                                                withContext(Dispatchers.IO) { api.deleteCategory(c.optLong("id")) }
+                                                withContext(Dispatchers.IO) { api.setCategoryStatus(c.optLong("id"), active) }
                                                 reload()
                                             } catch (e: Exception) { error = e.message }
                                         }
-                                    }) { Text("删除") }
-                                }
+                                    },
+                                )
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                OutlinedButton(onClick = { editTarget = c; showEditor = true }) { Text("编辑") }
+                                OutlinedButton(onClick = {
+                                    scope.launch {
+                                        try {
+                                            withContext(Dispatchers.IO) { api.deleteCategory(c.optLong("id")) }
+                                            reload()
+                                        } catch (e: Exception) { error = e.message }
+                                    }
+                                }, modifier = Modifier.padding(start = 6.dp)) { Text("删除") }
                             }
                         }
                     }
@@ -1653,6 +1683,18 @@ private fun CategoryEditorDialog(
     var convMenu by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
 
+    @Composable
+    fun CompactField(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            placeholder = { Text(hint, style = MaterialTheme.typography.bodySmall) },
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodySmall,
+            modifier = modifier,
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -1661,45 +1703,45 @@ private fun CategoryEditorDialog(
                     err = "品类、型号、计价单位必填"
                     return@TextButton
                 }
-                onSave(
-                    JSONObject()
-                        .put("group", group)
-                        .put("name", name)
-                        .put("batch", batch.ifBlank { name })
-                        .put("settlement_unit", unit)
-                        .put("conversion_unit", convUnit)
-                        .put("conversion", conversion.ifBlank { "1" })
-                        .put("default_price", defaultPrice),
-                )
+                onSave(JSONObject()
+                    .put("group", group).put("name", name).put("batch", batch.ifBlank { name })
+                    .put("settlement_unit", unit).put("conversion_unit", convUnit)
+                    .put("conversion", conversion.ifBlank { "1" }).put("default_price", defaultPrice))
             }) { Text("保存") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
         title = { Text(if (initial == null) "新增型号" else "编辑型号") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                AppTextField("品类", group, { group = it })
-                AppTextField("型号", name, { name = it })
-                AppTextField("批号（留空=型号）", batch, { batch = it })
-                Box {
-                    OutlinedButton(onClick = { unitMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("计价单位：${unit.ifBlank { "请选择" }}")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    CompactField(group, { group = it }, "品类", Modifier.weight(1f))
+                    CompactField(name, { name = it }, "型号", Modifier.weight(1f))
+                    CompactField(batch, { batch = it }, "批号", Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        OutlinedButton(onClick = { unitMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("计价：${unit.ifBlank { "选择" }}", style = MaterialTheme.typography.bodySmall)
+                        }
+                        DropdownMenu(expanded = unitMenu, onDismissRequest = { unitMenu = false }) {
+                            settlementUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { unitMenu = false; unit = u }) }
+                        }
                     }
-                    DropdownMenu(expanded = unitMenu, onDismissRequest = { unitMenu = false }) {
-                        settlementUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { unitMenu = false; unit = u }) }
+                    Box(Modifier.weight(1f)) {
+                        OutlinedButton(onClick = { convMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("换算：${convUnit.ifBlank { "无" }}", style = MaterialTheme.typography.bodySmall)
+                        }
+                        DropdownMenu(expanded = convMenu, onDismissRequest = { convMenu = false }) {
+                            DropdownMenuItem(text = { Text("无") }, onClick = { convMenu = false; convUnit = "" })
+                            conversionUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { convMenu = false; convUnit = u }) }
+                        }
                     }
                 }
-                Box {
-                    OutlinedButton(onClick = { convMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("换算单位：${convUnit.ifBlank { "无" }}")
-                    }
-                    DropdownMenu(expanded = convMenu, onDismissRequest = { convMenu = false }) {
-                        DropdownMenuItem(text = { Text("无") }, onClick = { convMenu = false; convUnit = "" })
-                        conversionUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { convMenu = false; convUnit = u }) }
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    CompactField(conversion, { conversion = it }, "换算系数", Modifier.weight(1f))
+                    CompactField(defaultPrice, { defaultPrice = it }, "默认价", Modifier.weight(1f))
                 }
-                AppTextField("换算系数", conversion, { conversion = it }, numeric = true)
-                AppTextField("默认价", defaultPrice, { defaultPrice = it }, numeric = true)
-                err?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                err?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
         },
     )
