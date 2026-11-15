@@ -959,6 +959,50 @@ function Settings() {
           <option>80mm</option><option>58mm</option>
         </select>
       </div>
+      {localStorage.getItem('czxs_role') === 'admin' && (
+        <>
+          <h3>数据库</h3>
+          {[['model', '型号库'], ['docs', '单据库']].map(([kind, label]) => (
+            <div className="row" key={kind}>
+              <span style={{ width: 90 }}>{label}：</span>
+              <button type="button" className="secondary" onClick={async () => {
+                try {
+                  const tk = localStorage.getItem('czxs_token') || ''
+                  const res = await fetch('/app/czxs/api/backup/export?kind=' + kind, { headers: { Authorization: 'Bearer ' + tk } })
+                  if (!res.ok) throw new Error('导出失败')
+                  const blob = await res.blob()
+                  const a = document.createElement('a')
+                  const d = new Date().toISOString().slice(0, 10)
+                  a.href = URL.createObjectURL(blob)
+                  a.download = (kind === 'model' ? '型号库-' : '单据库-') + d + '.sq3'
+                  a.click()
+                  URL.revokeObjectURL(a.href)
+                  setMsg('已导出 ' + a.download)
+                } catch (e) { setMsg(e.message) }
+              }}>导出</button>
+              <label className="secondary" style={{ display: 'inline-block', padding: '6px 12px', borderRadius: 999, background: '#f3efe9', cursor: 'pointer' }}>
+                导入
+                <input type="file" accept=".sq3,application/octet-stream" style={{ display: 'none' }} onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  try {
+                    const tk = localStorage.getItem('czxs_token') || ''
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await fetch('/app/czxs/api/backup/import?kind=' + kind, { method: 'POST', headers: { Authorization: 'Bearer ' + tk }, body: fd })
+                    const body = await res.text()
+                    if (!res.ok) throw new Error(body || '导入失败')
+                    setMsg(label + '导入成功，请重启应用生效')
+                  } catch (err) { setMsg(err.message) }
+                  e.target.value = ''
+                }} />
+              </label>
+              <span className="muted">{label}导入不含账号数据</span>
+            </div>
+          ))}
+        </>
+      )}
+
       <PresetField label="计价单位预设" settingKey="settlement_units" value={s.settlement_units || ''} onChange={(v) => setS({ ...s, settlement_units: v })} />
       <PresetField label="换算单位预设" settingKey="conversion_units" value={s.conversion_units || ''} onChange={(v) => setS({ ...s, conversion_units: v })} />
       <PresetField label="付款方式预设" settingKey="payment_methods" value={s.payment_methods || ''} onChange={(v) => setS({ ...s, payment_methods: v })} />

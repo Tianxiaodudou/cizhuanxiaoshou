@@ -7,6 +7,7 @@ import (
 "crypto/sha256"
 	"database/sql"
 	"embed"
+	"io"
 	"encoding/base64"
 "encoding/hex"
 	"encoding/json"
@@ -16,6 +17,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -32,7 +34,9 @@ import (
 var webFiles embed.FS
 
 type App struct {
-	db     *sql.DB
+	db      *sql.DB
+	mdb     *sql.DB
+	dataDir string
 	prefix string
 	mu     sync.Mutex
 	tokens map[string]int64
@@ -56,14 +60,23 @@ func main() {
 	port, _ := strconv.Atoi(env("CZ_XS_API_PORT", "9527"))
 	prefix := strings.TrimRight(env("CZ_XS_PREFIX", "/app/czxs"), "/")
 
-	db, err := sql.Open("sqlite", filepath.Join(data, "orders.sq3")+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
+	db, err := sql.Open("sqlite", filepath.Join(data, "docs.sq3")+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 	if err != nil {
 		log.Fatal(err)
 	}
 	db.SetMaxOpenConns(4)
+	mdb, err := sql.Open("sqlite", filepath.Join(data, "model.sq3")+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	mdb.SetMaxOpenConns(4)
 	migrate(db)
+	migrateModel(mdb)
+	migrateLegacy(db, mdb, data)
 	seed(db)
-	a := &App{db: db, prefix: prefix, tokens: map[string]int64{}}
+	seedModel(mdb)
+	backfillItemNames(db, mdb)
+	a := &App{db: db, mdb: mdb, dataDir: data, prefix: prefix, tokens: map[string]int64{}}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/", a.api)
@@ -108,11 +121,101 @@ func withPrefix(prefix string, next http.Handler) http.Handler {
 	})
 }
 
+// migrateModel 型号库：商品型号 + 四种预设（独立 model.sq3，可单独导入导出）。
+func migrateModel(db *sql.DB) {
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, name TEXT, batch TEXT, settlement_unit TEXT, conversion_unit TEXT, conversion REAL DEFAULT 1, default_price TEXT DEFAULT '', batch_type TEXT DEFAULT 'none', status TEXT DEFAULT 'active', created_at TEXT, UNIQUE(grp,name,batch,settlement_unit,conversion_unit))`)
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`)
+	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
+}
+
+func seedModel(db *sql.DB) {
+	for _, k := range []string{"settlement_units", "conversion_units", "payment_methods", "discount_types"} {
+		_, _ = db.Exec(`INSERT OR IGNORE INTO settings(k,v) VALUES(?,'')`, k)
+	}
+}
+
+// migrateLegacy 首次升级：把旧 orders.sq3 拆成 docs.sq3 + model.sq3（账号保留在 docs）。
+func migrateLegacy(db, mdb *sql.DB, data string) {
+	legacy := filepath.Join(data, "orders.sq3")
+	if _, err := os.Stat(legacy); err != nil {
+		return
+	}
+	old, err := sql.Open("sqlite", legacy+"?_pragma=busy_timeout(5000)")
+	if err != nil {
+		return
+	}
+	defer old.Close()
+	copyTable := func(dst, src *sql.DB, table string, cols string) {
+		var n int
+		_ = dst.QueryRow(`SELECT COUNT(*) FROM ` + table).Scan(&n)
+		if n > 0 {
+			return
+		}
+		rows, err := src.Query(`SELECT ` + cols + ` FROM ` + table)
+		if err != nil {
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			vals := make([]any, strings.Count(cols, ",")+1)
+			ptrs := make([]any, len(vals))
+			for i := range vals {
+				ptrs[i] = &vals[i]
+			}
+			if rows.Scan(ptrs...) != nil {
+				continue
+			}
+			ph := strings.TrimSuffix(strings.Repeat("?,", len(vals)), ",")
+			_, _ = dst.Exec(`INSERT OR IGNORE INTO `+table+`(`+cols+`) VALUES(`+ph+`)`, vals...)
+		}
+	}
+	copyTable(mdb, old, "categories", "grp,name,batch,settlement_unit,conversion_unit,conversion,default_price,batch_type,status,created_at")
+	for _, k := range []string{"settlement_units", "conversion_units", "payment_methods", "discount_types"} {
+		var v string
+		_ = old.QueryRow(`SELECT v FROM settings WHERE k=?`, k).Scan(&v)
+		if v != "" {
+			_, _ = mdb.Exec(`UPDATE settings SET v=? WHERE k=?`, v, k)
+		}
+	}
+	for _, tb := range []struct{ t, c string }{
+		{"accounts", "username,name,password_hash,role,status,created_at"},
+		{"customers", "name,phone,addr,price_mode,created_at"},
+		{"orders", "order_no,type,customer_id,account_id,status,remark,order_total,version,created_at,discount,discount_type"},
+		{"order_items", "order_id,line_no,category_id,batch_tag,input_unit,input_quantity,settlement_unit,settlement_quantity,unit_price,line_total"},
+		{"payment_lines", "order_id,method,custom_method,amount"},
+		{"notes", "note_no,ref_order_no,customer_id,account_id,status,remark,created_at"},
+		{"note_items", "note_id,category_id,batch_tag,diff_type,diff_quantity,remark"},
+		{"print_jobs", "order_id,doc_no,doc_type,status,created_at"},
+		{"doc_seq", "prefix,day,seq"},
+		{"logs", "account_id,action,detail,created_at"},
+	} {
+		copyTable(db, old, tb.t, tb.c)
+	}
+}
+
+// backfillItemNames 用型号库补齐明细里的名称快照（跨库 join 不可用）。
+func backfillItemNames(db, mdb *sql.DB) {
+	names := map[int64]struct{ n, g string }{}
+	rows, err := mdb.Query(`SELECT id,name,grp FROM categories`)
+	if err == nil && rows != nil {
+		for rows.Next() {
+			var id int64
+			var n, g string
+			_ = rows.Scan(&id, &n, &g)
+			names[id] = struct{ n, g string }{n, g}
+		}
+		_ = rows.Close()
+	}
+	for id, v := range names {
+		_, _ = db.Exec(`UPDATE order_items SET cat_name=?, cat_group=? WHERE category_id=? AND cat_name=''`, v.n, v.g, id)
+		_, _ = db.Exec(`UPDATE note_items SET cat_name=? WHERE category_id=? AND cat_name=''`, v.n, id)
+	}
+}
+
 func migrate(db *sql.DB) {
 	ss := []string{
 		`CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, name TEXT, password_hash TEXT, role TEXT DEFAULT 'staff', status TEXT DEFAULT 'active', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`,
-		`CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, name TEXT, batch TEXT, settlement_unit TEXT, conversion_unit TEXT, conversion REAL DEFAULT 1, default_price TEXT DEFAULT '', batch_type TEXT DEFAULT 'none', status TEXT DEFAULT 'active', created_at TEXT, UNIQUE(grp,name,batch,settlement_unit,conversion_unit))`,
 		`CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT UNIQUE, addr TEXT DEFAULT '', price_mode TEXT DEFAULT 'open', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS customer_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, category_id INTEGER, batch_tag TEXT DEFAULT '', unit_price TEXT, updated_at TEXT, UNIQUE(customer_id,category_id,batch_tag))`,
 		`CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY AUTOINCREMENT, order_no TEXT UNIQUE, type TEXT, customer_id INTEGER, account_id INTEGER, status TEXT DEFAULT 'submitted', remark TEXT, order_total TEXT, version INTEGER DEFAULT 1, created_at TEXT)`,
@@ -135,9 +238,11 @@ func migrate(db *sql.DB) {
 	_, _ = db.Exec(`UPDATE accounts SET role=lower(role), status=lower(status)`)
 	_, _ = db.Exec(`UPDATE settings SET v='' WHERE k IN ('settlement_units','conversion_units','payment_methods') AND v='片,箱,平方米,米,个' OR k IN ('settlement_units','conversion_units','payment_methods') AND v='箱,件,托' OR k IN ('settlement_units','conversion_units','payment_methods') AND v='微信,支付宝,现金,其他'`)
 	_, _ = db.Exec(`UPDATE accounts SET role='admin' WHERE role IN ('administrator','管理员')`)
-	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE notes ADD COLUMN remark TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE orders ADD COLUMN discount TEXT NOT NULL DEFAULT '0'`)
+	_, _ = db.Exec(`ALTER TABLE order_items ADD COLUMN cat_name TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE order_items ADD COLUMN cat_group TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE note_items ADD COLUMN cat_name TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE orders ADD COLUMN discount_type TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`UPDATE settings SET v='9527' WHERE k='api_port' AND v='8080'`)
 }
@@ -185,7 +290,7 @@ func seed(db *sql.DB) {
 	}
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
-		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('settlement_units',''),('conversion_units',''),('payment_methods',''),('discount_types',''),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
+		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
 	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'+'admin', 'active', ?)`, hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
 	}
 }
@@ -434,7 +539,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		list := []map[string]any{}
 		for _, x := range aggs {
 			var c Category
-			if e := a.db.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE id=?`, x.cat).
+			if e := a.mdb.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE id=?`, x.cat).
 				Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion, &c.DefaultPrice, &c.Status); e == nil {
 				list = append(list, map[string]any{"category_id": x.cat, "batch_tag": x.batch, "available": f2(x.avail),
 					"group": c.Group, "name": c.Name, "settlement_unit": c.SettlementUnit,
@@ -534,6 +639,10 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		ok(w, a.accounts())
 	case strings.HasPrefix(p, "/accounts/"):
 		a.accountItem(w, r, strings.TrimPrefix(p, "/accounts/"))
+	case p == "/backup/export":
+		a.backupExport(w, r)
+	case p == "/backup/import" && r.Method == "POST":
+		a.backupImport(w, r, id)
 	case p == "/settings":
 		a.settings(w, r, id)
 	case p == "/dashboard":
@@ -584,7 +693,7 @@ type Category struct {
 
 func (a *App) categories(w http.ResponseWriter, r *http.Request, acc int64) {
 	if r.Method == "GET" {
-		rows, _ := a.db.Query(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE status!='deleted' ORDER BY id DESC`)
+		rows, _ := a.mdb.Query(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE status!='deleted' ORDER BY id DESC`)
 		list := []Category{}
 		if rows != nil {
 			defer rows.Close()
@@ -617,7 +726,7 @@ func (a *App) categories(w http.ResponseWriter, r *http.Request, acc int64) {
 	if in.Conversion <= 0 {
 		in.Conversion = 1
 	}
-	res, err := a.db.Exec(`INSERT INTO categories(grp,name,batch,settlement_unit,conversion_unit,conversion,default_price,status,created_at) VALUES(?,?,?,?,?,?,?,'active',?)`,
+	res, err := a.mdb.Exec(`INSERT INTO categories(grp,name,batch,settlement_unit,conversion_unit,conversion,default_price,status,created_at) VALUES(?,?,?,?,?,?,?,'active',?)`,
 		in.Group, in.Name, in.Batch, in.SettlementUnit, in.ConversionUnit, in.Conversion, in.DefaultPrice, now())
 	if err != nil {
 		fail(w, 409, "CATEGORY_EXISTS", "该品类+型号+批号+计价单位+换算单位已存在")
@@ -645,7 +754,7 @@ func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string, 
 			fail(w, 400, "STATUS", "状态非法")
 			return
 		}
-		_, _ = a.db.Exec(`UPDATE categories SET status=? WHERE id=?`, v, id)
+		_, _ = a.mdb.Exec(`UPDATE categories SET status=? WHERE id=?`, v, id)
 		ok(w, map[string]any{"id": id, "status": v})
 		return
 	}
@@ -663,7 +772,7 @@ func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string, 
 		if in.Conversion <= 0 {
 			in.Conversion = 1
 		}
-		_, err := a.db.Exec(`UPDATE categories SET grp=?,name=?,batch=?,settlement_unit=?,conversion_unit=?,conversion=?,default_price=? WHERE id=?`,
+		_, err := a.mdb.Exec(`UPDATE categories SET grp=?,name=?,batch=?,settlement_unit=?,conversion_unit=?,conversion=?,default_price=? WHERE id=?`,
 			in.Group, in.Name, in.Batch, in.SettlementUnit, in.ConversionUnit, in.Conversion, in.DefaultPrice, id)
 		if err != nil {
 			fail(w, 409, "CATEGORY_EXISTS", "该五元组已存在")
@@ -671,7 +780,7 @@ func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string, 
 		}
 		ok(w, map[string]any{"id": id})
 	case "DELETE":
-		_, _ = a.db.Exec(`UPDATE categories SET status='deleted' WHERE id=?`, id)
+		_, _ = a.mdb.Exec(`UPDATE categories SET status='deleted' WHERE id=?`, id)
 		ok(w, map[string]any{"deleted": true})
 	}
 }
@@ -710,7 +819,7 @@ func (a *App) priceFor(cid, cat int64, batch string) string {
 	if p != "" {
 		return p
 	}
-	_ = a.db.QueryRow(`SELECT COALESCE(default_price,'') FROM categories WHERE id=?`, cat).Scan(&p)
+	_ = a.mdb.QueryRow(`SELECT COALESCE(default_price,'') FROM categories WHERE id=?`, cat).Scan(&p)
 	return p
 }
 
@@ -764,7 +873,7 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	lines := []line{}
 	for _, it := range in.Items {
 		var c Category
-		if err := a.db.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion FROM categories WHERE id=? AND status='active'`, it.CategoryID).
+		if err := a.mdb.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion FROM categories WHERE id=? AND status='active'`, it.CategoryID).
 			Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion); err != nil {
 			fail(w, 400, "CATEGORY_NOT_FOUND", "型号不存在或未启用")
 			return
@@ -838,8 +947,8 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	}
 	oid, _ := res.LastInsertId()
 	for i, l := range lines {
-		_, _ = a.db.Exec(`INSERT INTO order_items(order_id,line_no,category_id,batch_tag,input_unit,input_quantity,settlement_unit,settlement_quantity,unit_price,line_total) VALUES(?,?,?,?,?,?,?,?,?,?)`,
-			oid, i+1, l.cat.ID, l.batch, l.inputU, l.inputQty, l.cat.SettlementUnit, f2(l.settleQ), f2(l.price), f2(l.lineTot))
+		_, _ = a.db.Exec(`INSERT INTO order_items(order_id,line_no,category_id,batch_tag,input_unit,input_quantity,settlement_unit,settlement_quantity,unit_price,line_total,cat_name,cat_group) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+			oid, i+1, l.cat.ID, l.batch, l.inputU, l.inputQty, l.cat.SettlementUnit, f2(l.settleQ), f2(l.price), f2(l.lineTot), l.cat.Name, l.cat.Group)
 	}
 	_, _ = a.db.Exec(`INSERT INTO print_jobs(order_id,doc_no,doc_type,status,created_at) VALUES(?,?,'order','pending',?)`, oid, no, now())
 	a.log(&acc, "ORDER_CREATE", no)
@@ -985,7 +1094,7 @@ func (a *App) updateOrder(w http.ResponseWriter, r *http.Request, acc int64, raw
 	lines := []line{}
 	for _, it := range in.Items {
 		var c Category
-		if err := a.db.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion FROM categories WHERE id=?`, it.CategoryID).
+		if err := a.mdb.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion FROM categories WHERE id=?`, it.CategoryID).
 			Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion); err != nil {
 			fail(w, 400, "CATEGORY_NOT_FOUND", "型号不存在")
 			return
@@ -1023,8 +1132,8 @@ func (a *App) updateOrder(w http.ResponseWriter, r *http.Request, acc int64, raw
 	}
 	_, _ = a.db.Exec(`DELETE FROM order_items WHERE order_id=?`, oid)
 	for i, l := range lines {
-		_, _ = a.db.Exec(`INSERT INTO order_items(order_id,line_no,category_id,batch_tag,input_unit,input_quantity,settlement_unit,settlement_quantity,unit_price,line_total) VALUES(?,?,?,?,?,?,?,?,?,?)`,
-			oid, i+1, l.c.ID, l.batch, l.iu, l.iq, l.c.SettlementUnit, f2(l.settle), f2(l.price), f2(l.total))
+		_, _ = a.db.Exec(`INSERT INTO order_items(order_id,line_no,category_id,batch_tag,input_unit,input_quantity,settlement_unit,settlement_quantity,unit_price,line_total,cat_name,cat_group) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+			oid, i+1, l.c.ID, l.batch, l.iu, l.iq, l.c.SettlementUnit, f2(l.settle), f2(l.price), f2(l.total), l.c.Name, l.c.Group)
 	}
 	_, _ = a.db.Exec(`UPDATE orders SET order_total=?, remark=?, version=version+1, status='submitted' WHERE id=?`, f2(total), in.Remark, oid)
 	a.log(&acc, "ORDER_UPDATE", fmt.Sprint(oid))
@@ -1071,17 +1180,16 @@ func (a *App) order(oid int64) map[string]any {
 		return nil
 	}
 	items := []map[string]any{}
-	rows, _ := a.db.Query(`SELECT i.category_id,c.grp,c.name,c.batch,i.batch_tag,i.input_unit,i.input_quantity,i.settlement_unit,i.settlement_quantity,i.unit_price,i.line_total,COALESCE(c.conversion_unit,''),COALESCE(c.conversion,1)
-		FROM order_items i JOIN categories c ON c.id=i.category_id WHERE i.order_id=?`, oid)
+	rows, _ := a.db.Query(`SELECT i.category_id,COALESCE(i.cat_group,''),COALESCE(i.cat_name,''),i.batch_tag,i.input_unit,i.input_quantity,i.settlement_unit,i.settlement_quantity,i.unit_price,i.line_total
+		FROM order_items i WHERE i.order_id=?`, oid)
 	if rows != nil {
 		defer rows.Close()
 		for rows.Next() {
 			var catID int64
-			var grp, nm, bat, bt, iu, iq, su, sq, up, lt, cu string
-			var conv float64
-			_ = rows.Scan(&catID, &grp, &nm, &bat, &bt, &iu, &iq, &su, &sq, &up, &lt, &cu, &conv)
-			items = append(items, map[string]any{"category_id": catID, "group": grp, "name": nm, "batch": bat, "batch_tag": bt,
-				"input_unit": iu, "input_quantity": iq, "settlement_unit": su, "settlement_quantity": sq, "unit_price": up, "line_total": lt, "conversion_unit": cu, "conversion": conv})
+			var grp, nm, bt, iu, iq, su, sq, up, lt string
+			_ = rows.Scan(&catID, &grp, &nm, &bt, &iu, &iq, &su, &sq, &up, &lt)
+			items = append(items, map[string]any{"category_id": catID, "group": grp, "name": nm, "batch_tag": bt,
+				"input_unit": iu, "input_quantity": iq, "settlement_unit": su, "settlement_quantity": sq, "unit_price": up, "line_total": lt})
 		}
 	}
 	var cum float64
@@ -1155,7 +1263,7 @@ func (a *App) note(id int64) map[string]any {
 		return nil
 	}
 	items := []map[string]any{}
-	rows, _ := a.db.Query(`SELECT i.category_id,c.name,i.batch_tag,i.diff_type,i.diff_quantity,COALESCE(i.remark,'') FROM note_items i JOIN categories c ON c.id=i.category_id WHERE i.note_id=?`, id)
+	rows, _ := a.db.Query(`SELECT i.category_id,COALESCE(i.cat_name,''),i.batch_tag,i.diff_type,i.diff_quantity,COALESCE(i.remark,'') FROM note_items i WHERE i.note_id=?`, id)
 	if rows != nil {
 		defer rows.Close()
 		for rows.Next() {
@@ -1373,10 +1481,124 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 	}
 }
 
+
+// backupExport 导出完整 sq3：model=型号库（categories+预设），docs=单据库（不含账号）。
+func (a *App) backupExport(w http.ResponseWriter, r *http.Request) {
+	kind := r.URL.Query().Get("kind")
+	var src *sql.DB
+	var name string
+	switch kind {
+	case "model":
+		src = a.mdb
+		name = "型号库-" + time.Now().Format("2006-01-02") + ".sq3"
+	case "docs":
+		src = a.db
+		name = "单据库-" + time.Now().Format("2006-01-02") + ".sq3"
+	default:
+		fail(w, 400, "KIND", "kind 必须是 model 或 docs")
+		return
+	}
+	tmp := filepath.Join(os.TempDir(), fmt.Sprintf("czxs-export-%d.sq3", time.Now().UnixNano()))
+	_ = os.Remove(tmp)
+	defer os.Remove(tmp)
+	q := `VACUUM INTO '` + strings.ReplaceAll(tmp, "'", "''") + `'`
+	if _, err := src.Exec(q); err != nil {
+		fail(w, 500, "EXPORT", err.Error())
+		return
+	}
+	if kind == "docs" {
+		// 导出不含账号
+		if f, err := sql.Open("sqlite", tmp); err == nil {
+			_, _ = f.Exec(`DROP TABLE IF EXISTS accounts`)
+			_ = f.Close()
+		}
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment; filename*=UTF-8''"+urlEncode(name))
+	http.ServeFile(w, r, tmp)
+}
+
+// backupImport 上传 sq3 覆盖：写入后需重启应用生效（返回 restart_required）。
+func (a *App) backupImport(w http.ResponseWriter, r *http.Request, acc int64) {
+	if !a.isAdminAccount(acc) {
+		fail(w, 403, "FORBIDDEN", "仅管理员可导入数据库")
+		return
+	}
+	kind := r.URL.Query().Get("kind")
+	var target string
+	var required string
+	switch kind {
+	case "model":
+		target = filepath.Join(a.dataDir, "model.sq3")
+		required = "categories"
+	case "docs":
+		target = filepath.Join(a.dataDir, "docs.sq3")
+		required = "orders"
+	default:
+		fail(w, 400, "KIND", "kind 必须是 model 或 docs")
+		return
+	}
+	if err := r.ParseMultipartForm(64 << 20); err != nil {
+		fail(w, 400, "UPLOAD", err.Error())
+		return
+	}
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		fail(w, 400, "FILE", "缺少 file 字段")
+		return
+	}
+	defer file.Close()
+	tmp := filepath.Join(a.dataDir, "import-"+fmt.Sprint(time.Now().UnixNano())+".sq3")
+	out, err := os.Create(tmp)
+	if err != nil {
+		fail(w, 500, "IO", err.Error())
+		return
+	}
+	if _, err := io.Copy(out, file); err != nil {
+		_ = out.Close()
+		_ = os.Remove(tmp)
+		fail(w, 500, "IO", err.Error())
+		return
+	}
+	_ = out.Close()
+	defer os.Remove(tmp)
+
+	check, err := sql.Open("sqlite", tmp)
+	if err != nil {
+		fail(w, 400, "INVALID", "不是有效的 SQLite 文件")
+		return
+	}
+	var n int
+	err = check.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, required).Scan(&n)
+	_ = check.Close()
+	if err != nil || n == 0 {
+		fail(w, 400, "INVALID", "数据库缺少必要表："+required)
+		return
+	}
+	_ = os.Rename(target, target+".bak")
+	if err := os.Rename(tmp, target); err != nil {
+		fail(w, 500, "IO", err.Error())
+		return
+	}
+	ok(w, map[string]any{"imported": true, "restart_required": true, "kind": kind})
+}
+
+func urlEncode(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
+}
+
 func (a *App) settings(w http.ResponseWriter, r *http.Request, acc int64) {
 	if r.Method == "GET" {
 		rows, _ := a.db.Query(`SELECT k,v FROM settings`)
 		m := map[string]string{}
+		if presets, err := a.mdb.Query(`SELECT k,v FROM settings`); err == nil && presets != nil {
+			for presets.Next() {
+				var k, v string
+				_ = presets.Scan(&k, &v)
+				m[k] = v
+			}
+			_ = presets.Close()
+		}
 		if rows != nil {
 			defer rows.Close()
 			for rows.Next() {
@@ -1394,8 +1616,13 @@ func (a *App) settings(w http.ResponseWriter, r *http.Request, acc int64) {
 	}
 	var in map[string]string
 	_ = json.NewDecoder(r.Body).Decode(&in)
+	presetKeys := map[string]bool{"settlement_units": true, "conversion_units": true, "payment_methods": true, "discount_types": true}
 	for k, v := range in {
-		_, _ = a.db.Exec(`INSERT INTO settings(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, k, v)
+		if presetKeys[k] {
+			_, _ = a.mdb.Exec(`INSERT INTO settings(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, k, v)
+		} else {
+			_, _ = a.db.Exec(`INSERT INTO settings(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, k, v)
+		}
 	}
 	ok(w, map[string]any{"saved": true})
 }
