@@ -1829,7 +1829,7 @@ private fun CategoryEditorDialog(
     var batch by remember { mutableStateOf(initial?.optString("batch") ?: "") }
     var unit by remember { mutableStateOf(initial?.optString("settlement_unit") ?: "") }
     var convUnit by remember { mutableStateOf(initial?.optString("conversion_unit") ?: "") }
-    var conversion by remember { mutableStateOf(initial?.optString("conversion") ?: "1") }
+    var conversion by remember { mutableStateOf(initial?.optString("conversion") ?: "") }
     var defaultPrice by remember { mutableStateOf(initial?.optString("default_price") ?: "") }
     var unitMenu by remember { mutableStateOf(false) }
     var convMenu by remember { mutableStateOf(false) }
@@ -1837,21 +1837,29 @@ private fun CategoryEditorDialog(
 
     @Composable
     fun CapsuleField(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onChange,
-            placeholder = { Text(hint, style = MaterialTheme.typography.bodySmall) },
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodySmall,
-            shape = pill,
-            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f),
-                focusedContainerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f),
-                unfocusedBorderColor = tint.v1.copy(alpha = 0.45f),
-                focusedBorderColor = tint.v1,
-            ),
-            modifier = modifier,
-        )
+        Row(
+            modifier
+                .height(34.dp)
+                .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f), pill)
+                .border(1.dp, tint.v1.copy(alpha = 0.45f), pill)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            androidx.compose.foundation.text.BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall.copy(color = tint.title),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(tint.v1),
+                modifier = Modifier.fillMaxWidth(),
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        Text(hint, style = MaterialTheme.typography.bodySmall, color = tint.title.copy(alpha = 0.5f))
+                    }
+                    inner()
+                },
+            )
+        }
     }
 
     @Composable
@@ -1861,7 +1869,8 @@ private fun CategoryEditorDialog(
                 .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f), pill)
                 .border(1.dp, tint.v2.copy(alpha = 0.55f), pill)
                 .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .height(34.dp)
+                .padding(horizontal = 12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
             Text(text, style = MaterialTheme.typography.bodySmall, color = tint.title, maxLines = 1, modifier = Modifier.weight(1f))
@@ -1883,18 +1892,16 @@ private fun CategoryEditorDialog(
                 onSave(JSONObject()
                     .put("group", group).put("name", name).put("batch", batch.ifBlank { name })
                     .put("settlement_unit", unit).put("conversion_unit", convUnit)
-                    .put("conversion", conversion.ifBlank { "1" }).put("default_price", defaultPrice))
+                    .put("conversion", conversion).put("default_price", defaultPrice))
             }) { Text("保存", color = tint.v1) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消", color = tint.v2) } },
         title = { Text(if (initial == null) "新增型号" else "编辑型号", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    CapsuleField(group, { group = it }, "品类", Modifier.weight(1f))
-                    CapsuleField(name, { name = it }, "型号", Modifier.weight(1f))
-                    CapsuleField(batch, { batch = it }, "批号", Modifier.weight(1f))
-                }
+                CapsuleField(group, { group = it }, "品类", Modifier.fillMaxWidth())
+                CapsuleField(name, { name = it }, "型号", Modifier.fillMaxWidth())
+                CapsuleField(batch, { batch = it }, "批号", Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(Modifier.weight(1f)) {
                         CapsuleSelect("计价:${unit.ifBlank { "选择" }}", { unitMenu = true }, Modifier.fillMaxWidth())
