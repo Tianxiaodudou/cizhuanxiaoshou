@@ -36,6 +36,7 @@ var webFiles embed.FS
 type App struct {
 	db      *sql.DB
 	mdb     *sql.DB
+	adb     *sql.DB
 	dataDir string
 	prefix string
 	mu     sync.Mutex
@@ -70,13 +71,19 @@ func main() {
 		log.Fatal(err)
 	}
 	mdb.SetMaxOpenConns(4)
+	adb, err := sql.Open("sqlite", filepath.Join(data, "accounts.sq3")+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	adb.SetMaxOpenConns(4)
 	migrate(db)
 	migrateModel(mdb)
-	migrateLegacy(db, mdb, data)
-	seed(db)
+	migrateAccounts(adb)
+	migrateLegacy(db, mdb, adb, data)
+	seedAll(db, adb)
 	seedModel(mdb)
 	backfillItemNames(db, mdb)
-	a := &App{db: db, mdb: mdb, dataDir: data, prefix: prefix, tokens: map[string]int64{}}
+	a := &App{db: db, mdb: mdb, adb: adb, dataDir: data, prefix: prefix, tokens: map[string]int64{}}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/", a.api)
@@ -121,6 +128,12 @@ func withPrefix(prefix string, next http.Handler) http.Handler {
 	})
 }
 
+func migrateAccounts(db *sql.DB) {
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, name TEXT, password_hash TEXT, role TEXT DEFAULT 'staff', status TEXT DEFAULT 'active', hidden INTEGER NOT NULL DEFAULT 0, created_at TEXT)`)
+	_, _ = db.Exec(`ALTER TABLE accounts ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
+	_, _ = db.Exec(`UPDATE accounts SET role=lower(role), status=lower(status)`)
+}
+
 // migrateModel 型号库：商品型号 + 四种预设（独立 model.sq3，可单独导入导出）。
 func migrateModel(db *sql.DB) {
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, name TEXT, batch TEXT, settlement_unit TEXT, conversion_unit TEXT, conversion REAL DEFAULT 1, default_price TEXT DEFAULT '', batch_type TEXT DEFAULT 'none', status TEXT DEFAULT 'active', created_at TEXT, UNIQUE(grp,name,batch,settlement_unit,conversion_unit))`)
@@ -135,7 +148,7 @@ func seedModel(db *sql.DB) {
 }
 
 // migrateLegacy 首次升级：把旧 orders.sq3 拆成 docs.sq3 + model.sq3（账号保留在 docs）。
-func migrateLegacy(db, mdb *sql.DB, data string) {
+func migrateLegacy(db, mdb, adb *sql.DB, data string) {
 	legacy := filepath.Join(data, "orders.sq3")
 	if _, err := os.Stat(legacy); err != nil {
 		return
@@ -177,8 +190,16 @@ func migrateLegacy(db, mdb *sql.DB, data string) {
 			_, _ = mdb.Exec(`UPDATE settings SET v=? WHERE k=?`, v, k)
 		}
 	}
+	if rows, err := old.Query(`SELECT username,name,password_hash,role,status,created_at FROM accounts`); err == nil && rows != nil {
+		for rows.Next() {
+			var u, n, h, r, s, c string
+			if rows.Scan(&u, &n, &h, &r, &s, &c) == nil {
+				_, _ = adb.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES(?,?,?,?,?,?)`, u, n, h, r, s, c)
+			}
+		}
+		_ = rows.Close()
+	}
 	for _, tb := range []struct{ t, c string }{
-		{"accounts", "username,name,password_hash,role,status,created_at"},
 		{"customers", "name,phone,addr,price_mode,created_at"},
 		{"orders", "order_no,type,customer_id,account_id,status,remark,order_total,version,created_at,discount,discount_type"},
 		{"order_items", "order_id,line_no,category_id,batch_tag,input_unit,input_quantity,settlement_unit,settlement_quantity,unit_price,line_total"},
@@ -214,7 +235,6 @@ func backfillItemNames(db, mdb *sql.DB) {
 
 func migrate(db *sql.DB) {
 	ss := []string{
-		`CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, name TEXT, password_hash TEXT, role TEXT DEFAULT 'staff', status TEXT DEFAULT 'active', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`,
 		`CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT UNIQUE, addr TEXT DEFAULT '', price_mode TEXT DEFAULT 'open', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS customer_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, category_id INTEGER, batch_tag TEXT DEFAULT '', unit_price TEXT, updated_at TEXT, UNIQUE(customer_id,category_id,batch_tag))`,
@@ -232,12 +252,9 @@ func migrate(db *sql.DB) {
 			log.Fatal(err)
 		}
 	}
-	_, _ = db.Exec(`ALTER TABLE accounts ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN addr TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE customers ADD COLUMN price_mode TEXT NOT NULL DEFAULT 'open'`)
-	_, _ = db.Exec(`UPDATE accounts SET role=lower(role), status=lower(status)`)
 	_, _ = db.Exec(`UPDATE settings SET v='' WHERE k IN ('settlement_units','conversion_units','payment_methods') AND v='片,箱,平方米,米,个' OR k IN ('settlement_units','conversion_units','payment_methods') AND v='箱,件,托' OR k IN ('settlement_units','conversion_units','payment_methods') AND v='微信,支付宝,现金,其他'`)
-	_, _ = db.Exec(`UPDATE accounts SET role='admin' WHERE role IN ('administrator','管理员')`)
 	_, _ = db.Exec(`ALTER TABLE notes ADD COLUMN remark TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE orders ADD COLUMN discount TEXT NOT NULL DEFAULT '0'`)
 	_, _ = db.Exec(`ALTER TABLE order_items ADD COLUMN cat_name TEXT NOT NULL DEFAULT ''`)
@@ -264,13 +281,13 @@ func loadEnvFile(path string) {
 	}
 }
 
-func seed(db *sql.DB) {
+func seedAll(db, adb *sql.DB) {
 	var n int
-	_ = db.QueryRow(`SELECT COUNT(*) FROM accounts`).Scan(&n)
+	_ = adb.QueryRow(`SELECT COUNT(*) FROM accounts`).Scan(&n)
 	devPw := env("CZ_XS_DEV_PASSWORD", "admin123")
-	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at,hidden)
+	_, _ = adb.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at,hidden)
 		VALUES('admin','开发账号',?,'admin','active',?,1)`, hash(devPw), now())
-	_, _ = db.Exec(`UPDATE accounts SET name='开发账号', password_hash=?, role='admin', status='active', hidden=1 WHERE username='admin'`, hash(devPw))
+	_, _ = adb.Exec(`UPDATE accounts SET name='开发账号', password_hash=?, role='admin', status='active', hidden=1 WHERE username='admin'`, hash(devPw))
 	user := env("wizard_admin_user", "admin")
 	name := env("wizard_admin_name", "管理员")
 	pw := env("wizard_admin_password", env("CZ_XS_ADMIN_PASSWORD", "admin123"))
@@ -278,9 +295,9 @@ func seed(db *sql.DB) {
 		pw = "admin123"
 	}
 	if n == 0 {
-		_, _ = db.Exec(`INSERT INTO accounts(username,name,password_hash,role,created_at) VALUES(?,?,?,'admin',?)`, user, name, hash(pw), now())
+		_, _ = adb.Exec(`INSERT INTO accounts(username,name,password_hash,role,created_at) VALUES(?,?,?,'admin',?)`, user, name, hash(pw), now())
 	} else if user == "admin" {
-		_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'admin','active',?)`, hash(pw), now())
+		_, _ = adb.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'admin','active',?)`, hash(pw), now())
 	}
 	if m := env("wizard_merchant", ""); m != "" {
 		_, _ = db.Exec(`INSERT OR IGNORE INTO settings(k,v) VALUES('merchant_name',?)`, m)
@@ -291,7 +308,7 @@ func seed(db *sql.DB) {
 	_ = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&n)
 	if n == 0 {
 		_, _ = db.Exec(`INSERT INTO settings(k,v) VALUES('merchant_name','瓷砖店'),('api_port','9527'),('initialized','true'),('print_width','80mm')`)
-	_, _ = db.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'+'admin', 'active', ?)`, hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
+	_, _ = adb.Exec(`INSERT OR IGNORE INTO accounts(username,name,password_hash,role,status,created_at) VALUES('admin','管理员',?,'+'admin', 'active', ?)`, hash(env("CZ_XS_ADMIN_PASSWORD", "admin123")), now())
 	}
 }
 
@@ -352,7 +369,7 @@ func bd(s string) float64 { v, _ := strconv.ParseFloat(strings.TrimSpace(s), 64)
 
 func (a *App) isAdminAccount(id int64) bool {
 	var role string
-	_ = a.db.QueryRow(`SELECT role FROM accounts WHERE id=?`, id).Scan(&role)
+	_ = a.adb.QueryRow(`SELECT role FROM accounts WHERE id=?`, id).Scan(&role)
 	return role == "admin"
 }
 
@@ -370,7 +387,7 @@ func (a *App) auth(r *http.Request) (int64, bool) {
 	}
 	// 账号被删除或被禁用后，登录态立即失效
 	var status string
-	if err := a.db.QueryRow(`SELECT status FROM accounts WHERE id=?`, id).Scan(&status); err != nil || status != "active" {
+	if err := a.adb.QueryRow(`SELECT status FROM accounts WHERE id=?`, id).Scan(&status); err != nil || status != "active" {
 		a.mu.Lock()
 		delete(a.tokens, tok)
 		a.mu.Unlock()
@@ -450,7 +467,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case p == "/me" && r.Method == "GET":
 		var n, role string
-		_ = a.db.QueryRow(`SELECT name,role FROM accounts WHERE id=?`, id).Scan(&n, &role)
+		_ = a.adb.QueryRow(`SELECT name,role FROM accounts WHERE id=?`, id).Scan(&n, &role)
 		ok(w, map[string]any{"id": id, "name": n, "role": role})
 	case p == "/categories":
 		a.categories(w, r, id)
@@ -663,7 +680,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewDecoder(r.Body).Decode(&in)
 	var id int64
 	var name, ph string
-	if err := a.db.QueryRow(`SELECT id,name,password_hash FROM accounts WHERE username=? AND status='active'`, in.Username).Scan(&id, &name, &ph); err != nil || ph != hash(in.Password) {
+	if err := a.adb.QueryRow(`SELECT id,name,password_hash FROM accounts WHERE username=? AND status='active'`, in.Username).Scan(&id, &name, &ph); err != nil || ph != hash(in.Password) {
 		fail(w, 401, "AUTH_FAILED", "账号或密码错误")
 		return
 	}
@@ -674,7 +691,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	a.tokens[tk] = id
 	a.mu.Unlock()
 	var role string
-	_ = a.db.QueryRow(`SELECT role FROM accounts WHERE id=?`, id).Scan(&role)
+	_ = a.adb.QueryRow(`SELECT role FROM accounts WHERE id=?`, id).Scan(&role)
 	ok(w, map[string]any{"token": tk, "account": map[string]any{"id": id, "username": in.Username, "name": name, "role": role}})
 }
 
@@ -853,7 +870,7 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 		_, _ = a.db.Exec(`UPDATE customers SET name=COALESCE(NULLIF(?,''),name), addr=COALESCE(NULLIF(?,''),addr) WHERE id=?`, in.Name, in.Address, cid)
 	}
 	var role string
-	_ = a.db.QueryRow(`SELECT role FROM accounts WHERE id=?`, acc).Scan(&role)
+	_ = a.adb.QueryRow(`SELECT role FROM accounts WHERE id=?`, acc).Scan(&role)
 	if in.PriceMode != "" {
 		_, _ = a.db.Exec(`UPDATE customers SET price_mode=? WHERE id=?`, in.PriceMode, cid)
 	}
@@ -1173,12 +1190,14 @@ func (a *App) order(oid int64) map[string]any {
 		Version                                              int
 		CName, CPhone, CAddr, CMode, AName, Discount, DiscountType string
 	}
-	err := a.db.QueryRow(`SELECT o.id,o.order_no,o.type,o.status,COALESCE(o.remark,''),o.order_total,o.created_at,o.version,cu.name,cu.phone,COALESCE(cu.addr,''),COALESCE(cu.price_mode,'open'),a.name,COALESCE(o.discount,'0'),COALESCE(o.discount_type,'')
-		FROM orders o JOIN customers cu ON cu.id=o.customer_id JOIN accounts a ON a.id=o.account_id WHERE o.id=?`, oid).
-		Scan(&o.ID, &o.No, &o.Type, &o.Status, &o.Remark, &o.Total, &o.Created, &o.Version, &o.CName, &o.CPhone, &o.CAddr, &o.CMode, &o.AName, &o.Discount, &o.DiscountType)
+	var accountId int64
+	err := a.db.QueryRow(`SELECT o.id,o.order_no,o.type,o.status,COALESCE(o.remark,''),o.order_total,o.created_at,o.version,cu.name,cu.phone,COALESCE(cu.addr,''),COALESCE(cu.price_mode,'open'),COALESCE(o.discount,'0'),COALESCE(o.discount_type,''),o.account_id
+		FROM orders o JOIN customers cu ON cu.id=o.customer_id WHERE o.id=?`, oid).
+		Scan(&o.ID, &o.No, &o.Type, &o.Status, &o.Remark, &o.Total, &o.Created, &o.Version, &o.CName, &o.CPhone, &o.CAddr, &o.CMode, &o.Discount, &o.DiscountType, &accountId)
 	if err != nil {
 		return nil
 	}
+	_ = a.adb.QueryRow(`SELECT name FROM accounts WHERE id=?`, accountId).Scan(&o.AName)
 	items := []map[string]any{}
 	rows, _ := a.db.Query(`SELECT i.category_id,COALESCE(i.cat_group,''),COALESCE(i.cat_name,''),i.batch_tag,i.input_unit,i.input_quantity,i.settlement_unit,i.settlement_quantity,i.unit_price,i.line_total
 		FROM order_items i WHERE i.order_id=?`, oid)
@@ -1357,7 +1376,7 @@ func (a *App) settlementDetail(w http.ResponseWriter, raw string) {
 }
 
 func (a *App) accounts() []map[string]any {
-	rows, _ := a.db.Query(`SELECT id,username,name,role,status FROM accounts WHERE hidden=0 ORDER BY id`)
+	rows, _ := a.adb.Query(`SELECT id,username,name,role,status FROM accounts WHERE hidden=0 ORDER BY id`)
 	out := []map[string]any{}
 	if rows == nil {
 		return out
@@ -1374,7 +1393,7 @@ func (a *App) accounts() []map[string]any {
 
 func (a *App) activeAdminCount() int {
 	var n int
-	_ = a.db.QueryRow(`SELECT COUNT(*) FROM accounts WHERE role='admin' AND status='active' AND hidden=0`).Scan(&n)
+	_ = a.adb.QueryRow(`SELECT COUNT(*) FROM accounts WHERE role='admin' AND status='active' AND hidden=0`).Scan(&n)
 	return n
 }
 
@@ -1393,7 +1412,7 @@ func (a *App) accountCreate(w http.ResponseWriter, r *http.Request) {
 	if in.Status == "" {
 		in.Status = "active"
 	}
-	_, err := a.db.Exec(`INSERT INTO accounts(username,name,password_hash,role,status,created_at) VALUES(?,?,?,?,?,?)`,
+	_, err := a.adb.Exec(`INSERT INTO accounts(username,name,password_hash,role,status,created_at) VALUES(?,?,?,?,?,?)`,
 		in.Username, in.Name, hash(in.Password), in.Role, in.Status, now())
 	if err != nil {
 		fail(w, 409, "ACCOUNT_EXISTS", "账号已存在")
@@ -1411,7 +1430,7 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 		return
 	}
 	var hidden int
-	_ = a.db.QueryRow(`SELECT hidden FROM accounts WHERE id=?`, id).Scan(&hidden)
+	_ = a.adb.QueryRow(`SELECT hidden FROM accounts WHERE id=?`, id).Scan(&hidden)
 	if hidden == 1 {
 		fail(w, 400, "DEV_ACCOUNT", "内置开发账号不可修改或删除")
 		return
@@ -1424,12 +1443,12 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 			return
 		}
 		var role, old string
-		_ = a.db.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &old)
+		_ = a.adb.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &old)
 		if role == "admin" && old == "active" && v == "disabled" && a.activeAdminCount() <= 1 {
 			fail(w, 400, "LAST_ADMIN", "至少保留一个启用状态的管理员")
 			return
 		}
-		_, _ = a.db.Exec(`UPDATE accounts SET status=? WHERE id=?`, v, id)
+		_, _ = a.adb.Exec(`UPDATE accounts SET status=? WHERE id=?`, v, id)
 		if v != "active" {
 			a.revokeAccount(id)
 		}
@@ -1441,13 +1460,13 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 			fail(w, 400, "PASSWORD", "密码至少 6 位")
 			return
 		}
-		_, _ = a.db.Exec(`UPDATE accounts SET password_hash=? WHERE id=?`, hash(in.Password), id)
+		_, _ = a.adb.Exec(`UPDATE accounts SET password_hash=? WHERE id=?`, hash(in.Password), id)
 		ok(w, map[string]any{"reset": true})
 	case r.Method == "PUT":
 		var in struct{ Name, Role, Status, Password string }
 		_ = json.NewDecoder(r.Body).Decode(&in)
 		var role, status string
-		if err := a.db.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &status); err != nil {
+		if err := a.adb.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &status); err != nil {
 			fail(w, 404, "NOT_FOUND", "账号不存在")
 			return
 		}
@@ -1461,19 +1480,19 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 			fail(w, 400, "LAST_ADMIN", "至少保留一个启用状态的管理员")
 			return
 		}
-		_, _ = a.db.Exec(`UPDATE accounts SET name=?,role=?,status=? WHERE id=?`, in.Name, in.Role, in.Status, id)
+		_, _ = a.adb.Exec(`UPDATE accounts SET name=?,role=?,status=? WHERE id=?`, in.Name, in.Role, in.Status, id)
 		if in.Password != "" {
-			_, _ = a.db.Exec(`UPDATE accounts SET password_hash=? WHERE id=?`, hash(in.Password), id)
+			_, _ = a.adb.Exec(`UPDATE accounts SET password_hash=? WHERE id=?`, hash(in.Password), id)
 		}
 		ok(w, map[string]any{"id": id})
 	case r.Method == "DELETE":
 		var role, status string
-		_ = a.db.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &status)
+		_ = a.adb.QueryRow(`SELECT role,status FROM accounts WHERE id=?`, id).Scan(&role, &status)
 		if role == "admin" && status == "active" && a.activeAdminCount() <= 1 {
 			fail(w, 400, "LAST_ADMIN", "至少保留一个启用状态的管理员")
 			return
 		}
-		_, _ = a.db.Exec(`DELETE FROM accounts WHERE id=?`, id)
+		_, _ = a.adb.Exec(`DELETE FROM accounts WHERE id=?`, id)
 		a.revokeAccount(id)
 		ok(w, map[string]any{"deleted": true})
 	default:
@@ -1574,36 +1593,6 @@ func (a *App) backupImport(w http.ResponseWriter, r *http.Request, acc int64) {
 	if err != nil || n == 0 {
 		fail(w, 400, "INVALID", "数据库缺少必要表："+required)
 		return
-	}
-	if kind == "docs" {
-		// 账号不参与备份：导入时把当前账号表原样带回，避免导入后无法登录
-		type accRow struct {
-			id        int64
-			username  string
-			name      string
-			hash      string
-			role      string
-			status    string
-			hidden    int
-			createdAt string
-		}
-		accs := []accRow{}
-		if rows, err := a.db.Query(`SELECT id,username,name,password_hash,role,status,COALESCE(hidden,0),created_at FROM accounts`); err == nil && rows != nil {
-			for rows.Next() {
-				var x accRow
-				_ = rows.Scan(&x.id, &x.username, &x.name, &x.hash, &x.role, &x.status, &x.hidden, &x.createdAt)
-				accs = append(accs, x)
-			}
-			_ = rows.Close()
-		}
-		if f, err := sql.Open("sqlite", tmp); err == nil {
-			_, _ = f.Exec(`CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, name TEXT, password_hash TEXT, role TEXT DEFAULT 'staff', status TEXT DEFAULT 'active', hidden INTEGER NOT NULL DEFAULT 0, created_at TEXT)`)
-			_, _ = f.Exec(`DELETE FROM accounts`)
-			for _, x := range accs {
-				_, _ = f.Exec(`INSERT INTO accounts(id,username,name,password_hash,role,status,hidden,created_at) VALUES(?,?,?,?,?,?,?,?)`, x.id, x.username, x.name, x.hash, x.role, x.status, x.hidden, x.createdAt)
-			}
-			_ = f.Close()
-		}
 	}
 	_ = os.Rename(target, target+".bak")
 	if err := os.Rename(tmp, target); err != nil {
