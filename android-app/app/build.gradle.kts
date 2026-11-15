@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.security.KeyStore
+
 ﻿// 客户端 Android 应用：Jetpack Compose + Material 3（页面与规范见 docs/specs/android-compose.md）
 plugins {
     id("com.android.application")
@@ -33,8 +36,8 @@ android {
             val pass = System.getenv("CZXS_STORE_PASSWORD") ?: ""
             // 自动探测 keystore 里的别名（.NET 生成的 PKCS12 可能没有 friendlyName，Java 里别名可能是 "1"）
             val detectedAlias = runCatching {
-                val ks = java.security.KeyStore.getInstance("PKCS12")
-                java.io.FileInputStream(relStore).use { ks.load(it, pass.toCharArray()) }
+                val ks = KeyStore.getInstance("PKCS12")
+                FileInputStream(relStore).use { ks.load(it, pass.toCharArray()) }
                 val wanted = System.getenv("CZXS_KEY_ALIAS")
                 if (!wanted.isNullOrBlank() && ks.containsAlias(wanted)) wanted
                 else ks.aliases().toList().firstOrNull()
