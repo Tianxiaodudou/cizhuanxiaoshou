@@ -939,12 +939,16 @@ private fun amountLabel(type: String): String = when {
 }
 
 private fun typeLabel(type: String) = when (type) {
-    "delivery" -> "配送送货单"
-    "delivery_return" -> "配送退货单"
-    "pickup" -> "自提送货单"
-    "pickup_return" -> "自提退货单"
-    else -> "修改单据"
+    "delivery" -> "配送"
+    "delivery_return" -> "配退"
+    "pickup" -> "自送"
+    "pickup_return" -> "自退"
+    "receipt" -> "收款"
+    "refund" -> "退款"
+    "note" -> "备注"
+    else -> "单据"
 }
+
 
 // ---------- 查询 ----------
 @Composable
