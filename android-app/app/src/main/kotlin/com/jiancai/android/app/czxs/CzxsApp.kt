@@ -1585,6 +1585,7 @@ private fun Capsule(
     labelColor: androidx.compose.ui.graphics.Color,
     valueColor: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
+    suffix: String = "",
 ) {
     Row(
         modifier
@@ -1593,9 +1594,21 @@ private fun Capsule(
             .padding(horizontal = 7.dp, vertical = 3.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Text(label, color = labelColor, style = MaterialTheme.typography.labelSmall)
+        Text(label, color = labelColor, style = MaterialTheme.typography.labelSmall, maxLines = 1)
         androidx.compose.foundation.layout.Spacer(Modifier.width(4.dp))
-        Text(value, color = valueColor, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        Text(
+            value,
+            color = valueColor,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (suffix.isNotBlank()) {
+            androidx.compose.foundation.layout.Spacer(Modifier.width(3.dp))
+            Text(suffix, color = valueColor, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        }
     }
 }
 
@@ -1667,7 +1680,15 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 Capsule("计价", c.optString("settlement_unit"), tint.l1, tint.v1, Modifier.weight(1f))
-                                Capsule("换算", c.optString("conversion_unit").ifBlank { "无" }, tint.l2, tint.v2, Modifier.weight(1f))
+                                Capsule(
+                                    "换算",
+                                    c.optString("conversion_unit").ifBlank { "无" },
+                                    tint.l2,
+                                    tint.v2,
+                                    Modifier.weight(1f),
+                                    suffix = if (c.optString("conversion_unit").isNotBlank() && c.optString("conversion").isNotBlank())
+                                        "×${c.optString("conversion")}" else "",
+                                )
                                 Capsule("默认价", c.optString("default_price").ifBlank { "无" }, tint.l3, tint.v3, Modifier.weight(1f))
                                 if (api.isAdmin) {
                                     Row(
