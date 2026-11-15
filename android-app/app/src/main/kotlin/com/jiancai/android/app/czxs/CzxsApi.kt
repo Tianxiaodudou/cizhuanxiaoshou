@@ -59,6 +59,9 @@ class CzxsApi(private val prefs: SharedPreferences) {
 
     fun deleteCategory(id: Long) = request("DELETE", "/api/categories/$id")
 
+    fun setCategoryStatus(id: Long, active: Boolean) =
+        request("PUT", "/api/categories/$id/status?value=" + if (active) "active" else "disabled", JSONObject())
+
     fun customer(phone: String): JSONObject =
         request("GET", "/api/customers", query = mapOf("phone" to phone)).getJSONObject("data")
 
