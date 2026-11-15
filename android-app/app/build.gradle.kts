@@ -30,12 +30,21 @@ android {
         // 固定发布签名：CI 通过环境变量注入 keystore（GitHub Secrets），本机不保存密钥。
         val relStore = System.getenv("CZXS_KEYSTORE")
         if (!relStore.isNullOrBlank()) {
+            val pass = System.getenv("CZXS_STORE_PASSWORD") ?: ""
+            // 自动探测 keystore 里的别名（.NET 生成的 PKCS12 可能没有 friendlyName，Java 里别名可能是 "1"）
+            val detectedAlias = runCatching {
+                val ks = java.security.KeyStore.getInstance("PKCS12")
+                java.io.FileInputStream(relStore).use { ks.load(it, pass.toCharArray()) }
+                val wanted = System.getenv("CZXS_KEY_ALIAS")
+                if (!wanted.isNullOrBlank() && ks.containsAlias(wanted)) wanted
+                else ks.aliases().toList().firstOrNull()
+            }.getOrNull()
             create("release") {
                 storeFile = file(relStore)
                 storeType = "PKCS12"
-                storePassword = System.getenv("CZXS_STORE_PASSWORD")
-                keyAlias = System.getenv("CZXS_KEY_ALIAS")
-                keyPassword = System.getenv("CZXS_KEY_PASSWORD")
+                storePassword = pass
+                keyAlias = detectedAlias
+                keyPassword = System.getenv("CZXS_KEY_PASSWORD") ?: pass
             }
         }
         // 本机 sandbox 不允许写 ~/.android；仓库内 debug keystore 存在时用它。
