@@ -1363,6 +1363,7 @@ private fun OrdersScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit,
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var detail by remember { mutableStateOf<JSONObject?>(null) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         try {
