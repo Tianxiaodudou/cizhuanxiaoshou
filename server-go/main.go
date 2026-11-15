@@ -712,6 +712,27 @@ type Category struct {
 	DefaultPrice   string  `json:"default_price"`
 }
 
+// UnmarshalJSON 兼容 conversion 传字符串（网页/客户端都发字符串）或数字。
+func (c *Category) UnmarshalJSON(b []byte) error {
+	type alias Category
+	aux := struct {
+		*alias
+		Conversion json.RawMessage `json:"conversion"`
+	}{alias: (*alias)(c)}
+	if err := json.Unmarshal(b, &aux); err != nil {
+		return err
+	}
+	if len(aux.Conversion) > 0 {
+		s := strings.Trim(string(aux.Conversion), "\"")
+		if s != "" && s != "null" {
+			if v, err := strconv.ParseFloat(s, 64); err == nil {
+				c.Conversion = v
+			}
+		}
+	}
+	return nil
+}
+
 func (a *App) categories(w http.ResponseWriter, r *http.Request, acc int64) {
 	if r.Method == "GET" {
 		rows, _ := a.mdb.Query(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(default_price,''),status FROM categories WHERE status!='deleted' ORDER BY id DESC`)
@@ -1375,7 +1396,8 @@ func (a *App) settlementDetail(w http.ResponseWriter, raw string) {
 		"payable":      f2(payable),
 		"received":     f2(received),
 		"refunded":     f2(refunded),
-		"outstanding":  f2(receivable - payable - received + refunded),
+		"discount":     f2(discount),
+		"outstanding":  f2(receivable - payable - received - discount + refunded),
 	})
 }
 
