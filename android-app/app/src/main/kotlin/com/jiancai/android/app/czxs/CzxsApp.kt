@@ -1536,16 +1536,41 @@ private fun PrintScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) 
 // ---------- 型号库 ----------
 private data class CardTint(
     val bg: androidx.compose.ui.graphics.Color,
-    val a: androidx.compose.ui.graphics.Color,
-    val b: androidx.compose.ui.graphics.Color,
-    val c: androidx.compose.ui.graphics.Color,
+    val title: androidx.compose.ui.graphics.Color,
+    val l1: androidx.compose.ui.graphics.Color,
+    val l2: androidx.compose.ui.graphics.Color,
+    val l3: androidx.compose.ui.graphics.Color,
+    val v1: androidx.compose.ui.graphics.Color,
+    val v2: androidx.compose.ui.graphics.Color,
+    val v3: androidx.compose.ui.graphics.Color,
 )
 
+// 每张卡片 7 个颜色：大标题 1 + 三个小标题 3 + 三个值 3
 private val cardTints = listOf(
-    CardTint(androidx.compose.ui.graphics.Color(0xFFE6F4F2), androidx.compose.ui.graphics.Color(0xFF0F766E), androidx.compose.ui.graphics.Color(0xFF0E7490), androidx.compose.ui.graphics.Color(0xFFB45309)),
-    CardTint(androidx.compose.ui.graphics.Color(0xFFFDF1E6), androidx.compose.ui.graphics.Color(0xFFB45309), androidx.compose.ui.graphics.Color(0xFF7C3AED), androidx.compose.ui.graphics.Color(0xFF0F766E)),
-    CardTint(androidx.compose.ui.graphics.Color(0xFFEDEBFB), androidx.compose.ui.graphics.Color(0xFF6D28D9), androidx.compose.ui.graphics.Color(0xFFB91C1C), androidx.compose.ui.graphics.Color(0xFF0E7490)),
-    CardTint(androidx.compose.ui.graphics.Color(0xFFE9F2E6), androidx.compose.ui.graphics.Color(0xFF3F6212), androidx.compose.ui.graphics.Color(0xFFB45309), androidx.compose.ui.graphics.Color(0xFF6D28D9)),
+    CardTint(
+        bg = androidx.compose.ui.graphics.Color(0xFFE6F4F2),
+        title = androidx.compose.ui.graphics.Color(0xFF0B3B38),
+        l1 = androidx.compose.ui.graphics.Color(0xFF0F766E), l2 = androidx.compose.ui.graphics.Color(0xFF0E7490), l3 = androidx.compose.ui.graphics.Color(0xFFB45309),
+        v1 = androidx.compose.ui.graphics.Color(0xFF115E59), v2 = androidx.compose.ui.graphics.Color(0xFF155E75), v3 = androidx.compose.ui.graphics.Color(0xFF92400E),
+    ),
+    CardTint(
+        bg = androidx.compose.ui.graphics.Color(0xFFFDF1E6),
+        title = androidx.compose.ui.graphics.Color(0xFF43210A),
+        l1 = androidx.compose.ui.graphics.Color(0xFFB45309), l2 = androidx.compose.ui.graphics.Color(0xFF7C3AED), l3 = androidx.compose.ui.graphics.Color(0xFF0F766E),
+        v1 = androidx.compose.ui.graphics.Color(0xFF92400E), v2 = androidx.compose.ui.graphics.Color(0xFF5B21B6), v3 = androidx.compose.ui.graphics.Color(0xFF115E59),
+    ),
+    CardTint(
+        bg = androidx.compose.ui.graphics.Color(0xFFEDEBFB),
+        title = androidx.compose.ui.graphics.Color(0xFF2A1B54),
+        l1 = androidx.compose.ui.graphics.Color(0xFF6D28D9), l2 = androidx.compose.ui.graphics.Color(0xFFB91C1C), l3 = androidx.compose.ui.graphics.Color(0xFF0E7490),
+        v1 = androidx.compose.ui.graphics.Color(0xFF5B21B6), v2 = androidx.compose.ui.graphics.Color(0xFF991B1B), v3 = androidx.compose.ui.graphics.Color(0xFF155E75),
+    ),
+    CardTint(
+        bg = androidx.compose.ui.graphics.Color(0xFFE9F2E6),
+        title = androidx.compose.ui.graphics.Color(0xFF1F3310),
+        l1 = androidx.compose.ui.graphics.Color(0xFF3F6212), l2 = androidx.compose.ui.graphics.Color(0xFFB45309), l3 = androidx.compose.ui.graphics.Color(0xFF6D28D9),
+        v1 = androidx.compose.ui.graphics.Color(0xFF365314), v2 = androidx.compose.ui.graphics.Color(0xFF92400E), v3 = androidx.compose.ui.graphics.Color(0xFF5B21B6),
+    ),
 )
 
 @Composable
@@ -1605,11 +1630,15 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                             .joinToString(" · "),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
+                                        color = tint.title,
                                     )
                                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Text("计价 ${c.optString("settlement_unit")}", color = tint.a, style = MaterialTheme.typography.labelMedium)
-                                        Text("换算 ${c.optString("conversion_unit").ifBlank { "无" }}", color = tint.b, style = MaterialTheme.typography.labelMedium)
-                                        Text("默认价 ${c.optString("default_price").ifBlank { "无" }}", color = tint.c, style = MaterialTheme.typography.labelMedium)
+                                        Text("计价单位", color = tint.l1, style = MaterialTheme.typography.labelMedium)
+                                        Text(c.optString("settlement_unit"), color = tint.v1, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                        Text("换算单位", color = tint.l2, style = MaterialTheme.typography.labelMedium)
+                                        Text(c.optString("conversion_unit").ifBlank { "无" }, color = tint.v2, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                        Text("默认价", color = tint.l3, style = MaterialTheme.typography.labelMedium)
+                                        Text(c.optString("default_price").ifBlank { "无" }, color = tint.v3, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
                                 androidx.compose.material3.Switch(
