@@ -658,6 +658,10 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		a.accountItem(w, r, strings.TrimPrefix(p, "/accounts/"))
 	case p == "/backup/export":
 		a.backupExport(w, r)
+	case p == "/backup/export-to" && r.Method == "POST":
+		a.backupExportTo(w, r, id)
+	case p == "/backup/import-path" && r.Method == "POST":
+		a.backupImportPath(w, r, id)
 	case p == "/backup/import" && r.Method == "POST":
 		a.backupImport(w, r, id)
 	case p == "/settings":
@@ -1500,6 +1504,105 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 	}
 }
 
+
+
+func (a *App) backupTarget(kind string) (string, string, *sql.DB, bool) {
+	switch kind {
+	case "model":
+		return filepath.Join(a.dataDir, "model.sq3"), "categories", a.mdb, true
+	case "docs":
+		return filepath.Join(a.dataDir, "docs.sq3"), "orders", a.db, true
+	default:
+		return "", "", nil, false
+	}
+}
+
+func (a *App) backupFileName(kind string) string {
+	if kind == "model" {
+		return "型号库-" + time.Now().Format("2006-01-02") + ".sq3"
+	}
+	return "单据库-" + time.Now().Format("2006-01-02") + ".sq3"
+}
+
+// backupExportTo 飞牛 pickUserFile 选择目录后，服务端直接把快照写入该目录。
+func (a *App) backupExportTo(w http.ResponseWriter, r *http.Request, acc int64) {
+	if !a.isAdminAccount(acc) {
+		fail(w, 403, "FORBIDDEN", "仅管理员可导出数据库")
+		return
+	}
+	var in struct {
+		Kind string `json:"kind"`
+		Dir  string `json:"dir"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	_, _, src, valid := a.backupTarget(in.Kind)
+	if !valid || src == nil {
+		fail(w, 400, "KIND", "kind 必须是 model 或 docs")
+		return
+	}
+	st, err := os.Stat(in.Dir)
+	if err != nil || !st.IsDir() {
+		fail(w, 400, "DIR", "目录不存在或不可访问")
+		return
+	}
+	out := filepath.Join(in.Dir, a.backupFileName(in.Kind))
+	_ = os.Remove(out)
+	q := `VACUUM INTO '` + strings.ReplaceAll(out, "'", "''") + `'`
+	if _, err := src.Exec(q); err != nil {
+		fail(w, 500, "EXPORT", err.Error())
+		return
+	}
+	ok(w, map[string]any{"path": out})
+}
+
+// backupImportPath 飞牛 pickUserFile 授权后的文件路径直接导入。
+func (a *App) backupImportPath(w http.ResponseWriter, r *http.Request, acc int64) {
+	if !a.isAdminAccount(acc) {
+		fail(w, 403, "FORBIDDEN", "仅管理员可导入数据库")
+		return
+	}
+	var in struct {
+		Kind string `json:"kind"`
+		Path string `json:"path"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	target, required, _, valid := a.backupTarget(in.Kind)
+	if !valid {
+		fail(w, 400, "KIND", "kind 必须是 model 或 docs")
+		return
+	}
+	check, err := sql.Open("sqlite", in.Path)
+	if err != nil {
+		fail(w, 400, "INVALID", "无法打开该文件")
+		return
+	}
+	var n int
+	e := check.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, required).Scan(&n)
+	_ = check.Close()
+	if e != nil || n == 0 {
+		fail(w, 400, "INVALID", "数据库缺少必要表："+required)
+		return
+	}
+	src, err := os.Open(in.Path)
+	if err != nil {
+		fail(w, 400, "READ", err.Error())
+		return
+	}
+	defer src.Close()
+	_ = os.Rename(target, target+".bak")
+	dst, err := os.Create(target)
+	if err != nil {
+		fail(w, 500, "IO", err.Error())
+		return
+	}
+	if _, err := io.Copy(dst, src); err != nil {
+		_ = dst.Close()
+		fail(w, 500, "IO", err.Error())
+		return
+	}
+	_ = dst.Close()
+	ok(w, map[string]any{"imported": true, "restart_required": true, "kind": in.Kind})
+}
 
 // backupExport 导出完整 sq3：model=型号库（categories+预设），docs=单据库（不含账号）。
 func (a *App) backupExport(w http.ResponseWriter, r *http.Request) {

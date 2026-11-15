@@ -12,6 +12,19 @@ function Modal({ children, width = 720, onClose }) {
 }
 
 const PREFIX = '/app/czxs'
+
+async function pickViaTrim(params) {
+  try {
+    const mod = await import('@trimjs/web-app')
+    const app = new mod.TrimApp()
+    const res = await app.pickUserFile(params)
+    return res?.data?.[0] || null
+  } catch (e) {
+    return null
+  }
+}
+
+
 const money = (v) => (v == null ? '—' : v)
 const isReturnType = (t) => t.endsWith('_return')
 const isPhone = (v) => {
@@ -967,6 +980,12 @@ function Settings() {
               <span style={{ width: 90 }}>{label}：</span>
               <button type="button" className="secondary" onClick={async () => {
                 try {
+                  const dir = await pickViaTrim({ directory: true, title: '选择导出目录', okText: '导出到此' })
+                  if (dir) {
+                    const r = await api('/api/backup/export-to', { method: 'POST', body: JSON.stringify({ kind, dir }) })
+                    setMsg('已导出到 ' + r.path)
+                    return
+                  }
                   const tk = localStorage.getItem('czxs_token') || ''
                   const res = await fetch('/app/czxs/api/backup/export?kind=' + kind, { headers: { Authorization: 'Bearer ' + tk } })
                   if (!res.ok) throw new Error('导出失败')
@@ -980,8 +999,17 @@ function Settings() {
                   setMsg('已导出 ' + a.download)
                 } catch (e) { setMsg(e.message) }
               }}>导出</button>
-              <label className="secondary" style={{ display: 'inline-block', padding: '6px 12px', borderRadius: 999, background: '#f3efe9', cursor: 'pointer' }}>
-                导入
+              <button type="button" className="secondary" onClick={async () => {
+                try {
+                  const path = await pickViaTrim({ accept: ['.sq3'], title: '选择数据库文件', okText: '导入' })
+                  if (path) {
+                    await api('/api/backup/import-path', { method: 'POST', body: JSON.stringify({ kind, path }) })
+                    setMsg(label + '导入成功，请重启应用生效')
+                  }
+                } catch (e) { setMsg('导入失败：' + e.message) }
+              }}>导入</button>
+              <label className="secondary" title="未检测到飞牛文件选择器时使用浏览器选择" style={{ display: 'inline-block', padding: '6px 10px', borderRadius: 999, background: '#f3efe9', cursor: 'pointer', fontSize: 12 }}>
+                浏览器选择
                 <input type="file" accept=".sq3,application/octet-stream" style={{ display: 'none' }} onChange={async (e) => {
                   const file = e.target.files?.[0]
                   if (!file) return
