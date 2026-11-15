@@ -5,7 +5,9 @@
 
     <application
         android:allowBackup="false"
-        android:label="建材进销存"
+        android:label="瓷砖店销售"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="true">
