@@ -915,9 +915,14 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 	lines := []line{}
 	for _, it := range in.Items {
 		var c Category
-		if err := a.mdb.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion FROM categories WHERE id=? AND status='active'`, it.CategoryID).
-			Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion); err != nil {
-			fail(w, 400, "CATEGORY_NOT_FOUND", "型号不存在或未启用")
+		var catStatus string
+		if err := a.mdb.QueryRow(`SELECT id,grp,name,batch,settlement_unit,conversion_unit,conversion,COALESCE(status,'active') FROM categories WHERE id=?`, it.CategoryID).
+			Scan(&c.ID, &c.Group, &c.Name, &c.Batch, &c.SettlementUnit, &c.ConversionUnit, &c.Conversion, &catStatus); err != nil {
+			fail(w, 400, "CATEGORY_NOT_FOUND", "型号不存在")
+			return
+		}
+		if catStatus != "active" && !strings.HasSuffix(in.Type, "_return") {
+			fail(w, 400, "CATEGORY_DISABLED", c.Name+" 已停售，仅可用于退货")
 			return
 		}
 

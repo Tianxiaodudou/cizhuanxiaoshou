@@ -695,7 +695,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 if (line != null) {
                     val pickerCats = if (isReturn)
                         categories.filter { c -> returnables.any { r -> r.optLong("category_id") == c.optLong("id") } }
-                    else categories
+                    else categories.filter { it.optString("status", "active") == "active" }
                     CategoryPicker(
                         categories = pickerCats,
                         selectedLabel = line.categoryName,
