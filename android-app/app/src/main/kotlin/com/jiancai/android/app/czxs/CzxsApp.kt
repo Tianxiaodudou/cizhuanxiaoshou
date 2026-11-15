@@ -25,6 +25,13 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -1679,6 +1686,49 @@ private fun SettingsScreen(api: CzxsApi, onMenu: () -> Unit, onBack: () -> Unit,
                 }
             } else {
                 KeyValueRow("小票宽度", settings.optString("print_width", "80mm"))
+            }
+
+            if (api.isAdmin) {
+                val ctx = LocalContext.current
+                val scope = rememberCoroutineScope()
+                var pendingKind by remember { mutableStateOf("model") }
+                val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+                    if (uri != null) {
+                        scope.launch {
+                            try {
+                                val bytes = withContext(Dispatchers.IO) { api.exportDatabase(pendingKind) }
+                                withContext(Dispatchers.IO) { ctx.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }
+                                message = "已导出 ${bytes.size} 字节"
+                            } catch (e: Exception) { message = "导出失败：${e.message}" }
+                        }
+                    }
+                }
+                val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                    if (uri != null) {
+                        scope.launch {
+                            try {
+                                val bytes = withContext(Dispatchers.IO) {
+                                    ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
+                                }
+                                withContext(Dispatchers.IO) { api.importDatabase(pendingKind, "import.sq3", bytes) }
+                                message = "导入成功，请重启应用生效（账号不受影响）"
+                            } catch (e: Exception) { message = "导入失败：${e.message}" }
+                        }
+                    }
+                }
+
+                SectionLabel("数据库（导入导出不含账号）")
+                listOf("model" to "型号库", "docs" to "单据库").forEach { (kind, label) ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(label, modifier = Modifier.weight(1f))
+                        OutlinedButton(onClick = {
+                            pendingKind = kind
+                            val day = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA).format(Date())
+                            exportLauncher.launch("${label}-${day}.sq3")
+                        }) { Text("导出") }
+                        OutlinedButton(onClick = { pendingKind = kind; importLauncher.launch(arrayOf("application/octet-stream", "application/x-sqlite3", "*/*")) }) { Text("导入") }
+                    }
+                }
             }
 
             PresetSection("计价单位预设", "settlement_units", settings, editable) { k, v ->

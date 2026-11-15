@@ -198,6 +198,56 @@ class CzxsApi(private val prefs: SharedPreferences) {
     fun settlementDetail(customerId: Long): JSONObject =
         request("GET", "/api/settlement/$customerId").getJSONObject("data")
 
+    /** 导出完整 sq3（kind=model|docs）。 */
+    fun exportDatabase(kind: String): ByteArray {
+        val url = URL(baseUrl + GATEWAY_PREFIX + "/api/backup/export?kind=" + encode(kind))
+        val conn = url.openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 8000
+            conn.readTimeout = 30000
+            token?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
+            val code = conn.responseCode
+            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+            val bytes = stream?.readBytes() ?: ByteArray(0)
+            if (code !in 200..299) throw ApiException("HTTP_$code", "导出失败")
+            return bytes
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /** 导入 sq3（multipart/form-data），返回服务端 JSON。 */
+    fun importDatabase(kind: String, fileName: String, bytes: ByteArray): JSONObject {
+        val boundary = "czxs-" + UUID.randomUUID()
+        val url = URL(baseUrl + GATEWAY_PREFIX + "/api/backup/import?kind=" + encode(kind))
+        val conn = url.openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.connectTimeout = 8000
+            conn.readTimeout = 60000
+            conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            token?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
+            conn.outputStream.use { out ->
+                out.write(("--$boundary\r\n").toByteArray())
+                out.write(("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n").toByteArray())
+                out.write(("Content-Type: application/octet-stream\r\n\r\n").toByteArray())
+                out.write(bytes)
+                out.write(("\r\n--$boundary--\r\n").toByteArray())
+            }
+            val code = conn.responseCode
+            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
+            val json = if (text.isBlank()) JSONObject() else JSONObject(text)
+            if (code !in 200..299 || !json.optBoolean("ok", true)) {
+                throw ApiException(json.optString("code", "HTTP_$code"), json.optString("message", "导入失败"))
+            }
+            return json
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     // ---------- HTTP ----------
     private fun request(method: String, path: String, body: JSONObject? = null, query: Map<String, String> = emptyMap()): JSONObject {
         val qs = if (query.isEmpty()) "" else "?" + query.entries.joinToString("&") {
