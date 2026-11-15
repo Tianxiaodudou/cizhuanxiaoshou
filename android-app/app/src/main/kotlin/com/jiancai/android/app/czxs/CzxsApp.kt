@@ -622,101 +622,84 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
             )
 
             SectionLabel("明细")
-            val hScroll = rememberScrollState()
-            Column(Modifier.fillMaxWidth().horizontalScroll(hScroll)) {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    TableHead("序号", 30)
-                    TableHead("商品", 170)
-                    TableHead("批号", 110)
-                    TableHead("单位", 90)
-                    TableHead("数量", 90)
-                    TableHead("单价", 90)
-                    TableHead("操作", 120)
-                }
-                HorizontalDivider()
-                lines.forEachIndexed { index, line ->
-                    Row(
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Text("${index + 1}", Modifier.width(30.dp), style = MaterialTheme.typography.bodySmall)
-                        Box(Modifier.width(170.dp)) {
+            lines.forEachIndexed { index, line ->
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("[${index + 1}]", fontWeight = FontWeight.SemiBold)
                             OutlinedButton(
-                                onClick = {
-                                    // 复用级联选择器：点击商品列打开
-                                    pickerFor = index
-                                },
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                onClick = { pickerFor = index },
+                                modifier = Modifier.weight(1f),
                             ) {
                                 Text(
-                                    (line.categoryName.ifBlank { "选择商品" }) + (if (line.batchTag.isNotBlank()) " · ${line.batchTag}" else ""),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    (line.categoryName.ifBlank { "选择商品" }) +
+                                        (if (line.batchTag.isNotBlank()) " · ${line.batchTag}" else ""),
                                     maxLines = 1,
                                 )
                             }
+                            OutlinedButton(
+                                onClick = { lines.removeAt(index) },
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+                            ) { Text("删") }
                         }
-                        Box(Modifier.width(110.dp)) {
-                            OutlinedTextField(
-                                value = line.batchTag,
-                                onValueChange = { lines[index] = line.copy(batchTag = it); refreshPrice(index) },
-                                textStyle = MaterialTheme.typography.bodySmall,
-                                singleLine = true,
-                            )
-                        }
-                        Box(Modifier.width(90.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Box(Modifier.weight(1f)) {
+                                OutlinedTextField(
+                                    value = line.batchTag,
+                                    onValueChange = { lines[index] = line.copy(batchTag = it); refreshPrice(index) },
+                                    placeholder = { Text(if (isReturn) "可退批次" else "请输入批号") },
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                             UnitPicker(line.units, line.unit) { u -> lines[index] = line.copy(unit = u) }
                         }
-                        Box(Modifier.width(90.dp)) {
-                            OutlinedTextField(
-                                value = line.quantity,
-                                onValueChange = { lines[index] = line.copy(quantity = it) },
-                                textStyle = MaterialTheme.typography.bodySmall,
-                                singleLine = true,
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                                ),
-                            )
-                        }
-                        Box(Modifier.width(90.dp)) {
-                            if (hiddenStaff) {
-                                Text("***", Modifier.padding(6.dp), style = MaterialTheme.typography.bodySmall)
-                            } else {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("数量", style = MaterialTheme.typography.bodySmall)
+                            Box(Modifier.weight(1f)) {
                                 OutlinedTextField(
-                                    value = line.price,
-                                    onValueChange = { lines[index] = line.copy(price = it) },
-                                    textStyle = MaterialTheme.typography.bodySmall,
+                                    value = line.quantity,
+                                    onValueChange = { lines[index] = line.copy(quantity = it) },
+                                    placeholder = { Text("0") },
                                     singleLine = true,
-                                    readOnly = line.priceLocked,
+                                    textStyle = MaterialTheme.typography.bodySmall,
                                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                                     ),
                                 )
                             }
-                        }
-                        Row(Modifier.width(120.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            OutlinedButton(
-                                onClick = {
-                                    if (index > 0) {
-                                        val tmp = lines[index - 1]; lines[index - 1] = lines[index]; lines[index] = tmp
-                                    }
-                                },
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
-                            ) { Text("↑") }
-                            OutlinedButton(
-                                onClick = {
-                                    if (index < lines.size - 1) {
-                                        val tmp = lines[index + 1]; lines[index + 1] = lines[index]; lines[index] = tmp
-                                    }
-                                },
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
-                            ) { Text("↓") }
-                            OutlinedButton(
-                                onClick = { lines.removeAt(index) },
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
-                            ) { Text("删") }
+                            Text("单价", style = MaterialTheme.typography.bodySmall)
+                            Box(Modifier.weight(1f)) {
+                                if (hiddenStaff) {
+                                    Text("***", Modifier.padding(8.dp))
+                                } else {
+                                    OutlinedTextField(
+                                        value = line.price,
+                                        onValueChange = { lines[index] = line.copy(price = it) },
+                                        placeholder = { Text("0.00") },
+                                        singleLine = true,
+                                        readOnly = line.priceLocked,
+                                        textStyle = MaterialTheme.typography.bodySmall,
+                                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                        ),
+                                    )
+                                }
+                            }
                         }
                     }
-                    HorizontalDivider()
                 }
             }
             if (pickerFor >= 0) {
@@ -755,7 +738,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                     }
                 }
             }
-            OutlinedButton(onClick = { lines += DraftLine(key = seq++) }, modifier = Modifier.fillMaxWidth()) { Text("+ 添加一行") }
+            OutlinedButton(onClick = { lines += DraftLine(key = seq++) }, modifier = Modifier.fillMaxWidth()) { Text("添加商品") }
 
             SectionLabel("备注")
             AppTextField("备注", remark, { remark = it })
