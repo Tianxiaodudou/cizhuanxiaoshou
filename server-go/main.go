@@ -136,6 +136,7 @@ func migrateAccounts(db *sql.DB) {
 
 // migrateModel 型号库：商品型号 + 四种预设（独立 model.sq3，可单独导入导出）。
 func migrateModel(db *sql.DB) {
+	_, _ = db.Exec(`UPDATE categories SET name=UPPER(name), batch=UPPER(batch)`)
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, name TEXT, batch TEXT, settlement_unit TEXT, conversion_unit TEXT, conversion REAL DEFAULT 1, default_price TEXT DEFAULT '', batch_type TEXT DEFAULT 'none', status TEXT DEFAULT 'active', created_at TEXT, UNIQUE(grp,name,batch,settlement_unit,conversion_unit))`)
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`)
 	_, _ = db.Exec(`ALTER TABLE categories ADD COLUMN default_price TEXT NOT NULL DEFAULT ''`)
@@ -260,6 +261,9 @@ func migrate(db *sql.DB) {
 	_, _ = db.Exec(`ALTER TABLE order_items ADD COLUMN cat_name TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE order_items ADD COLUMN cat_group TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE note_items ADD COLUMN cat_name TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`UPDATE order_items SET batch_tag=UPPER(batch_tag), cat_name=UPPER(cat_name)`)
+	_, _ = db.Exec(`UPDATE note_items SET batch_tag=UPPER(batch_tag), cat_name=UPPER(cat_name)`)
+	_, _ = db.Exec(`UPDATE customer_prices SET batch_tag=UPPER(batch_tag)`)
 	_, _ = db.Exec(`ALTER TABLE orders ADD COLUMN discount_type TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`UPDATE settings SET v='9527' WHERE k='api_port' AND v='8080'`)
 }
@@ -758,6 +762,8 @@ func (a *App) categories(w http.ResponseWriter, r *http.Request, acc int64) {
 		fail(w, 400, "FIELD_REQUIRED", "品类、型号、计价单位必须填写")
 		return
 	}
+	in.Name = strings.ToUpper(in.Name)
+	in.Batch = strings.ToUpper(in.Batch)
 	if in.Batch == "" {
 		in.Batch = in.Name
 	}
@@ -808,6 +814,8 @@ func (a *App) categoryItem(w http.ResponseWriter, r *http.Request, rest string, 
 			fail(w, 400, "FIELD_REQUIRED", "品类、型号、计价单位必须填写")
 			return
 		}
+		in.Name = strings.ToUpper(in.Name)
+		in.Batch = strings.ToUpper(in.Batch)
 		if in.Batch == "" {
 			in.Batch = in.Name
 		}
@@ -926,6 +934,7 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 			return
 		}
 
+		it.BatchTag = strings.ToUpper(it.BatchTag)
 		qty := bd(it.Quantity)
 		if qty <= 0 {
 			fail(w, 400, "QUANTITY", "数量必须大于 0")
@@ -1146,6 +1155,7 @@ func (a *App) updateOrder(w http.ResponseWriter, r *http.Request, acc int64, raw
 			fail(w, 400, "CATEGORY_NOT_FOUND", "型号不存在")
 			return
 		}
+		it.BatchTag = strings.ToUpper(it.BatchTag)
 		qty := bd(it.Quantity)
 		if qty <= 0 {
 			fail(w, 400, "QUANTITY", "数量必须大于 0")
