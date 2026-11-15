@@ -1575,6 +1575,36 @@ func (a *App) backupImport(w http.ResponseWriter, r *http.Request, acc int64) {
 		fail(w, 400, "INVALID", "数据库缺少必要表："+required)
 		return
 	}
+	if kind == "docs" {
+		// 账号不参与备份：导入时把当前账号表原样带回，避免导入后无法登录
+		type accRow struct {
+			id        int64
+			username  string
+			name      string
+			hash      string
+			role      string
+			status    string
+			hidden    int
+			createdAt string
+		}
+		accs := []accRow{}
+		if rows, err := a.db.Query(`SELECT id,username,name,password_hash,role,status,COALESCE(hidden,0),created_at FROM accounts`); err == nil && rows != nil {
+			for rows.Next() {
+				var x accRow
+				_ = rows.Scan(&x.id, &x.username, &x.name, &x.hash, &x.role, &x.status, &x.hidden, &x.createdAt)
+				accs = append(accs, x)
+			}
+			_ = rows.Close()
+		}
+		if f, err := sql.Open("sqlite", tmp); err == nil {
+			_, _ = f.Exec(`CREATE TABLE IF NOT EXISTS accounts(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, name TEXT, password_hash TEXT, role TEXT DEFAULT 'staff', status TEXT DEFAULT 'active', hidden INTEGER NOT NULL DEFAULT 0, created_at TEXT)`)
+			_, _ = f.Exec(`DELETE FROM accounts`)
+			for _, x := range accs {
+				_, _ = f.Exec(`INSERT INTO accounts(id,username,name,password_hash,role,status,hidden,created_at) VALUES(?,?,?,?,?,?,?,?)`, x.id, x.username, x.name, x.hash, x.role, x.status, x.hidden, x.createdAt)
+			}
+			_ = f.Close()
+		}
+	}
 	_ = os.Rename(target, target+".bak")
 	if err := os.Rename(tmp, target); err != nil {
 		fail(w, 500, "IO", err.Error())
