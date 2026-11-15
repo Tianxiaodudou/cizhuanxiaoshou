@@ -1900,8 +1900,8 @@ private fun CategoryEditorDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CapsuleField(group, { group = it }, "品类", Modifier.fillMaxWidth())
-                CapsuleField(name, { name = it }, "型号", Modifier.fillMaxWidth())
-                CapsuleField(batch, { batch = it }, "批号", Modifier.fillMaxWidth())
+                CapsuleField(name, { name = it.uppercase() }, "型号", Modifier.fillMaxWidth())
+                CapsuleField(batch, { batch = it.uppercase() }, "批号", Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(Modifier.weight(1f)) {
                         CapsuleSelect("计价:${unit.ifBlank { "选择" }}", { unitMenu = true }, Modifier.fillMaxWidth())
