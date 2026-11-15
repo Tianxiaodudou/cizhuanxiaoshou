@@ -33,6 +33,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
@@ -774,6 +777,60 @@ private fun trim(value: Double): String =
     if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
 
 @Composable
+private fun Wheel(
+    options: List<String>,
+    index: Int,
+    onIndex: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val itemHeight = 40.dp
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val itemPx = with(density) { itemHeight.toPx() }
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = index.coerceAtLeast(0))
+    val fling = androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior(lazyListState = state)
+
+    LaunchedEffect(state.isScrollInProgress) {
+        if (!state.isScrollInProgress && options.isNotEmpty()) {
+            val center = state.firstVisibleItemIndex + if (state.firstVisibleItemScrollOffset > itemPx / 2) 1 else 0
+            onIndex(center.coerceIn(0, options.lastIndex))
+        }
+    }
+    LaunchedEffect(index) {
+        if (!state.isScrollInProgress && state.firstVisibleItemIndex != index && index >= 0) {
+            state.scrollToItem(index)
+        }
+    }
+
+    Box(modifier.height(itemHeight * 5)) {
+        LazyColumn(
+            state = state,
+            flingBehavior = fling,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = itemHeight * 2),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            itemsIndexed(options) { i, label ->
+                Box(Modifier.height(itemHeight).fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (i == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        fontWeight = if (i == index) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        Box(
+            Modifier
+                .align(androidx.compose.ui.Alignment.Center)
+                .fillMaxWidth()
+                .height(itemHeight)
+                .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small),
+        )
+    }
+}
+
+@Composable
 private fun CategoryPicker(
     categories: List<JSONObject>,
     selectedLabel: String,
@@ -787,74 +844,51 @@ private fun CategoryPicker(
     if (!open) return
 
     val groups = categories.map { it.optString("group") }.distinct()
-    var group by remember { mutableStateOf(groups.firstOrNull() ?: "") }
-    val names = categories.filter { it.optString("group") == group }.map { it.optString("name") }.distinct()
-    var name by remember { mutableStateOf(names.firstOrNull() ?: "") }
-    val cats = categories.filter { it.optString("group") == group && it.optString("name") == name }
-    val cat = cats.firstOrNull()
-    val batchOptions = cat?.let { c -> batchesFor(c.optLong("id")).ifEmpty { listOf(c.optString("batch") to "") } } ?: emptyList()
-    var batch by remember { mutableStateOf(batchOptions.firstOrNull()?.first ?: "") }
-
-    var groupMenu by remember { mutableStateOf(false) }
-    var nameMenu by remember { mutableStateOf(false) }
-    var batchMenu by remember { mutableStateOf(false) }
-
-    LaunchedEffect(group) {
-        name = categories.filter { it.optString("group") == group }.map { it.optString("name") }.distinct().firstOrNull() ?: ""
+    var gi by remember { mutableStateOf(0) }
+    val names = categories.filter { it.optString("group") == groups.getOrNull(gi) }
+        .map { it.optString("name") }.distinct()
+    var ni by remember { mutableStateOf(0) }
+    val cat = categories.firstOrNull {
+        it.optString("group") == groups.getOrNull(gi) && it.optString("name") == names.getOrNull(ni)
     }
-    LaunchedEffect(group, name) {
-        val c = categories.firstOrNull { it.optString("group") == group && it.optString("name") == name }
-        val opts = c?.let { cc -> batchesFor(cc.optLong("id")).ifEmpty { listOf(cc.optString("batch") to "") } } ?: emptyList()
-        batch = opts.firstOrNull()?.first ?: ""
-    }
+    val batchOptions = cat?.let { c ->
+        batchesFor(c.optLong("id")).ifEmpty { listOf(c.optString("batch") to "") }
+    } ?: emptyList()
+    var bi by remember { mutableStateOf(0) }
+
+    LaunchedEffect(gi) { ni = 0; bi = 0 }
+    LaunchedEffect(gi, ni) { bi = 0 }
 
     AlertDialog(
         onDismissRequest = { open = false },
         confirmButton = {
             TextButton(onClick = {
-                val c = categories.firstOrNull { it.optString("group") == group && it.optString("name") == name }
-                if (c != null) onPick(c, batch)
+                val c = categories.firstOrNull {
+                    it.optString("group") == groups.getOrNull(gi) && it.optString("name") == names.getOrNull(ni)
+                }
+                if (c != null) onPick(c, batchOptions.getOrNull(bi)?.first ?: c.optString("batch"))
                 open = false
             }) { Text("确定") }
         },
         dismissButton = { TextButton(onClick = { open = false }) { Text("取消") } },
         title = { Text("选择商品") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box {
-                    OutlinedButton(onClick = { groupMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("品类：${group.ifBlank { "请选择" }}")
-                    }
-                    DropdownMenu(expanded = groupMenu, onDismissRequest = { groupMenu = false }) {
-                        groups.forEach { g -> DropdownMenuItem(text = { Text(g) }, onClick = { groupMenu = false; group = g }) }
-                    }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Wheel(groups, gi, { gi = it }, Modifier.weight(1f))
+                    Wheel(names, ni, { ni = it }, Modifier.weight(1f))
+                    Wheel(batchOptions.map { it.first.ifBlank { "无" } }, bi, { bi = it }, Modifier.weight(1f))
                 }
-                Box {
-                    OutlinedButton(onClick = { nameMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("型号：${name.ifBlank { "请选择" }}")
-                    }
-                    DropdownMenu(expanded = nameMenu, onDismissRequest = { nameMenu = false }) {
-                        names.forEach { n -> DropdownMenuItem(text = { Text(n) }, onClick = { nameMenu = false; name = n }) }
-                    }
-                }
-                Box {
-                    OutlinedButton(onClick = { batchMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("批号：${batch.ifBlank { "无" }}")
-                    }
-                    DropdownMenu(expanded = batchMenu, onDismissRequest = { batchMenu = false }) {
-                        batchOptions.forEach { (b, avail) ->
-                            DropdownMenuItem(
-                                text = { Text(if (avail.isBlank()) b.ifBlank { "无" } else "$b（可退 $avail）") },
-                                onClick = { batchMenu = false; batch = b },
-                            )
-                        }
-                    }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("品类", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text("型号", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text("批号", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 }
                 cat?.let {
-                    val units = unitsOf(it)
                     Text(
                         "计价单位 ${it.optString("settlement_unit")}" +
-                            (units.filter { u -> u.first != it.optString("settlement_unit") }.joinToString("") { u -> "　换算 ${u.first}" }),
+                            (it.optString("conversion_unit").takeIf { u -> u.isNotBlank() }
+                                ?.let { u -> "　换算 $u（1$u=${it.optString("conversion")}${it.optString("settlement_unit")}）" } ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
