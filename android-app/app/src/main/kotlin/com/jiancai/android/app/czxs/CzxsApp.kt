@@ -1579,6 +1579,40 @@ private val cardTints = listOf(
 )
 
 @Composable
+private fun ConversionCapsule(
+    unit: String,
+    factor: String,
+    settlementUnit: String,
+    labelColor: androidx.compose.ui.graphics.Color,
+    valueColor: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier
+            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+            .border(1.dp, valueColor.copy(alpha = 0.55f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+            .padding(horizontal = 7.dp, vertical = 3.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Text(
+            "换算:$unit",
+            color = labelColor,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Text(
+            "=$factor$settlementUnit",
+            color = valueColor,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 private fun Capsule(
     label: String,
     value: String,
@@ -1680,14 +1714,13 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 Capsule("计价", c.optString("settlement_unit"), tint.l1, tint.v1, Modifier.weight(1f))
-                                Capsule(
-                                    "换算",
-                                    c.optString("conversion_unit").ifBlank { "无" },
-                                    tint.l2,
-                                    tint.v2,
-                                    Modifier.weight(1f),
-                                    suffix = if (c.optString("conversion_unit").isNotBlank() && c.optString("conversion").isNotBlank())
-                                        "×${c.optString("conversion")}" else "",
+                                ConversionCapsule(
+                                    unit = c.optString("conversion_unit").ifBlank { "无" },
+                                    factor = c.optString("conversion").ifBlank { "1" },
+                                    settlementUnit = c.optString("settlement_unit"),
+                                    labelColor = tint.l2,
+                                    valueColor = tint.v2,
+                                    modifier = Modifier.weight(1f),
                                 )
                                 Capsule("默认价", c.optString("default_price").ifBlank { "无" }, tint.l3, tint.v3, Modifier.weight(1f))
                                 if (api.isAdmin) {
