@@ -1781,9 +1781,9 @@ private fun PresetSection(
 ) {
     val items = settings.optString(key).split(',').map { it.trim() }.filter { it.isNotEmpty() }
     var draft by remember { mutableStateOf("") }
-    fun commit(list: List<String>) = onSave(key, list.joinToString(","))
-
     var expanded by remember { mutableStateOf(false) }
+    val commit: (List<String>) -> Unit = { onSave(key, it.joinToString(",")) }
+
     OutlinedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(
             Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(12.dp),
@@ -1794,48 +1794,54 @@ private fun PresetSection(
             Text(if (expanded) "收起 ▴" else "展开 ▾", style = MaterialTheme.typography.bodySmall)
         }
         if (expanded) {
-            Column(Modifier.padding(horizontal = 12.dp).padding(bottom = 10.dp)) {
-    if (items.isEmpty()) Text("未设置", style = MaterialTheme.typography.bodySmall)
-    items.forEachIndexed { index, item ->
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        ) {
-            Text("${index + 1}. $item")
-            if (editable) {
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    OutlinedButton(onClick = {
-                        if (index > 0) {
-                            val list = items.toMutableList()
-                            val tmp = list[index - 1]; list[index - 1] = list[index]; list[index] = tmp
-                            commit(list)
-                        }
-                    }) { Text("↑") }
-                    OutlinedButton(onClick = {
-                        if (index < items.size - 1) {
-                            val list = items.toMutableList()
-                            val tmp = list[index + 1]; list[index + 1] = list[index]; list[index] = tmp
-                            commit(list)
-                        }
-                    }) { Text("↓") }
-                    OutlinedButton(onClick = { commit(items.filterIndexed { i, _ -> i != index }) }) { Text("删") }
+            Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp)) {
+                if (items.isEmpty()) {
+                    Text("未设置", style = MaterialTheme.typography.bodySmall)
                 }
-            }
-        }
-    }
-    if (editable) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            AppTextField("新增一项", draft, { draft = it }, modifier = Modifier.weight(1f))
-            Button(onClick = {
-                if (draft.isNotBlank()) {
-                    commit(items + draft.trim())
-                    draft = ""
+                items.forEachIndexed { index, item ->
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        Text("${index + 1}. $item")
+                        if (editable) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                OutlinedButton(onClick = {
+                                    if (index > 0) {
+                                        val list = items.toMutableList()
+                                        val tmp = list[index - 1]
+                                        list[index - 1] = list[index]
+                                        list[index] = tmp
+                                        commit(list)
+                                    }
+                                }) { Text("↑") }
+                                OutlinedButton(onClick = {
+                                    if (index < items.size - 1) {
+                                        val list = items.toMutableList()
+                                        val tmp = list[index + 1]
+                                        list[index + 1] = list[index]
+                                        list[index] = tmp
+                                        commit(list)
+                                    }
+                                }) { Text("↓") }
+                                OutlinedButton(onClick = { commit(items.filterIndexed { i, _ -> i != index }) }) { Text("删") }
+                            }
+                        }
+                    }
                 }
-            }) { Text("添加") }
-        }
+                if (editable) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        AppTextField("新增一项", draft, { draft = it }, modifier = Modifier.weight(1f))
+                        Button(onClick = {
+                            if (draft.isNotBlank()) {
+                                commit(items + draft.trim())
+                                draft = ""
+                            }
+                        }) { Text("添加") }
+                    }
+                }
             }
         }
     }
 }
-
