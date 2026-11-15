@@ -1822,6 +1822,8 @@ private fun CategoryEditorDialog(
     onDismiss: () -> Unit,
     onSave: (JSONObject) -> Unit,
 ) {
+    val tint = cardTints[0]
+    val pill = androidx.compose.foundation.shape.RoundedCornerShape(50)
     var group by remember { mutableStateOf(initial?.optString("group") ?: "") }
     var name by remember { mutableStateOf(initial?.optString("name") ?: "") }
     var batch by remember { mutableStateOf(initial?.optString("batch") ?: "") }
@@ -1834,19 +1836,44 @@ private fun CategoryEditorDialog(
     var err by remember { mutableStateOf<String?>(null) }
 
     @Composable
-    fun CompactField(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier) {
+    fun CapsuleField(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier) {
         OutlinedTextField(
             value = value,
             onValueChange = onChange,
             placeholder = { Text(hint, style = MaterialTheme.typography.bodySmall) },
             singleLine = true,
             textStyle = MaterialTheme.typography.bodySmall,
+            shape = pill,
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f),
+                focusedContainerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f),
+                unfocusedBorderColor = tint.v1.copy(alpha = 0.45f),
+                focusedBorderColor = tint.v1,
+            ),
             modifier = modifier,
         )
     }
 
+    @Composable
+    fun CapsuleSelect(text: String, onClick: () -> Unit, modifier: Modifier) {
+        Row(
+            modifier
+                .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f), pill)
+                .border(1.dp, tint.v2.copy(alpha = 0.55f), pill)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Text(text, style = MaterialTheme.typography.bodySmall, color = tint.title, maxLines = 1, modifier = Modifier.weight(1f))
+            Text("▾", style = MaterialTheme.typography.bodySmall, color = tint.v2)
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = tint.bg,
+        titleContentColor = tint.title,
+        textContentColor = tint.title,
         confirmButton = {
             TextButton(onClick = {
                 if (group.isBlank() || name.isBlank() || unit.isBlank()) {
@@ -1857,30 +1884,26 @@ private fun CategoryEditorDialog(
                     .put("group", group).put("name", name).put("batch", batch.ifBlank { name })
                     .put("settlement_unit", unit).put("conversion_unit", convUnit)
                     .put("conversion", conversion.ifBlank { "1" }).put("default_price", defaultPrice))
-            }) { Text("保存") }
+            }) { Text("保存", color = tint.v1) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
-        title = { Text(if (initial == null) "新增型号" else "编辑型号") },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", color = tint.v2) } },
+        title = { Text(if (initial == null) "新增型号" else "编辑型号", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    CompactField(group, { group = it }, "品类", Modifier.weight(1f))
-                    CompactField(name, { name = it }, "型号", Modifier.weight(1f))
-                    CompactField(batch, { batch = it }, "批号", Modifier.weight(1f))
+                    CapsuleField(group, { group = it }, "品类", Modifier.weight(1f))
+                    CapsuleField(name, { name = it }, "型号", Modifier.weight(1f))
+                    CapsuleField(batch, { batch = it }, "批号", Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(Modifier.weight(1f)) {
-                        OutlinedButton(onClick = { unitMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text("计价：${unit.ifBlank { "选择" }}", style = MaterialTheme.typography.bodySmall)
-                        }
+                        CapsuleSelect("计价:${unit.ifBlank { "选择" }}", { unitMenu = true }, Modifier.fillMaxWidth())
                         DropdownMenu(expanded = unitMenu, onDismissRequest = { unitMenu = false }) {
                             settlementUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { unitMenu = false; unit = u }) }
                         }
                     }
                     Box(Modifier.weight(1f)) {
-                        OutlinedButton(onClick = { convMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text("换算：${convUnit.ifBlank { "无" }}", style = MaterialTheme.typography.bodySmall)
-                        }
+                        CapsuleSelect("换算:${convUnit.ifBlank { "无" }}", { convMenu = true }, Modifier.fillMaxWidth())
                         DropdownMenu(expanded = convMenu, onDismissRequest = { convMenu = false }) {
                             DropdownMenuItem(text = { Text("无") }, onClick = { convMenu = false; convUnit = "" })
                             conversionUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { convMenu = false; convUnit = u }) }
@@ -1888,8 +1911,8 @@ private fun CategoryEditorDialog(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    CompactField(conversion, { conversion = it }, "换算系数", Modifier.weight(1f))
-                    CompactField(defaultPrice, { defaultPrice = it }, "默认价", Modifier.weight(1f))
+                    CapsuleField(conversion, { conversion = it }, "换算系数", Modifier.weight(1f))
+                    CapsuleField(defaultPrice, { defaultPrice = it }, "默认价", Modifier.weight(1f))
                 }
                 err?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
