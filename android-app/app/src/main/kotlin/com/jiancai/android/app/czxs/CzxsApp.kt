@@ -1588,8 +1588,9 @@ private fun Capsule(
 ) {
     Row(
         modifier
-            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.65f), androidx.compose.foundation.shape.RoundedCornerShape(50))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+            .border(1.dp, valueColor.copy(alpha = 0.55f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+            .padding(horizontal = 7.dp, vertical = 3.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
         Text(label, color = labelColor, style = MaterialTheme.typography.labelSmall)
@@ -1643,33 +1644,48 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                     val c = filtered[index]
                     val tint = cardTints[index % cardTints.size]
                     Card(
-                        Modifier.fillMaxWidth(),
+                        onClick = { if (api.isAdmin) { editTarget = c; showEditor = true } },
+                        modifier = Modifier.fillMaxWidth(),
                         elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 6.dp),
                         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = tint.bg),
                     ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                Text(
-                                    listOf(c.optString("group"), c.optString("name"), c.optString("batch").ifBlank { "无批号" })
-                                        .joinToString(" · "),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = tint.title,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                )
+                        Column(Modifier.padding(start = 10.dp, end = 8.dp, top = 4.dp, bottom = 8.dp)) {
+                            Text(
+                                listOf(c.optString("group"), c.optString("name"), c.optString("batch").ifBlank { "无批号" })
+                                    .joinToString(" · "),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = tint.title,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Capsule("计价", c.optString("settlement_unit"), tint.l1, tint.v1, Modifier.weight(1f))
+                                Capsule("换算", c.optString("conversion_unit").ifBlank { "无" }, tint.l2, tint.v2, Modifier.weight(1f))
+                                Capsule("默认价", c.optString("default_price").ifBlank { "无" }, tint.l3, tint.v3, Modifier.weight(1f))
                                 if (api.isAdmin) {
-                                    TextButton(onClick = { editTarget = c; showEditor = true }) {
-                                        Text("编辑", style = MaterialTheme.typography.labelMedium)
+                                    Row(
+                                        Modifier
+                                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+                                            .border(1.dp, MaterialTheme.colorScheme.error, androidx.compose.foundation.shape.RoundedCornerShape(50))
+                                            .clickable {
+                                                scope.launch {
+                                                    try {
+                                                        withContext(Dispatchers.IO) { api.deleteCategory(c.optLong("id")) }
+                                                        reload()
+                                                    } catch (e: Exception) { error = e.message }
+                                                }
+                                            }
+                                            .padding(horizontal = 9.dp, vertical = 4.dp),
+                                    ) {
+                                        Text("删除", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
                                     }
-                                    TextButton(onClick = {
-                                        scope.launch {
-                                            try {
-                                                withContext(Dispatchers.IO) { api.deleteCategory(c.optLong("id")) }
-                                                reload()
-                                            } catch (e: Exception) { error = e.message }
-                                        }
-                                    }) { Text("删除", style = MaterialTheme.typography.labelMedium) }
                                 }
                                 androidx.compose.material3.Switch(
                                     checked = c.optString("status") == "active",
@@ -1682,11 +1698,6 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                         }
                                     },
                                 )
-                            }
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Capsule("计价", c.optString("settlement_unit"), tint.l1, tint.v1, Modifier.weight(1f))
-                                Capsule("换算", c.optString("conversion_unit").ifBlank { "无" }, tint.l2, tint.v2, Modifier.weight(1f))
-                                Capsule("默认价", c.optString("default_price").ifBlank { "无" }, tint.l3, tint.v3, Modifier.weight(1f))
                             }
                         }
                     }
