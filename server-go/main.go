@@ -1232,7 +1232,10 @@ func (a *App) order(oid int64) map[string]any {
 			var catID int64
 			var grp, nm, bt, iu, iq, su, sq, up, lt string
 			_ = rows.Scan(&catID, &grp, &nm, &bt, &iu, &iq, &su, &sq, &up, &lt)
-			items = append(items, map[string]any{"category_id": catID, "group": grp, "name": nm, "batch_tag": bt,
+			var convUnit string
+			var conv float64 = 1
+			_ = a.mdb.QueryRow(`SELECT COALESCE(conversion_unit,''),COALESCE(conversion,1) FROM categories WHERE id=?`, catID).Scan(&convUnit, &conv)
+			items = append(items, map[string]any{"category_id": catID, "group": grp, "name": nm, "batch_tag": bt, "conversion_unit": convUnit, "conversion": conv,
 				"input_unit": iu, "input_quantity": iq, "settlement_unit": su, "settlement_quantity": sq, "unit_price": up, "line_total": lt})
 		}
 	}
