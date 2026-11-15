@@ -34,6 +34,11 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -427,6 +432,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
     var matches by remember { mutableStateOf(listOf<JSONObject>()) }
     var priceMode by remember { mutableStateOf("open") }
     var returnables by remember { mutableStateOf(listOf<JSONObject>()) }
+    var pickerFor by remember { mutableStateOf(-1) }
     val hiddenStaff = priceMode == "hidden" && !api.isAdmin
 
     LaunchedEffect(Unit) {
@@ -616,85 +622,136 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
             )
 
             SectionLabel("明细")
-            lines.forEachIndexed { index, line ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        val pickerCats = if (isReturn)
-                            categories.filter { c -> returnables.any { r -> r.optLong("category_id") == c.optLong("id") } }
-                        else categories
-                        CategoryPicker(
-                            categories = pickerCats,
-                            selectedLabel = line.categoryName,
-                            batchesFor = { catId ->
-                                if (isReturn) {
-                                    returnBatchesFor(catId)
-                                } else {
-                                    categories.firstOrNull { it.optLong("id") == catId }
-                                        ?.let { listOf(it.optString("batch") to "") } ?: emptyList()
-                                }
-                            },
-                        ) { cat, batch ->
-                            val avail = if (isReturn) {
-                                returnBatchesFor(cat.optLong("id")).firstOrNull { it.first == batch }?.second
-                            } else null
-                            lines[index] = line.copy(
-                                categoryId = cat.optLong("id"),
-                                categoryName = cat.optString("name"),
-                                batchType = cat.optString("batch_type"),
-                                batchTag = batch,
-                                units = unitsOf(cat),
-                                unit = unitsOf(cat).firstOrNull()?.first ?: "",
-                                price = "",
-                                priceLocked = false,
-                                available = avail,
-                            )
-                            refreshPrice(index)
-                        }
-                        if (line.batchType == "color" || line.batchType == "date") {
-                            val label = if (line.batchType == "color") "色号" else "日期"
-                            if (isReturn) {
-                                BatchPicker(label, batches, line.batchTag) { batch, available ->
-                                    lines[index] = line.copy(batchTag = batch, available = available)
-                                    refreshPrice(index)
-                                }
-                            } else {
-                                AppTextField(label, line.batchTag, {
-                                    lines[index] = line.copy(batchTag = it)
-                                    refreshPrice(index)
-                                })
-                            }
-                            line.available?.let {
-                                val convHint = line.units.firstOrNull { u -> u.first == line.unit }?.second ?: 1.0
-                                val shown = (it.toDoubleOrNull() ?: 0.0) / (if (convHint != 0.0) convHint else 1.0)
-                                Text("可退 ${trim(shown)}${line.unit}", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            UnitPicker(line.units, line.unit) { u -> lines[index] = line.copy(unit = u) }
-                            AppTextField("数量", line.quantity, { lines[index] = line.copy(quantity = it) }, modifier = Modifier.weight(1f), numeric = true)
-                        }
-                        val conv = line.units.firstOrNull { it.first == line.unit }?.second ?: 1.0
-                        val qty = line.quantity.toDoubleOrNull() ?: 0.0
-                        val settlement = qty * conv
-                        Text(
-                            if (conv != 1.0) "录入 ${line.quantity}${line.unit} = 结算 ${trim(settlement)}" else "录入 ${line.quantity}${line.unit}",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (hiddenStaff) {
-                                Text("单价：***（暗价客户，业务员不可见）", modifier = Modifier.weight(1f))
-                            } else {
-                                AppTextField(
-                                    if (line.priceLocked) "单价（只读）" else "单价（首单录入）",
-                                    line.price,
-                                    { lines[index] = line.copy(price = it) },
-                                    modifier = Modifier.weight(1f),
-                                    numeric = true,
-                                    readOnly = line.priceLocked,
+            val hScroll = rememberScrollState()
+            Column(Modifier.fillMaxWidth().horizontalScroll(hScroll)) {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    TableHead("序号", 30)
+                    TableHead("商品", 170)
+                    TableHead("批号", 110)
+                    TableHead("单位", 90)
+                    TableHead("数量", 90)
+                    TableHead("单价", 90)
+                    TableHead("操作", 120)
+                }
+                HorizontalDivider()
+                lines.forEachIndexed { index, line ->
+                    Row(
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text("${index + 1}", Modifier.width(30.dp), style = MaterialTheme.typography.bodySmall)
+                        Box(Modifier.width(170.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    // 复用级联选择器：点击商品列打开
+                                    pickerFor = index
+                                },
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            ) {
+                                Text(
+                                    (line.categoryName.ifBlank { "选择商品" }) + (if (line.batchTag.isNotBlank()) " · ${line.batchTag}" else ""),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
                                 )
                             }
-                            OutlinedButton(onClick = { lines.removeAt(index) }) { Text("删除") }
                         }
+                        Box(Modifier.width(110.dp)) {
+                            OutlinedTextField(
+                                value = line.batchTag,
+                                onValueChange = { lines[index] = line.copy(batchTag = it); refreshPrice(index) },
+                                textStyle = MaterialTheme.typography.bodySmall,
+                                singleLine = true,
+                            )
+                        }
+                        Box(Modifier.width(90.dp)) {
+                            UnitPicker(line.units, line.unit) { u -> lines[index] = line.copy(unit = u) }
+                        }
+                        Box(Modifier.width(90.dp)) {
+                            OutlinedTextField(
+                                value = line.quantity,
+                                onValueChange = { lines[index] = line.copy(quantity = it) },
+                                textStyle = MaterialTheme.typography.bodySmall,
+                                singleLine = true,
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                ),
+                            )
+                        }
+                        Box(Modifier.width(90.dp)) {
+                            if (hiddenStaff) {
+                                Text("***", Modifier.padding(6.dp), style = MaterialTheme.typography.bodySmall)
+                            } else {
+                                OutlinedTextField(
+                                    value = line.price,
+                                    onValueChange = { lines[index] = line.copy(price = it) },
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                    singleLine = true,
+                                    readOnly = line.priceLocked,
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                    ),
+                                )
+                            }
+                        }
+                        Row(Modifier.width(120.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    if (index > 0) {
+                                        val tmp = lines[index - 1]; lines[index - 1] = lines[index]; lines[index] = tmp
+                                    }
+                                },
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
+                            ) { Text("↑") }
+                            OutlinedButton(
+                                onClick = {
+                                    if (index < lines.size - 1) {
+                                        val tmp = lines[index + 1]; lines[index + 1] = lines[index]; lines[index] = tmp
+                                    }
+                                },
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
+                            ) { Text("↓") }
+                            OutlinedButton(
+                                onClick = { lines.removeAt(index) },
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
+                            ) { Text("删") }
+                        }
+                    }
+                    HorizontalDivider()
+                }
+            }
+            if (pickerFor >= 0) {
+                val idx = pickerFor
+                val line = lines.getOrNull(idx)
+                if (line != null) {
+                    val pickerCats = if (isReturn)
+                        categories.filter { c -> returnables.any { r -> r.optLong("category_id") == c.optLong("id") } }
+                    else categories
+                    CategoryPicker(
+                        categories = pickerCats,
+                        selectedLabel = line.categoryName,
+                        batchesFor = { catId ->
+                            if (isReturn) {
+                                returnBatchesFor(catId)
+                            } else {
+                                categories.firstOrNull { it.optLong("id") == catId }
+                                    ?.let { listOf(it.optString("batch") to "") } ?: emptyList()
+                            }
+                        },
+                    ) { cat, batch ->
+                        val avail = if (isReturn) returnBatchesFor(cat.optLong("id")).firstOrNull { it.first == batch }?.second else null
+                        lines[idx] = line.copy(
+                            categoryId = cat.optLong("id"),
+                            categoryName = cat.optString("name"),
+                            batchType = cat.optString("batch_type"),
+                            batchTag = batch,
+                            units = unitsOf(cat),
+                            unit = unitsOf(cat).firstOrNull()?.first ?: "",
+                            price = "",
+                            priceLocked = false,
+                            available = avail,
+                        )
+                        refreshPrice(idx)
+                        pickerFor = -1
                     }
                 }
             }
@@ -727,6 +784,16 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
             }
         }
     }
+}
+
+@Composable
+private fun TableHead(text: String, width: Int) {
+    Text(
+        text,
+        Modifier.width(width.dp).padding(horizontal = 4.dp, vertical = 6.dp),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+    )
 }
 
 private fun unitsOf(cat: JSONObject?): List<Pair<String, Double>> {
