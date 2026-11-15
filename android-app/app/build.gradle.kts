@@ -1,7 +1,7 @@
 import java.io.FileInputStream
 import java.security.KeyStore
 
-﻿// 客户端 Android 应用：Jetpack Compose + Material 3（页面与规范见 docs/specs/android-compose.md）
+// 客户端 Android 应用：Jetpack Compose + Material 3（页面与规范见 docs/specs/android-compose.md）
 plugins {
     id("com.android.application")
     kotlin("android")
