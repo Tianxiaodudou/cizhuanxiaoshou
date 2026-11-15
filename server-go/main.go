@@ -1506,6 +1506,51 @@ func (a *App) accountItem(w http.ResponseWriter, r *http.Request, rest string) {
 
 
 
+// installSq3 热切换：关闭连接 → 备份旧库 → 用新文件替换 → 重开并迁移（无需重启）。
+func (a *App) installSq3(kind, tmp string) error {
+	target, _, cur, _ := a.backupTarget(kind)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if cur != nil {
+		_ = cur.Close()
+	}
+	_ = os.Remove(target + "-wal")
+	_ = os.Remove(target + "-shm")
+	_ = os.Remove(target + ".bak")
+	_ = os.Rename(target, target+".bak")
+	if err := os.Rename(tmp, target); err != nil {
+		// 跨盘时退化为复制
+		src, e1 := os.Open(tmp)
+		if e1 != nil {
+			return err
+		}
+		defer src.Close()
+		dst, e2 := os.Create(target)
+		if e2 != nil {
+			return e2
+		}
+		_, e3 := io.Copy(dst, src)
+		_ = dst.Close()
+		if e3 != nil {
+			return e3
+		}
+	}
+	db, err := sql.Open("sqlite", target+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
+	if err != nil {
+		return err
+	}
+	db.SetMaxOpenConns(4)
+	if kind == "docs" {
+		migrate(db)
+		a.db = db
+	} else {
+		migrateModel(db)
+		seedModel(db)
+		a.mdb = db
+	}
+	return nil
+}
+
 func (a *App) backupTarget(kind string) (string, string, *sql.DB, bool) {
 	switch kind {
 	case "model":
@@ -1570,7 +1615,7 @@ func (a *App) backupImportPath(w http.ResponseWriter, r *http.Request, acc int64
 		Path string `json:"path"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&in)
-	target, required, _, valid := a.backupTarget(in.Kind)
+	_, required, _, valid := a.backupTarget(in.Kind)
 	if !valid {
 		fail(w, 400, "KIND", "kind 必须是 model 或 docs")
 		return
@@ -1597,19 +1642,25 @@ func (a *App) backupImportPath(w http.ResponseWriter, r *http.Request, acc int64
 		return
 	}
 	defer src.Close()
-	_ = os.Rename(target, target+".bak")
-	dst, err := os.Create(target)
+	tmpCopy := filepath.Join(a.dataDir, "import-path-"+fmt.Sprint(time.Now().UnixNano())+".sq3")
+	dst, err := os.Create(tmpCopy)
 	if err != nil {
 		fail(w, 500, "IO", err.Error())
 		return
 	}
 	if _, err := io.Copy(dst, src); err != nil {
 		_ = dst.Close()
+		_ = os.Remove(tmpCopy)
 		fail(w, 500, "IO", err.Error())
 		return
 	}
 	_ = dst.Close()
-	ok(w, map[string]any{"imported": true, "restart_required": true, "kind": in.Kind})
+	defer os.Remove(tmpCopy)
+	if err := a.installSq3(in.Kind, tmpCopy); err != nil {
+		fail(w, 500, "IO", err.Error())
+		return
+	}
+	ok(w, map[string]any{"imported": true, "restart_required": false, "kind": in.Kind})
 }
 
 // backupExport 导出完整 sq3：model=型号库（categories+预设），docs=单据库（不含账号）。
@@ -1655,14 +1706,11 @@ func (a *App) backupImport(w http.ResponseWriter, r *http.Request, acc int64) {
 		return
 	}
 	kind := r.URL.Query().Get("kind")
-	var target string
 	var required string
 	switch kind {
 	case "model":
-		target = filepath.Join(a.dataDir, "model.sq3")
 		required = "categories"
 	case "docs":
-		target = filepath.Join(a.dataDir, "docs.sq3")
 		required = "orders"
 	default:
 		fail(w, 400, "KIND", "kind 必须是 model 或 docs")
@@ -1705,12 +1753,11 @@ func (a *App) backupImport(w http.ResponseWriter, r *http.Request, acc int64) {
 		fail(w, 400, "INVALID", "数据库缺少必要表："+required)
 		return
 	}
-	_ = os.Rename(target, target+".bak")
-	if err := os.Rename(tmp, target); err != nil {
+	if err := a.installSq3(kind, tmp); err != nil {
 		fail(w, 500, "IO", err.Error())
 		return
 	}
-	ok(w, map[string]any{"imported": true, "restart_required": true, "kind": kind})
+	ok(w, map[string]any{"imported": true, "restart_required": false, "kind": kind})
 }
 
 func urlEncode(s string) string {
