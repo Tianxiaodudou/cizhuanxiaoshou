@@ -33,6 +33,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -1545,33 +1546,51 @@ private data class CardTint(
     val v3: androidx.compose.ui.graphics.Color,
 )
 
-// 每张卡片 7 个颜色：大标题 1 + 三个小标题 3 + 三个值 3
+// 7 色：大标题 1；小标题/值 三对，每对内部高对比（浅标签 + 深值）
 private val cardTints = listOf(
     CardTint(
         bg = androidx.compose.ui.graphics.Color(0xFFE6F4F2),
         title = androidx.compose.ui.graphics.Color(0xFF0B3B38),
-        l1 = androidx.compose.ui.graphics.Color(0xFF0F766E), l2 = androidx.compose.ui.graphics.Color(0xFF0E7490), l3 = androidx.compose.ui.graphics.Color(0xFFB45309),
-        v1 = androidx.compose.ui.graphics.Color(0xFF115E59), v2 = androidx.compose.ui.graphics.Color(0xFF155E75), v3 = androidx.compose.ui.graphics.Color(0xFF92400E),
+        l1 = androidx.compose.ui.graphics.Color(0xFF14B8A6), v1 = androidx.compose.ui.graphics.Color(0xFF134E4A),
+        l2 = androidx.compose.ui.graphics.Color(0xFF0EA5E9), v2 = androidx.compose.ui.graphics.Color(0xFF0C4A6E),
+        l3 = androidx.compose.ui.graphics.Color(0xFFF59E0B), v3 = androidx.compose.ui.graphics.Color(0xFF78350F),
     ),
     CardTint(
         bg = androidx.compose.ui.graphics.Color(0xFFFDF1E6),
         title = androidx.compose.ui.graphics.Color(0xFF43210A),
-        l1 = androidx.compose.ui.graphics.Color(0xFFB45309), l2 = androidx.compose.ui.graphics.Color(0xFF7C3AED), l3 = androidx.compose.ui.graphics.Color(0xFF0F766E),
-        v1 = androidx.compose.ui.graphics.Color(0xFF92400E), v2 = androidx.compose.ui.graphics.Color(0xFF5B21B6), v3 = androidx.compose.ui.graphics.Color(0xFF115E59),
+        l1 = androidx.compose.ui.graphics.Color(0xFFF97316), v1 = androidx.compose.ui.graphics.Color(0xFF7C2D12),
+        l2 = androidx.compose.ui.graphics.Color(0xFFA855F7), v2 = androidx.compose.ui.graphics.Color(0xFF4C1D95),
+        l3 = androidx.compose.ui.graphics.Color(0xFF10B981), v3 = androidx.compose.ui.graphics.Color(0xFF064E3B),
     ),
     CardTint(
         bg = androidx.compose.ui.graphics.Color(0xFFEDEBFB),
         title = androidx.compose.ui.graphics.Color(0xFF2A1B54),
-        l1 = androidx.compose.ui.graphics.Color(0xFF6D28D9), l2 = androidx.compose.ui.graphics.Color(0xFFB91C1C), l3 = androidx.compose.ui.graphics.Color(0xFF0E7490),
-        v1 = androidx.compose.ui.graphics.Color(0xFF5B21B6), v2 = androidx.compose.ui.graphics.Color(0xFF991B1B), v3 = androidx.compose.ui.graphics.Color(0xFF155E75),
+        l1 = androidx.compose.ui.graphics.Color(0xFF8B5CF6), v1 = androidx.compose.ui.graphics.Color(0xFF4C1D95),
+        l2 = androidx.compose.ui.graphics.Color(0xFFF43F5E), v2 = androidx.compose.ui.graphics.Color(0xFF881337),
+        l3 = androidx.compose.ui.graphics.Color(0xFF06B6D4), v3 = androidx.compose.ui.graphics.Color(0xFF164E63),
     ),
     CardTint(
         bg = androidx.compose.ui.graphics.Color(0xFFE9F2E6),
         title = androidx.compose.ui.graphics.Color(0xFF1F3310),
-        l1 = androidx.compose.ui.graphics.Color(0xFF3F6212), l2 = androidx.compose.ui.graphics.Color(0xFFB45309), l3 = androidx.compose.ui.graphics.Color(0xFF6D28D9),
-        v1 = androidx.compose.ui.graphics.Color(0xFF365314), v2 = androidx.compose.ui.graphics.Color(0xFF92400E), v3 = androidx.compose.ui.graphics.Color(0xFF5B21B6),
+        l1 = androidx.compose.ui.graphics.Color(0xFF84CC16), v1 = androidx.compose.ui.graphics.Color(0xFF365314),
+        l2 = androidx.compose.ui.graphics.Color(0xFFF59E0B), v2 = androidx.compose.ui.graphics.Color(0xFF78350F),
+        l3 = androidx.compose.ui.graphics.Color(0xFFA855F7), v3 = androidx.compose.ui.graphics.Color(0xFF4C1D95),
     ),
 )
+
+@Composable
+private fun Capsule(label: String, value: String, labelColor: androidx.compose.ui.graphics.Color, valueColor: androidx.compose.ui.graphics.Color) {
+    Row(
+        Modifier
+            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.65f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Text(label, color = labelColor, style = MaterialTheme.typography.labelSmall)
+        androidx.compose.foundation.layout.Spacer(Modifier.width(4.dp))
+        Text(value, color = valueColor, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+    }
+}
 
 @Composable
 private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit) {
@@ -1632,13 +1651,14 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                         fontWeight = FontWeight.Bold,
                                         color = tint.title,
                                     )
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Text("计价单位", color = tint.l1, style = MaterialTheme.typography.labelMedium)
-                                        Text(c.optString("settlement_unit"), color = tint.v1, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                                        Text("换算单位", color = tint.l2, style = MaterialTheme.typography.labelMedium)
-                                        Text(c.optString("conversion_unit").ifBlank { "无" }, color = tint.v2, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                                        Text("默认价", color = tint.l3, style = MaterialTheme.typography.labelMedium)
-                                        Text(c.optString("default_price").ifBlank { "无" }, color = tint.v3, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Capsule("计价单位", c.optString("settlement_unit"), tint.l1, tint.v1)
+                                            Capsule("换算单位", c.optString("conversion_unit").ifBlank { "无" }, tint.l2, tint.v2)
+                                        }
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Capsule("默认价", c.optString("default_price").ifBlank { "无" }, tint.l3, tint.v3)
+                                        }
                                     }
                                 }
                                 androidx.compose.material3.Switch(
