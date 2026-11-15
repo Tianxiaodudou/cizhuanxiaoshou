@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -275,6 +277,7 @@ private fun HomeScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit, o
     var detail by remember { mutableStateOf<JSONObject?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         try {
@@ -355,6 +358,18 @@ private fun HomeScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit, o
             isAdmin = api.isAdmin,
             onClose = { detail = null },
             onEdit = { id -> detail = null; onNavigate(Route.Order("edit", id)) },
+            onArchive = { id ->
+                scope.launch {
+                    try { withContext(Dispatchers.IO) { api.archiveOrder(id) }; orders = orders.map { if (it.optLong("id") == id) JSONObject(it.toString()).put("status", "archived") else it } }
+                    catch (e: Exception) { error = e.message }
+                }
+            },
+            onDelete = { id ->
+                scope.launch {
+                    try { withContext(Dispatchers.IO) { api.deleteOrder(id) }; orders = orders.filterNot { it.optLong("id") == id } }
+                    catch (e: Exception) { error = e.message }
+                }
+            },
         )
     }
 }
@@ -574,7 +589,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
         Column(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionLabel("客户")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppTextField("客户电话", phone, { phone = it; if (it.length >= 7) Unit }, modifier = Modifier.weight(1f), numeric = true)
+                AppTextField("电话 / 姓名 / 地址", phone, { phone = it }, modifier = Modifier.weight(1f))
                 OutlinedButton(onClick = ::lookupCustomer, enabled = !editing) { Text("查客户") }
             }
             matches.forEach { c ->
@@ -1283,6 +1298,8 @@ private fun OrderDetailDialog(
     isAdmin: Boolean,
     onClose: () -> Unit,
     onEdit: (Long) -> Unit,
+    onArchive: ((Long) -> Unit)? = null,
+    onDelete: ((Long) -> Unit)? = null,
 ) {
     val type = order.optString("type")
     val editable = isAdmin && (type == "delivery" || type == "delivery_return" || type == "pickup" || type == "pickup_return") &&
@@ -1292,6 +1309,12 @@ private fun OrderDetailDialog(
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (editable) TextButton(onClick = { onEdit(order.optLong("id")); onClose() }) { Text("编辑") }
+                if (isAdmin && order.optString("status") != "archived" && onArchive != null) {
+                    TextButton(onClick = { onArchive(order.optLong("id")); onClose() }) { Text("归档") }
+                }
+                if (isAdmin && order.optString("status") != "archived" && onDelete != null) {
+                    TextButton(onClick = { onDelete(order.optLong("id")); onClose() }) { Text("删除") }
+                }
                 TextButton(onClick = onClose) { Text("关闭") }
             }
         },
@@ -1386,7 +1409,24 @@ private fun OrdersScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit,
     }
 
     detail?.let { o ->
-        OrderDetailDialog(order = o, isAdmin = api.isAdmin, onClose = { detail = null }, onEdit = onEdit)
+        OrderDetailDialog(
+            order = o,
+            isAdmin = api.isAdmin,
+            onClose = { detail = null },
+            onEdit = onEdit,
+            onArchive = { id ->
+                scope.launch {
+                    try { withContext(Dispatchers.IO) { api.archiveOrder(id) }; orders = orders.map { if (it.optLong("id") == id) JSONObject(it.toString()).put("status", "archived") else it } }
+                    catch (e: Exception) { error = e.message }
+                }
+            },
+            onDelete = { id ->
+                scope.launch {
+                    try { withContext(Dispatchers.IO) { api.deleteOrder(id) }; orders = orders.filterNot { it.optLong("id") == id } }
+                    catch (e: Exception) { error = e.message }
+                }
+            },
+        )
     }
 }
 
@@ -1603,7 +1643,7 @@ private fun SettingsScreen(api: CzxsApi, onMenu: () -> Unit, onBack: () -> Unit,
 
     AppScaffold("设置", onMenu = onMenu) { inner ->
         Column(
-            Modifier.fillMaxSize().padding(inner).padding(PagePadding),
+            Modifier.fillMaxSize().padding(inner).padding(PagePadding).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             SectionLabel("账号")

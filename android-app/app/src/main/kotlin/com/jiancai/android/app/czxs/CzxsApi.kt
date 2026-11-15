@@ -184,6 +184,10 @@ class CzxsApi(private val prefs: SharedPreferences) {
     }
 
     /** 把备注写入已有单据（不再生成独立备注单）。 */
+    fun archiveOrder(orderId: Long) = request("POST", "/api/orders/$orderId/archive", JSONObject())
+
+    fun deleteOrder(orderId: Long) = request("DELETE", "/api/orders/$orderId")
+
     fun setRemark(orderId: Long, remark: String): JSONObject =
         request("POST", "/api/orders/$orderId/remark", JSONObject().put("remark", remark)).getJSONObject("data")
 
