@@ -1540,6 +1540,10 @@ func (a *App) backupExportTo(w http.ResponseWriter, r *http.Request, acc int64) 
 		fail(w, 400, "KIND", "kind 必须是 model 或 docs")
 		return
 	}
+	if !strings.HasPrefix(in.Dir, "/vol") && !strings.HasPrefix(in.Dir, "/share") {
+		fail(w, 400, "DIR", "仅允许写入 /vol 或 /share 下的目录")
+		return
+	}
 	st, err := os.Stat(in.Dir)
 	if err != nil || !st.IsDir() {
 		fail(w, 400, "DIR", "目录不存在或不可访问")
@@ -1569,6 +1573,10 @@ func (a *App) backupImportPath(w http.ResponseWriter, r *http.Request, acc int64
 	target, required, _, valid := a.backupTarget(in.Kind)
 	if !valid {
 		fail(w, 400, "KIND", "kind 必须是 model 或 docs")
+		return
+	}
+	if !strings.HasPrefix(in.Path, "/vol") && !strings.HasPrefix(in.Path, "/share") {
+		fail(w, 400, "PATH", "仅允许导入 /vol 或 /share 下的文件")
 		return
 	}
 	check, err := sql.Open("sqlite", in.Path)
