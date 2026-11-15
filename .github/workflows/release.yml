@@ -139,6 +139,7 @@ jobs:
 
       - name: Build release notes
         run: |
+          export LANG=C.UTF-8 LC_ALL=C.UTF-8
           git fetch --tags --force
           prev="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
           ver="${{ needs.prepare.outputs.version }}"
