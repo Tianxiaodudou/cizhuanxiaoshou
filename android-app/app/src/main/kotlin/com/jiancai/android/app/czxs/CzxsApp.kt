@@ -651,17 +651,8 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Box(Modifier.weight(1.5f)) {
-                                OutlinedTextField(
-                                    value = line.batchTag,
-                                    onValueChange = { lines[index] = line.copy(batchTag = it); refreshPrice(index) },
-                                    placeholder = { Text(if (isReturn) "可退批次" else "批号", style = MaterialTheme.typography.bodySmall) },
-                                    singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodySmall,
-                                )
-                            }
                             UnitPicker(line.units, line.unit) { u -> lines[index] = line.copy(unit = u) }
-                            Box(Modifier.weight(0.9f)) {
+                            Box(Modifier.weight(1f)) {
                                 OutlinedTextField(
                                     value = line.quantity,
                                     onValueChange = { lines[index] = line.copy(quantity = it) },
@@ -673,7 +664,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                                     ),
                                 )
                             }
-                            Box(Modifier.weight(1.1f)) {
+                            Box(Modifier.weight(1.2f)) {
                                 if (hiddenStaff) {
                                     Text("***", Modifier.padding(6.dp))
                                 } else {

@@ -361,14 +361,13 @@ function OrderModal({ type, onClose, onDone }) {
           </>
         )}
         <table>
-          <thead><tr><th>序号</th><th>商品</th><th>批号</th><th>单位</th><th>数量</th><th>单价</th><th>操作</th></tr></thead>
+          <thead><tr><th>序号</th><th>商品</th><th>单位</th><th>数量</th><th>单价</th><th>操作</th></tr></thead>
           <tbody>{lines.map((l, i) => (
             <tr key={i}>
               <td>{i + 1}</td>
               <td><button type="button" className="secondary" onClick={() => setPicker(i)}>
                 {l.category_id ? (() => { const c = cats.find((x) => x.id === l.category_id); return c ? `${c.group} ${c.name} ${c.batch}` : '已选' })() : '选择商品'}
               </button></td>
-              <td><input value={l.batch_tag} onChange={(e) => { setLine(i, { batch_tag: e.target.value }); loadPrice(i, l.category_id, e.target.value, '') }} /></td>
               <td><select value={l.input_unit} onChange={(e) => setLine(i, { input_unit: e.target.value })}>
                 {(l.units.length ? l.units : ['']).map((u) => <option key={u} value={u}>{u}</option>)}
               </select></td>
