@@ -32,6 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -1697,7 +1699,10 @@ private fun SettingsScreen(api: CzxsApi, onMenu: () -> Unit, onBack: () -> Unit,
                         scope.launch {
                             try {
                                 val bytes = withContext(Dispatchers.IO) { api.exportDatabase(pendingKind) }
-                                withContext(Dispatchers.IO) { ctx.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }
+                                withContext(Dispatchers.IO) {
+                                    val out = ctx.contentResolver.openOutputStream(uri) ?: throw IllegalStateException("无法写入所选文件")
+                                    out.use { it.write(bytes); it.flush() }
+                                }
                                 message = "已导出 ${bytes.size} 字节"
                             } catch (e: Exception) { message = "导出失败：${e.message}" }
                         }
@@ -1778,7 +1783,18 @@ private fun PresetSection(
     var draft by remember { mutableStateOf("") }
     fun commit(list: List<String>) = onSave(key, list.joinToString(","))
 
-    SectionLabel(label)
+    var expanded by remember { mutableStateOf(false) }
+    OutlinedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(
+            Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Text(label, fontWeight = FontWeight.SemiBold)
+            Text(if (expanded) "收起 ▴" else "展开 ▾", style = MaterialTheme.typography.bodySmall)
+        }
+        if (expanded) {
+            Column(Modifier.padding(horizontal = 12.dp).padding(bottom = 10.dp)) {
     if (items.isEmpty()) Text("未设置", style = MaterialTheme.typography.bodySmall)
     items.forEachIndexed { index, item ->
         Row(
@@ -1817,6 +1833,8 @@ private fun PresetSection(
                     draft = ""
                 }
             }) { Text("添加") }
+        }
+            }
         }
     }
 }

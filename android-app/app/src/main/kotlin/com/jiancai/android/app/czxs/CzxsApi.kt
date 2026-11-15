@@ -210,7 +210,11 @@ class CzxsApi(private val prefs: SharedPreferences) {
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             val bytes = stream?.readBytes() ?: ByteArray(0)
-            if (code !in 200..299) throw ApiException("HTTP_$code", "导出失败")
+            if (code !in 200..299) {
+                val msg = runCatching { String(bytes, Charsets.UTF_8) }.getOrDefault("")
+                throw ApiException("HTTP_$code", "导出失败 HTTP $code $msg")
+            }
+            if (bytes.size < 100) throw ApiException("EMPTY", "服务端返回内容为空（${bytes.size} 字节）")
             return bytes
         } finally {
             conn.disconnect()
