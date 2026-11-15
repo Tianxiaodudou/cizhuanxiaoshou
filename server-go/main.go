@@ -187,7 +187,7 @@ func migrateLegacy(db, mdb, adb *sql.DB, data string) {
 		var v string
 		_ = old.QueryRow(`SELECT v FROM settings WHERE k=?`, k).Scan(&v)
 		if v != "" {
-			_, _ = mdb.Exec(`UPDATE settings SET v=? WHERE k=?`, v, k)
+			_, _ = mdb.Exec(`INSERT INTO settings(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, k, v)
 		}
 	}
 	if rows, err := old.Query(`SELECT username,name,password_hash,role,status,created_at FROM accounts`); err == nil && rows != nil {
