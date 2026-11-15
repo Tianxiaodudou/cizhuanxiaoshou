@@ -116,6 +116,10 @@ jobs:
     needs: [prepare, fpk, apk]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           name: czxs-fpk
@@ -133,10 +137,30 @@ jobs:
           done
           ls -l dist
 
+      - name: Build release notes
+        run: |
+          git fetch --tags --force
+          prev="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+          ver="${{ needs.prepare.outputs.version }}"
+          {
+            echo "## v${ver} 更新日志"
+            echo ""
+            if [ -n "$prev" ]; then
+              git log "${prev}..HEAD" --no-merges --pretty='- %s'
+            else
+              git log -20 --no-merges --pretty='- %s'
+            fi
+            echo ""
+            echo "### 安装包"
+            echo "- 服务端：czxs_${ver}_x86_64.fpk"
+            echo "- 客户端：czxs-client-${ver}.apk"
+          } > notes.md
+          cat notes.md
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.prepare.outputs.version }}
           name: v${{ needs.prepare.outputs.version }}
-          body: 服务端 FPK + Android 客户端 APK
+          body_path: notes.md
           files: dist/*

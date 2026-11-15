@@ -1008,23 +1008,6 @@ function Settings() {
                   }
                 } catch (e) { setMsg('导入失败：' + e.message) }
               }}>导入</button>
-              <label className="secondary" title="未检测到飞牛文件选择器时使用浏览器选择" style={{ display: 'inline-block', padding: '6px 10px', borderRadius: 999, background: '#f3efe9', cursor: 'pointer', fontSize: 12 }}>
-                浏览器选择
-                <input type="file" accept=".sq3,application/octet-stream" style={{ display: 'none' }} onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  try {
-                    const tk = localStorage.getItem('czxs_token') || ''
-                    const fd = new FormData()
-                    fd.append('file', file)
-                    const res = await fetch('/app/czxs/api/backup/import?kind=' + kind, { method: 'POST', headers: { Authorization: 'Bearer ' + tk }, body: fd })
-                    const body = await res.text()
-                    if (!res.ok) throw new Error(body || '导入失败')
-                    setMsg(label + '导入成功，请重启应用生效')
-                  } catch (err) { setMsg(err.message) }
-                  e.target.value = ''
-                }} />
-              </label>
               <span className="muted">{label}导入不含账号数据</span>
             </div>
           ))}
