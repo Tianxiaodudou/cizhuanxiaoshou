@@ -27,7 +27,18 @@ android {
     }
 
     signingConfigs {
-        // 本机 sandbox 不允许写 ~/.android；仓库内 keystore 存在时用它，CI 上没有该文件则回退 AGP 默认。
+        // 固定发布签名：CI 通过环境变量注入 keystore（GitHub Secrets），本机不保存密钥。
+        val relStore = System.getenv("CZXS_KEYSTORE")
+        if (!relStore.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(relStore)
+                storeType = "PKCS12"
+                storePassword = System.getenv("CZXS_STORE_PASSWORD")
+                keyAlias = System.getenv("CZXS_KEY_ALIAS")
+                keyPassword = System.getenv("CZXS_KEY_PASSWORD")
+            }
+        }
+        // 本机 sandbox 不允许写 ~/.android；仓库内 debug keystore 存在时用它。
         if (localKeystore.exists()) {
             create("localDebug") {
                 storeFile = localKeystore
@@ -41,6 +52,8 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            val relStore = System.getenv("CZXS_KEYSTORE")
+            if (!relStore.isNullOrBlank()) signingConfig = signingConfigs.getByName("release")
         }
         debug {
             if (localKeystore.exists()) signingConfig = signingConfigs.getByName("localDebug")
