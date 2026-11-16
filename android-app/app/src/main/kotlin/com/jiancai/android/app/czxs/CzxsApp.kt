@@ -611,8 +611,8 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
     PageScaffold(title = if (editing) "修改 $orderNo" else typeLabel(type), onBack = onBack) { modifier ->
         Column(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionLabel("客户")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppTextField("电话 / 姓名 / 地址", phone, { phone = it }, modifier = Modifier.weight(1f))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                CompactInput(phone, { phone = it }, "电话 / 姓名 / 地址", Modifier.weight(1f), readOnly = editing)
                 OutlinedButton(onClick = ::lookupCustomer, enabled = !editing) { Text("查客户") }
             }
             matches.forEach { c ->
@@ -620,13 +620,13 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                     Text("${c.optString("name")} / ${c.optString("phone")} / ${c.optString("addr").ifBlank { "无地址" }}")
                 }
             }
-            AppTextField("客户地址", address, { address = it })
-            AppTextField(
-                "客户姓名",
+            CompactInput(address, { address = it }, "客户地址", readOnly = editing)
+            CompactInput(
                 name,
                 { name = it },
+                "客户姓名",
                 readOnly = nameLocked,
-                supporting = if (nameLocked) "老客户，姓名不可改" else "新客户，提交时创建",
+                readOnlyHint = if (nameLocked) "老客户，姓名不可改" else "新客户，提交时创建",
             )
 
             SectionLabel("明细")
@@ -948,6 +948,46 @@ private fun CategoryPicker(
             title = { Text("确认选择") },
             text = { Text("是否确认选择「$title」？") },
         )
+    }
+}
+
+@Composable
+private fun CompactInput(
+    value: String,
+    onChange: (String) -> Unit,
+    hint: String,
+    modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
+    readOnlyHint: String = "",
+) {
+    Column(modifier) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(50))
+                .padding(horizontal = 12.dp),
+            contentAlignment = androidx.compose.ui.Alignment.CenterStart,
+        ) {
+            androidx.compose.foundation.text.BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                singleLine = true,
+                readOnly = readOnly,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                modifier = Modifier.fillMaxWidth(),
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
+                    }
+                    inner()
+                },
+            )
+        }
+        if (readOnlyHint.isNotBlank()) {
+            Text(readOnlyHint, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        }
     }
 }
 
