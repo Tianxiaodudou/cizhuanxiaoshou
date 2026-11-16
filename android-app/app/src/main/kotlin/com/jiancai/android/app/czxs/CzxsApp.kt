@@ -480,6 +480,55 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var submitted by remember { mutableStateOf<JSONObject?>(null) }
+    var media by remember { mutableStateOf(listOf<JSONObject>()) }
+    var pendingMedia by remember { mutableStateOf(listOf<Triple<String, String, ByteArray>>()) }
+    var viewing by remember { mutableStateOf<JSONObject?>(null) }
+    var uploading by remember { mutableStateOf(false) }
+
+    fun reloadMedia(oid: Long) {
+        if (oid <= 0) return
+        scope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) { api.orderMedia(oid) }.let { arr ->
+                    (0 until arr.length()).map { i ->
+                        val m = arr.getJSONObject(i)
+                        JSONObject(m.toString()).put("url", api.mediaUrl(m.optLong("id")))
+                    }
+                }
+            }.onSuccess { media = it }.onFailure { error = it.message }
+        }
+    }
+
+    LaunchedEffect(orderId) { orderId?.let { reloadMedia(it) } }
+
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            uploading = true
+            scope.launch {
+                try {
+                    val files = withContext(Dispatchers.IO) {
+                        uris.mapNotNull { uri ->
+                            val mime = ctx.contentResolver.getType(uri) ?: "application/octet-stream"
+                            val name = queryDisplayName(ctx, uri) ?: ("media-" + System.currentTimeMillis())
+                            val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                            if (bytes == null || bytes.size > 200 * 1024 * 1024) null else Triple(name, mime, bytes)
+                        }
+                    }
+                    if (orderId != null) {
+                        withContext(Dispatchers.IO) { files.forEach { (n, m, b) -> api.uploadMedia(orderId, n, m, b) } }
+                        reloadMedia(orderId)
+                    } else {
+                        pendingMedia = pendingMedia + files
+                    }
+                } catch (e: Exception) {
+                    error = e.message
+                } finally {
+                    uploading = false
+                }
+            }
+        }
+    }
     var version by remember { mutableStateOf(1) }
     var orderNo by remember { mutableStateOf("") }
     var matches by remember { mutableStateOf(listOf<JSONObject>()) }
