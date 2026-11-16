@@ -261,6 +261,7 @@ func migrate(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS customer_prices(id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, category_id INTEGER, batch_tag TEXT DEFAULT '', unit_price TEXT, updated_at TEXT, UNIQUE(customer_id,category_id,batch_tag))`,
 		`CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY AUTOINCREMENT, order_no TEXT UNIQUE, type TEXT, customer_id INTEGER, account_id INTEGER, status TEXT DEFAULT 'submitted', remark TEXT, order_total TEXT, version INTEGER DEFAULT 1, created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS order_items(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, line_no INTEGER, category_id INTEGER, batch_tag TEXT, input_unit TEXT, input_quantity TEXT, settlement_unit TEXT, settlement_quantity TEXT, unit_price TEXT, line_total TEXT)`,
+		`CREATE TABLE IF NOT EXISTS order_media(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, order_no TEXT, path TEXT, kind TEXT, created_at TEXT, account_id INTEGER)`,
 		`CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY AUTOINCREMENT, note_no TEXT UNIQUE, ref_order_no TEXT, customer_id INTEGER, account_id INTEGER, status TEXT DEFAULT 'active', remark TEXT DEFAULT '', created_at TEXT)`,
 		`CREATE TABLE IF NOT EXISTS note_items(id INTEGER PRIMARY KEY AUTOINCREMENT, note_id INTEGER, category_id INTEGER, batch_tag TEXT, diff_type TEXT, diff_quantity TEXT, remark TEXT)`,
 		`CREATE TABLE IF NOT EXISTS print_jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, doc_no TEXT, doc_type TEXT, status TEXT DEFAULT 'pending', error TEXT, created_at TEXT, printed_at TEXT)`,
@@ -509,12 +510,26 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		ok(w, map[string]any{"userid": r.Header.Get("X-Trim-Userid"), "isadmin": r.Header.Get("X-Trim-Isadmin"), "name": r.Header.Get("X-Trim-Username")})
 		return
 	}
+	// /media/ 允许用 ?token= 鉴权（图片/视频标签无法自定义 Header）
+	if strings.HasPrefix(p, "/media/") && r.Header.Get("Authorization") == "" {
+		if tk := r.URL.Query().Get("token"); tk != "" {
+			r.Header.Set("Authorization", "Bearer "+tk)
+		}
+	}
 	id, authed := a.auth(r)
 	if !authed {
 		fail(w, 401, "UNAUTHORIZED", "未登录")
 		return
 	}
 	switch {
+	case strings.HasPrefix(p, "/orders/") && strings.HasSuffix(p, "/media") && r.Method == "GET":
+		a.listOrderMedia(w, r)
+	case strings.HasPrefix(p, "/orders/") && strings.HasSuffix(p, "/media") && r.Method == "POST":
+		a.uploadOrderMedia(w, r, id)
+	case strings.HasPrefix(p, "/media/") && r.Method == "GET":
+		a.serveMedia(w, r)
+	case strings.HasPrefix(p, "/media/") && r.Method == "DELETE":
+		a.deleteMedia(w, r)
 	case p == "/me" && r.Method == "GET":
 		var n, role string
 		_ = a.adb.QueryRow(`SELECT name,role FROM accounts WHERE id=?`, id).Scan(&n, &role)
@@ -1932,4 +1947,200 @@ func (a *App) settingInt(key string) int {
 	_ = a.db.QueryRow(`SELECT v FROM settings WHERE k=?`, key).Scan(&v)
 	n, _ := strconv.Atoi(v)
 	return n
+}
+
+
+// ---------- 单据媒体（图片/视频）：文件存设置目录，库里只记路径 ----------
+
+func (a *App) mediaDir() string {
+	// 媒体固定存放在 FPK 应用私有目录（已具备读写权限），不接受任何目录设置。
+	return filepath.Join(a.dataDir, "media")
+}
+
+
+var mediaExts = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".heic": true,
+	".mp4": true, ".mov": true, ".m4v": true, ".webm": true}
+
+func mediaKind(ext string) string {
+	if ext == ".mp4" || ext == ".mov" || ext == ".m4v" || ext == ".webm" {
+		return "video"
+	}
+	return "image"
+}
+
+func (a *App) mediaJSON(id, orderID int64, orderNo, path, kind, createdAt string) map[string]any {
+	return map[string]any{
+		"id": id, "order_id": orderID, "order_no": orderNo, "kind": kind,
+		"url": "/api/media/" + fmt.Sprint(id), "created_at": createdAt,
+	}
+}
+
+func (a *App) listOrderMedia(w http.ResponseWriter, r *http.Request) {
+	rest := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/orders/"), "/media")
+	oid, err := strconv.ParseInt(rest, 10, 64)
+	if err != nil {
+		fail(w, 400, "BAD_ID", "单号不正确")
+		return
+	}
+	rows, err := a.db.Query(`SELECT id, order_id, order_no, path, kind, created_at FROM order_media WHERE order_id=? ORDER BY id`, oid)
+	if err != nil {
+		fail(w, 500, "DB", err.Error())
+		return
+	}
+	defer rows.Close()
+	list := []map[string]any{}
+	for rows.Next() {
+		var id, orderID int64
+		var orderNo, path, kind, created string
+		if rows.Scan(&id, &orderID, &orderNo, &path, &kind, &created) == nil {
+			list = append(list, a.mediaJSON(id, orderID, orderNo, path, kind, created))
+		}
+	}
+	ok(w, list)
+}
+
+func (a *App) uploadOrderMedia(w http.ResponseWriter, r *http.Request, acc int64) {
+	dir := a.mediaDir()
+	if dir == "" {
+		fail(w, 400, "MEDIA_DIR", "未设置媒体目录，请管理员在设置中选择授权目录")
+		return
+	}
+	oid, err := strconv.ParseInt(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/orders/"), "/media"), 10, 64)
+	if err != nil {
+		fail(w, 400, "BAD_ID", "单号不正确")
+		return
+	}
+	var orderNo string
+	if err := a.db.QueryRow(`SELECT order_no FROM orders WHERE id=?`, oid).Scan(&orderNo); err != nil {
+		fail(w, 404, "NOT_FOUND", "单据不存在")
+		return
+	}
+	if err := r.ParseMultipartForm(64 << 20); err != nil {
+		fail(w, 400, "FORM", "上传内容不合法")
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		fail(w, 400, "FILE", "缺少文件")
+		return
+	}
+	defer file.Close()
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if !mediaExts[ext] {
+		fail(w, 400, "EXT", "仅支持图片或视频文件")
+		return
+	}
+	if err := os.MkdirAll(dir, 0o775); err != nil {
+		fail(w, 500, "DIR", "创建目录失败："+err.Error())
+		return
+	}
+	seq := 1
+	_ = a.db.QueryRow(`SELECT COUNT(*)+1 FROM order_media WHERE order_id=?`, oid).Scan(&seq)
+	stamp := time.Now().Format("20060102150405")
+	name := fmt.Sprintf("%s-%d-%s%s", orderNo, seq, stamp, ext)
+	full := filepath.Join(dir, name)
+	for i := 0; i < 50; i++ {
+		if _, statErr := os.Stat(full); statErr != nil {
+			break
+		}
+		seq++
+		name = fmt.Sprintf("%s-%d-%s%s", orderNo, seq, stamp, ext)
+		full = filepath.Join(dir, name)
+	}
+	dst, err := os.Create(full)
+	if err != nil {
+		fail(w, 500, "SAVE", "保存失败："+err.Error())
+		return
+	}
+	if _, err := io.Copy(dst, file); err != nil {
+		_ = dst.Close()
+		_ = os.Remove(full)
+		fail(w, 500, "SAVE", "写入失败："+err.Error())
+		return
+	}
+	_ = dst.Close()
+	kind := mediaKind(ext)
+	created := time.Now().Format(time.RFC3339)
+	res, err := a.db.Exec(`INSERT INTO order_media(order_id,order_no,path,kind,created_at,account_id) VALUES(?,?,?,?,?,?)`,
+		oid, orderNo, full, kind, created, acc)
+	if err != nil {
+		fail(w, 500, "DB", err.Error())
+		return
+	}
+	id, _ := res.LastInsertId()
+	ok(w, a.mediaJSON(id, oid, orderNo, full, kind, created))
+}
+
+func (a *App) serveMedia(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(strings.TrimPrefix(r.URL.Path, "/api/media/"), 10, 64)
+	if err != nil {
+		fail(w, 400, "BAD_ID", "文件编号不正确")
+		return
+	}
+	var path, kind string
+	if err := a.db.QueryRow(`SELECT path, kind FROM order_media WHERE id=?`, id).Scan(&path, &kind); err != nil {
+		fail(w, 404, "NOT_FOUND", "文件不存在")
+		return
+	}
+	dir := a.mediaDir()
+	if dir == "" || !insideDir(path, dir) {
+		fail(w, 403, "FORBIDDEN", "文件不在授权目录内")
+		return
+	}
+	if _, err := os.Stat(path); err != nil {
+		fail(w, 404, "NOT_FOUND", "文件已丢失")
+		return
+	}
+	if kind == "video" {
+		w.Header().Set("Content-Type", "video/mp4")
+	} else {
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".png":
+			w.Header().Set("Content-Type", "image/png")
+		case ".webp":
+			w.Header().Set("Content-Type", "image/webp")
+		case ".heic":
+			w.Header().Set("Content-Type", "image/heic")
+		default:
+			w.Header().Set("Content-Type", "image/jpeg")
+		}
+	}
+	w.Header().Set("Content-Disposition", "inline")
+	http.ServeFile(w, r, path)
+}
+
+func (a *App) deleteMedia(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(strings.TrimPrefix(r.URL.Path, "/api/media/"), 10, 64)
+	if err != nil {
+		fail(w, 400, "BAD_ID", "文件编号不正确")
+		return
+	}
+	var path string
+	if err := a.db.QueryRow(`SELECT path FROM order_media WHERE id=?`, id).Scan(&path); err != nil {
+		fail(w, 404, "NOT_FOUND", "文件不存在")
+		return
+	}
+	dir := a.mediaDir()
+	if dir == "" || !insideDir(path, dir) {
+		fail(w, 403, "FORBIDDEN", "文件不在授权目录内")
+		return
+	}
+	_ = os.Remove(path)
+	_, _ = a.db.Exec(`DELETE FROM order_media WHERE id=?`, id)
+	ok(w, map[string]any{"deleted": true})
+}
+
+func randHex(n int) string {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprint(time.Now().UnixNano())
+	}
+	return hex.EncodeToString(b)
+}
+
+// insideDir 判断 path 是否位于 dir 之内（跨平台分隔符安全）。
+func insideDir(path, dir string) bool {
+	cp := filepath.Clean(path)
+	cd := filepath.Clean(dir) + string(os.PathSeparator)
+	return strings.HasPrefix(cp, cd)
 }

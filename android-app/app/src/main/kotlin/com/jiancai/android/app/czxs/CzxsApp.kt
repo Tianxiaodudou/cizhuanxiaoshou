@@ -64,6 +64,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -800,6 +805,21 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
 
             SectionLabel("备注")
             AppTextField("备注", remark, { remark = it })
+            SectionLabel("图片 / 视频")
+            MediaStrip(
+                items = media,
+                uploading = uploading,
+                onAdd = { pickMedia.launch("*/*") },
+                onOpen = { viewing = it },
+                onDelete = if (orderId != null) { m ->
+                    scope.launch {
+                        try {
+                            withContext(Dispatchers.IO) { api.deleteMedia(m.optLong("id")) }
+                            reloadMedia(orderId)
+                        } catch (e: Exception) { error = e.message }
+                    }
+                } else null,
+            )
 
             error?.let { ErrorText(it) }
             submitted?.let { order ->
@@ -812,6 +832,9 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                         Text("打印状态：待打印（服务端队列）", style = MaterialTheme.typography.bodySmall)
                     }
                 }
+            }
+            viewing?.let { m ->
+                MediaViewerDialog(url = m.optString("url"), kind = m.optString("kind")) { viewing = null }
             }
             if (loading) LoadingRow("提交中…")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -835,6 +858,14 @@ private fun TableHead(text: String, width: Int) {
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
     )
+}
+
+private fun queryDisplayName(ctx: android.content.Context, uri: android.net.Uri): String? {
+    return runCatching {
+        ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+            if (c.moveToFirst()) c.getString(0) else null
+        }
+    }.getOrNull()
 }
 
 private fun unitsOf(cat: JSONObject?): List<Pair<String, Double>> {
@@ -1031,6 +1062,92 @@ private fun CompactInput(
         }
         if (readOnlyHint.isNotBlank()) {
             Text(readOnlyHint, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        }
+    }
+}
+
+
+@Composable
+private fun MediaStrip(
+    items: List<JSONObject>,
+    uploading: Boolean,
+    onAdd: () -> Unit,
+    onOpen: (JSONObject) -> Unit,
+    onDelete: ((JSONObject) -> Unit)? = null,
+) {
+    val scope = rememberCoroutineScope()
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items.forEach { m ->
+            val id = m.optLong("id")
+            val kind = m.optString("kind")
+            Box(Modifier.size(72.dp)) {
+                coil.compose.AsyncImage(
+                    model = m.optString("url"),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onOpen(m) },
+                )
+                if (kind == "video") {
+                    Box(Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.28f)), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Text("▶", color = androidx.compose.ui.graphics.Color.White, fontSize = 22.sp)
+                    }
+                }
+                if (onDelete != null) {
+                    Box(
+                        Modifier.align(androidx.compose.ui.Alignment.TopEnd).size(20.dp)
+                            .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f), androidx.compose.foundation.shape.CircleShape)
+                            .clickable { onDelete(m) },
+                        contentAlignment = androidx.compose.ui.Alignment.Center,
+                    ) { Text("×", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall) }
+                }
+                if (kind == "image") Unit
+            }
+        }
+        Box(
+            Modifier.size(72.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                .clickable(onClick = onAdd),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { Text(if (uploading) "上传中…" else "+", style = MaterialTheme.typography.bodySmall) }
+    }
+    if (onDelete != null) {
+        Text("点击缩略图预览，长按无效；点 × 删除", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+    }
+}
+
+@Composable
+private fun MediaViewerDialog(url: String, kind: String, onClose: () -> Unit) {
+    Dialog(onDismissRequest = onClose) {
+        Column(
+            Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Color.Black, androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).padding(8.dp),
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+        ) {
+            if (kind == "video") {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val player = remember {
+                    androidx.media3.exoplayer.ExoPlayer.Builder(ctx).build().apply {
+                        setMediaItem(androidx.media3.common.MediaItem.fromUri(url))
+                        prepare()
+                        playWhenReady = true
+                    }
+                }
+                androidx.compose.runtime.DisposableEffect(Unit) { onDispose { player.release() } }
+                AndroidView(
+                    factory = { c -> androidx.media3.ui.PlayerView(c).apply { this.player = player } },
+                    modifier = Modifier.fillMaxWidth().height(260.dp),
+                )
+            } else {
+                coil.compose.AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp),
+                )
+            }
+            Text("关闭", color = androidx.compose.ui.graphics.Color.White, modifier = Modifier.clickable(onClick = onClose).padding(10.dp))
         }
     }
 }

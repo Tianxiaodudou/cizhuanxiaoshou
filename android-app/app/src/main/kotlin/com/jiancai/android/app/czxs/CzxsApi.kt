@@ -67,6 +67,41 @@ class CzxsApi(private val prefs: SharedPreferences) {
 
     fun categories(): JSONArray = request("GET", "/api/categories").getJSONArray("data")
 
+    fun orderMedia(orderId: Long): JSONArray = request("GET", "/api/orders/$orderId/media").getJSONArray("data")
+
+    fun deleteMedia(id: Long) { request("DELETE", "/api/media/$id") }
+
+    /** 媒体绝对地址（带 token 查询参数，供图片/视频控件直接加载）。 */
+    fun mediaUrl(id: Long): String = apiRoot() + "/api/media/" + id + "?token=" + (token ?: "")
+
+    /** multipart 上传单个媒体文件。 */
+    fun uploadMedia(orderId: Long, fileName: String, mime: String, bytes: ByteArray) {
+        val boundary = "czxs" + UUID.randomUUID().toString().replace("-", "")
+        val out = java.io.ByteArrayOutputStream()
+        out.write(("--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\nContent-Type: $mime\r\n\r\n").toByteArray())
+        out.write(bytes)
+        out.write(("\r\n--$boundary--\r\n").toByteArray())
+        val url = URL(apiRoot() + "/api/orders/$orderId/media")
+        val conn = url.openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 10000
+            conn.readTimeout = 120000
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            conn.setRequestProperty("Accept", "application/json")
+            token?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
+            conn.outputStream.use { it.write(out.toByteArray()) }
+            val code = conn.responseCode
+            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)
+                ?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
+            if (code !in 200..299) {
+                val json = runCatching { JSONObject(text) }.getOrNull()
+                throw ApiException(json?.optString("code") ?: "HTTP_$code", json?.optString("message") ?: "上传失败")
+            }
+        } finally { conn.disconnect() }
+    }
+
     fun createCategory(body: JSONObject) = request("POST", "/api/categories", body)
 
     fun updateCategory(id: Long, body: JSONObject) = request("PUT", "/api/categories/$id", body)
