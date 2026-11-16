@@ -1767,6 +1767,7 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
     var unitsC by remember { mutableStateOf(emptyList<String>()) }
     var toggleReq by remember { mutableStateOf<Pair<JSONObject, Boolean>?>(null) }
     var deleteReq by remember { mutableStateOf<JSONObject?>(null) }
+    var dupMsg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     fun reload() {
@@ -1857,6 +1858,15 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
         }
     }
 
+    dupMsg?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { dupMsg = null },
+            confirmButton = { TextButton(onClick = { dupMsg = null }) { Text("确定") } },
+            title = { Text("重复商品") },
+            text = { Text(msg) },
+        )
+    }
+
     toggleReq?.let { (cat, active) ->
         AlertDialog(
             onDismissRequest = { toggleReq = null },
@@ -1909,15 +1919,31 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
             conversionUnits = unitsC,
             onDismiss = { showEditor = false },
             onSave = { body ->
-                scope.launch {
-                    try {
-                        withContext(Dispatchers.IO) {
-                            val id = editTarget?.optLong("id") ?: 0L
-                            if (id > 0) api.updateCategory(id, body) else api.createCategory(body)
+                val g = body.optString("group")
+                val n = body.optString("name")
+                val b = body.optString("batch")
+                val dup = list.firstOrNull {
+                    it.optLong("id") != (editTarget?.optLong("id") ?: 0L) &&
+                        it.optString("group") == g && it.optString("name") == n && it.optString("batch") == b
+                }
+                if (dup != null) {
+                    dupMsg = "该商品已有，无需重复：" + "$g · $n · $b"
+                } else {
+                    scope.launch {
+                        try {
+                            withContext(Dispatchers.IO) {
+                                val id = editTarget?.optLong("id") ?: 0L
+                                if (id > 0) api.updateCategory(id, body) else api.createCategory(body)
+                            }
+                            showEditor = false
+                            reload()
+                        } catch (e: Exception) {
+                            val m = e.message ?: ""
+                            if (m.contains("已存在") || m.contains("重复") || m.contains("DUPLICATE")) {
+                                dupMsg = "该商品已有，无需重复：" + "$g · $n · $b"
+                            } else error = m
                         }
-                        showEditor = false
-                        reload()
-                    } catch (e: Exception) { error = e.message }
+                    }
                 }
             },
         )
