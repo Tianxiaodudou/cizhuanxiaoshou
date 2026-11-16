@@ -24,6 +24,7 @@ android {
     defaultConfig {
         applicationId = "com.jiancai.android.app"
         minSdk = 26
+        multiDexEnabled = true
         targetSdk = 34
         versionName = appVersion
         versionCode = appVersionCode
