@@ -85,6 +85,7 @@ func main() {
 	backfillItemNames(db, mdb)
 	a := &App{db: db, mdb: mdb, adb: adb, dataDir: data, prefix: prefix, tokens: map[string]int64{}}
 
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/", a.api)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { ok(w, map[string]any{"app": "czxs", "version": "2.0.0"}) })
@@ -96,6 +97,23 @@ func main() {
 	mux.Handle("/admin", spa)
 	mux.Handle("/", spa)
 	h := withPrefix(prefix, mux)
+	entry := a.securityEntry()
+	apiOnly := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		want := "/" + entry + "/app/czxs/api/"
+		if !strings.HasPrefix(r.URL.Path, want) {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"ok":false,"error":{"code":"NOT_FOUND","message":"请通过飞牛网关，或使用 /` + entry + `/ 安全入口访问接口"}}`))
+			return
+		}
+		r2 := new(http.Request)
+		*r2 = *r
+		u := *r.URL
+		u.Path = strings.TrimPrefix(r.URL.Path, "/"+entry)
+		u.RawPath = ""
+		r2.URL = &u
+		h.ServeHTTP(w, r2)
+	})
 
 	_ = os.Remove(sock)
 	ln, err := net.Listen("unix", sock)
@@ -105,7 +123,7 @@ func main() {
 	go func() { log.Printf("gateway %s prefix %s", sock, prefix); if err := http.Serve(ln, h); err != nil { log.Printf("gateway serve stopped: %v", err) } }()
 	go func() {
 		log.Printf("api :%d", port)
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", port), h); err != nil {
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", port), apiOnly); err != nil {
 			log.Printf("api listen failed on :%d (%v)，管理端仍可用，请检查端口占用", port, err)
 		}
 	}()
@@ -370,6 +388,22 @@ func fail(w http.ResponseWriter, code int, c, m string) {
 }
 func f2(v float64) string { return strconv.FormatFloat(v+0.0000001, 'f', 2, 64) }
 func bd(s string) float64 { v, _ := strconv.ParseFloat(strings.TrimSpace(s), 64); return v }
+
+// securityEntry 返回客户端 TCP 访问所需的安全入口（默认 chengtian）。
+func (a *App) securityEntry() string {
+	var v string
+	_ = a.db.QueryRow(`SELECT v FROM settings WHERE k='security_entry'`).Scan(&v)
+	v = strings.Trim(strings.TrimSpace(v), "/")
+	if v == "" {
+		return "chengtian"
+	}
+	for _, r := range v {
+		if !(r == '-' || r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')) {
+			return "chengtian"
+		}
+	}
+	return v
+}
 
 func (a *App) isAdminAccount(id int64) bool {
 	var role string
