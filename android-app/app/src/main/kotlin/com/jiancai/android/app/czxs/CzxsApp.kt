@@ -248,31 +248,43 @@ private fun BottomTabs(current: Route, onSelect: (Route) -> Unit) {
 @Composable
 private fun LoginScreen(api: CzxsApi, onLoggedIn: () -> Unit) {
     val scope = rememberCoroutineScope()
-    var server by remember { mutableStateOf(api.baseUrl) }
-    var username by remember { mutableStateOf("admin") }
+    val saved = api.baseUrl
+    var https by remember { mutableStateOf(saved.startsWith("https://")) }
+    var host by remember { mutableStateOf(saved.removePrefix("https://").removePrefix("http://").substringBefore(":").substringBefore("/")) }
+    var port by remember { mutableStateOf(saved.removePrefix("https://").removePrefix("http://").substringAfter(":", "9527").substringBefore("/")) }
+    var entry by remember { mutableStateOf(api.securityEntry) }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     PageScaffold("登录") { modifier ->
-        Column(modifier.padding(PagePadding)) {
+        Column(modifier.padding(PagePadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("瓷砖店销售系统", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(16.dp))
-            AppTextField("NAS 域名（如 192.168.1.20 或 http://nas:8080）", server, { server = it })
-            AppTextField("管理员账号", username, { username = it })
-            AppTextField("密码", password, { password = it }, numeric = false)
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("HTTP", style = MaterialTheme.typography.bodySmall)
+                androidx.compose.material3.Switch(checked = https, onCheckedChange = { https = it })
+                Text("HTTPS", style = MaterialTheme.typography.bodySmall)
+            }
+            CompactInput(host, { host = it }, "IP / 域名")
+            CompactInput(port, { port = it }, "端口")
+            CompactInput(entry, { entry = it }, "安全入口")
+            CompactInput(username, { username = it }, "账号")
+            CompactInput(password, { password = it }, "密码")
             error?.let { ErrorText(it) }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(4.dp))
             Button(
                 onClick = {
                     loading = true
                     error = null
                     scope.launch {
                         try {
-                            runCatching { api.saveServer(server) }.getOrElse {
-                                throw ApiException("SERVER_INVALID", "域名格式不对：${it.message}")
+                            val scheme = if (https) "https" else "http"
+                            api.setSecurityEntry(entry)
+                            runCatching { api.saveServer("$scheme://${host.trim()}:${port.trim()}") }.getOrElse {
+                                throw ApiException("SERVER_INVALID", "地址或端口格式不对")
                             }
-                            withContext(Dispatchers.IO) { api.login(username, password) }
+                            withContext(Dispatchers.IO) { api.login(username.trim(), password) }
                             onLoggedIn()
                         } catch (e: ApiException) {
                             error = "${e.code}：${e.message}"
@@ -283,11 +295,9 @@ private fun LoginScreen(api: CzxsApi, onLoggedIn: () -> Unit) {
                         }
                     }
                 },
-                enabled = !loading,
+                enabled = !loading && host.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(if (loading) "登录中…" else "登 录") }
-            Spacer(Modifier.height(8.dp))
-            Text("服务端：${api.baseUrl}$GATEWAY_PREFIX", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
