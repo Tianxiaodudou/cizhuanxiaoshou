@@ -71,6 +71,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -1118,6 +1119,30 @@ private fun CompactInput(
 }
 
 
+
+@Composable
+private fun RemoteImage(url: String, modifier: Modifier, contentScale: ContentScale = ContentScale.Crop) {
+    var bmp by remember(url) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(url) {
+        bmp = withContext(Dispatchers.IO) {
+            runCatching {
+                java.net.URL(url).openStream().use { android.graphics.BitmapFactory.decodeStream(it) }
+            }.getOrNull()
+        }
+    }
+    val image = bmp
+    if (image != null) {
+        androidx.compose.foundation.Image(
+            bitmap = image.asImageBitmap(),
+            contentDescription = null,
+            contentScale = contentScale,
+            modifier = modifier,
+        )
+    } else {
+        Box(modifier.background(androidx.compose.ui.graphics.Color(0xFFE5E7EB)))
+    }
+}
+
 @Composable
 private fun MediaStrip(
     items: List<JSONObject>,
@@ -1135,10 +1160,8 @@ private fun MediaStrip(
             val id = m.optLong("id")
             val kind = m.optString("kind")
             Box(Modifier.size(72.dp)) {
-                coil.compose.AsyncImage(
-                    model = m.optString("url"),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                RemoteImage(
+                    url = m.optString("url"),
                     modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onOpen(m) },
                 )
                 if (kind == "video") {
@@ -1177,26 +1200,18 @@ private fun MediaViewerDialog(url: String, kind: String, onClose: () -> Unit) {
             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
         ) {
             if (kind == "video") {
-                val ctx = androidx.compose.ui.platform.LocalContext.current
-                val player = remember {
-                    androidx.media3.exoplayer.ExoPlayer.Builder(ctx).build().apply {
-                        setMediaItem(androidx.media3.common.MediaItem.fromUri(url))
-                        prepare()
-                        playWhenReady = true
-                    }
-                }
-                androidx.compose.runtime.DisposableEffect(Unit) { onDispose { player.release() } }
                 AndroidView(
-                    factory = { c -> androidx.media3.ui.PlayerView(c).apply { this.player = player } },
+                    factory = { c ->
+                        android.widget.VideoView(c).apply {
+                            setVideoURI(android.net.Uri.parse(url))
+                            setOnPreparedListener { it.isLooping = false }
+                            start()
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth().height(260.dp),
                 )
             } else {
-                coil.compose.AsyncImage(
-                    model = url,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp),
-                )
+                RemoteImage(url, Modifier.fillMaxWidth().heightIn(max = 560.dp), ContentScale.Fit)
             }
             Text("关闭", color = androidx.compose.ui.graphics.Color.White, modifier = Modifier.clickable(onClick = onClose).padding(10.dp))
         }
