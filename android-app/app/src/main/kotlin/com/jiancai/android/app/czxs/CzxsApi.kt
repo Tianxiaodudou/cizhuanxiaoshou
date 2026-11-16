@@ -26,6 +26,9 @@ class CzxsApi(private val prefs: SharedPreferences) {
 
     val token: String? get() = prefs.getString(KEY_TOKEN, null)
 
+    /** 登录态失效（401）时回调，由界面统一跳回登录页。 */
+    var onUnauthorized: (() -> Unit)? = null
+
     val securityEntry: String
         get() = prefs.getString(KEY_ENTRY, "chengtian")?.ifBlank { "chengtian" } ?: "chengtian"
 
@@ -288,6 +291,11 @@ class CzxsApi(private val prefs: SharedPreferences) {
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
             val json = if (text.isBlank()) JSONObject() else JSONObject(text)
+            if (code == 401 || json.optString("code") == "UNAUTHORIZED") {
+                prefs.edit().remove(KEY_TOKEN).remove(KEY_NAME).remove(KEY_ROLE).apply()
+                onUnauthorized?.invoke()
+                throw ApiException("UNAUTHORIZED", "登录状态已失效，请重新登录")
+            }
             if (code !in 200..299 || !json.optBoolean("ok", true)) {
                 throw ApiException(json.optString("code", "HTTP_$code"), json.optString("message", "请求失败"))
             }

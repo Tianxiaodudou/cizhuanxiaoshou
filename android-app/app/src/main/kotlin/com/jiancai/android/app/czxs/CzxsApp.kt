@@ -109,6 +109,20 @@ fun CzxsApp(api: CzxsApi) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // 登录态失效：清空页面栈，统一回登录页
+    LaunchedEffect(Unit) {
+        api.onUnauthorized = {
+            scope.launch {
+                drawerState.close()
+                stack.clear()
+                stack.add(Route.Login)
+            }
+        }
+        if (!api.token.isNullOrBlank() && stack.last() != Route.Login) {
+            runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { api.today() } }
+        }
+    }
+
     val topLevel = route == Route.Home || route == Route.Orders || route == Route.PrintJobs ||
         route == Route.Categories || route == Route.Settlement || route == Route.Settings
 

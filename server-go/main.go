@@ -39,9 +39,13 @@ type App struct {
 	adb     *sql.DB
 	dataDir string
 	prefix string
-	mu     sync.Mutex
-	tokens map[string]int64
+	mu       sync.Mutex
+	tokens   map[string]int64
+	tokenExp map[string]time.Time
 }
+
+// tokenTTL 登录态有效期（滑动续期）
+const tokenTTL = 30 * 24 * time.Hour
 
 func env(k, d string) string {
 	if v := os.Getenv(k); v != "" {
@@ -83,7 +87,7 @@ func main() {
 	seedAll(db, adb)
 	seedModel(mdb)
 	backfillItemNames(db, mdb)
-	a := &App{db: db, mdb: mdb, adb: adb, dataDir: data, prefix: prefix, tokens: map[string]int64{}}
+	a := &App{db: db, mdb: mdb, adb: adb, dataDir: data, prefix: prefix, tokens: map[string]int64{}, tokenExp: map[string]time.Time{}}
 
 
 	mux := http.NewServeMux()
@@ -417,6 +421,15 @@ func (a *App) auth(r *http.Request) (int64, bool) {
 	tok := strings.TrimPrefix(h, "Bearer ")
 	a.mu.Lock()
 	id, ok := a.tokens[tok]
+	exp := a.tokenExp[tok]
+	if ok && !exp.IsZero() && time.Now().After(exp) {
+		delete(a.tokens, tok)
+		delete(a.tokenExp, tok)
+		ok = false
+	}
+	if ok {
+		a.tokenExp[tok] = time.Now().Add(tokenTTL)
+	}
 	a.mu.Unlock()
 	if !ok {
 		return 0, false
@@ -437,6 +450,7 @@ func (a *App) revokeAccount(id int64) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for tk, uid := range a.tokens {
+		delete(a.tokenExp, tk)
 		if uid == id {
 			delete(a.tokens, tk)
 		}
@@ -729,6 +743,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	tk := hex.EncodeToString(b)
 	a.mu.Lock()
 	a.tokens[tk] = id
+	a.tokenExp[tk] = time.Now().Add(tokenTTL)
 	a.mu.Unlock()
 	var role string
 	_ = a.adb.QueryRow(`SELECT role FROM accounts WHERE id=?`, id).Scan(&role)
