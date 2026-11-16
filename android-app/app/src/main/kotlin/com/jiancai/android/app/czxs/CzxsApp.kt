@@ -120,7 +120,9 @@ fun CzxsApp(api: CzxsApi) {
         if (stack.lastOrNull() != r) stack.add(r)
     }
 
-    androidx.activity.compose.BackHandler(enabled = stack.size > 1) { goBack() }
+    androidx.activity.compose.BackHandler(enabled = drawerState.isOpen || stack.size > 1) {
+        if (drawerState.isOpen) scope.launch { drawerState.close() } else goBack()
+    }
 
     if (route == Route.Login) {
         LoginScreen(api) { stack.clear(); stack.add(Route.Home) }
@@ -133,7 +135,9 @@ fun CzxsApp(api: CzxsApi) {
         drawerState = drawerState,
         gesturesEnabled = topLevel,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                modifier = Modifier.width((androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp * 0.5f).dp),
+            ) {
                 CzxsDrawerContent(
                     api = api,
                     current = route,
