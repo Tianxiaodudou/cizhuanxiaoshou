@@ -1824,7 +1824,6 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp),
-                                itemVerticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                             ) {
                                 Capsule("计价", c.optString("settlement_unit"), tint.l1, tint.v1)
                                 ConversionCapsule(
