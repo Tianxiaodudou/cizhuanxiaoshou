@@ -155,7 +155,13 @@ fun CzxsApp(api: CzxsApi) {
                 CzxsDrawerContent(
                     api = api,
                     current = route,
-                    onNavigate = { navigate(it); scope.launch { drawerState.close() } },
+                    onNavigate = {
+                        // 抽屉切换视为“从首页进入”：重置为 首页→目标，保证返回最终停在首页且首页返回可退出
+                        stack.clear()
+                        if (it != Route.Home) stack.add(Route.Home)
+                        stack.add(it)
+                        scope.launch { drawerState.close() }
+                    },
                     onLogout = {
                         api.logout()
                         stack.clear(); stack.add(Route.Login)
