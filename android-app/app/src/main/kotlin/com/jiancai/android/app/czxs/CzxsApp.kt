@@ -661,32 +661,58 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                         ) {
                             UnitPicker(line.units, line.unit) { u -> lines[index] = line.copy(unit = u) }
                             Box(Modifier.weight(1f)) {
-                                OutlinedTextField(
-                                    value = line.quantity,
-                                    onValueChange = { lines[index] = line.copy(quantity = it) },
-                                    placeholder = { Text("数量", style = MaterialTheme.typography.bodySmall) },
-                                    singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodySmall,
-                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                                    ),
-                                )
+                                Box(
+                                    Modifier
+                                        .height(34.dp)
+                                        .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(50))
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = androidx.compose.ui.Alignment.CenterStart,
+                                ) {
+                                    androidx.compose.foundation.text.BasicTextField(
+                                        value = line.quantity,
+                                        onValueChange = { lines[index] = line.copy(quantity = it) },
+                                        singleLine = true,
+                                        textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                                        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                        ),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        decorationBox = { inner ->
+                                            if (line.quantity.isEmpty()) Text("数量", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                                            inner()
+                                        },
+                                    )
+                                }
                             }
                             Box(Modifier.weight(1.2f)) {
                                 if (hiddenStaff) {
                                     Text("***", Modifier.padding(6.dp))
                                 } else {
-                                    OutlinedTextField(
-                                        value = line.price,
-                                        onValueChange = { lines[index] = line.copy(price = it) },
-                                        placeholder = { Text("单价", style = MaterialTheme.typography.bodySmall) },
-                                        singleLine = true,
-                                        readOnly = line.priceLocked,
-                                        textStyle = MaterialTheme.typography.bodySmall,
-                                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                                        ),
-                                    )
+                                    Box(
+                                        Modifier
+                                            .height(34.dp)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(50))
+                                            .padding(horizontal = 10.dp),
+                                        contentAlignment = androidx.compose.ui.Alignment.CenterStart,
+                                    ) {
+                                        androidx.compose.foundation.text.BasicTextField(
+                                            value = line.price,
+                                            onValueChange = { lines[index] = line.copy(price = it) },
+                                            singleLine = true,
+                                            readOnly = line.priceLocked,
+                                            textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                                            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                            ),
+                                            modifier = Modifier.fillMaxWidth(),
+                                            decorationBox = { inner ->
+                                                if (line.price.isEmpty()) Text("单价", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                                                inner()
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -928,10 +954,22 @@ private fun CategoryPicker(
 @Composable
 private fun UnitPicker(units: List<Pair<String, Double>>, selected: String, onPick: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
-    Column {
-        OutlinedButton(onClick = { open = true }) { Text(selected.ifBlank { "单位" }) }
+    val opts = units.ifEmpty { listOf(selected.ifBlank { "单位" } to 1.0) }
+    Box {
+        Row(
+            Modifier
+                .height(34.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(50))
+                .clickable { open = true }
+                .padding(horizontal = 10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Text(selected.ifBlank { "单位" }, style = MaterialTheme.typography.bodySmall)
+            androidx.compose.foundation.layout.Spacer(Modifier.width(4.dp))
+            Text("▾", style = MaterialTheme.typography.bodySmall)
+        }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            units.forEach { (unit, conv) ->
+            opts.forEach { (unit, conv) ->
                 DropdownMenuItem(
                     text = { Text(if (conv == 1.0) unit else "$unit（×$conv）") },
                     onClick = { open = false; onPick(unit) },
