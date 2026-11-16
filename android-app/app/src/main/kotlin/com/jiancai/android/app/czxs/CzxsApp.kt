@@ -1905,6 +1905,7 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
     if (showEditor) {
         CategoryEditorDialog(
             initial = editTarget,
+            existingGroups = list.map { it.optString("group") }.distinct(),
             settlementUnits = unitsS,
             conversionUnits = unitsC,
             onDismiss = { showEditor = false },
@@ -1927,6 +1928,7 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
 @Composable
 private fun CategoryEditorDialog(
     initial: JSONObject?,
+    existingGroups: List<String>,
     settlementUnits: List<String>,
     conversionUnits: List<String>,
     onDismiss: () -> Unit,
@@ -1944,6 +1946,8 @@ private fun CategoryEditorDialog(
     var unitMenu by remember { mutableStateOf(false) }
     var convMenu by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
+    var showGroupMenu by remember { mutableStateOf(false) }
+    val groupSuggestions = existingGroups.filter { it.contains(group, ignoreCase = true) && it != group }
 
     @Composable
     fun CapsuleField(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier) {
@@ -2009,7 +2013,20 @@ private fun CategoryEditorDialog(
         title = { Text(if (initial == null) "新增型号" else "编辑型号", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CapsuleField(group, { group = it }, "品类", Modifier.fillMaxWidth())
+                Box {
+                    CapsuleField(group, { group = it; showGroupMenu = true }, "品类", Modifier.fillMaxWidth())
+                    DropdownMenu(
+                        expanded = showGroupMenu && groupSuggestions.isNotEmpty(),
+                        onDismissRequest = { showGroupMenu = false },
+                    ) {
+                        groupSuggestions.forEach { g ->
+                            DropdownMenuItem(
+                                text = { Text(g) },
+                                onClick = { group = g; showGroupMenu = false },
+                            )
+                        }
+                    }
+                }
                 CapsuleField(name, { name = it.uppercase() }, "型号", Modifier.fillMaxWidth())
                 CapsuleField(batch, { batch = it.uppercase() }, "批号", Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
