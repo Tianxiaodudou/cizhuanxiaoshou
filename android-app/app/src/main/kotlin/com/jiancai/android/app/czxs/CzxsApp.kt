@@ -840,57 +840,85 @@ private fun CategoryPicker(
     onCancel: () -> Unit = {},
     onPick: (JSONObject, String) -> Unit,
 ) {
-    val groups = categories.map { it.optString("group") }.distinct()
-    var gi by remember { mutableStateOf(0) }
-    val names = categories.filter { it.optString("group") == groups.getOrNull(gi) }
-        .map { it.optString("name") }.distinct()
-    var ni by remember { mutableStateOf(0) }
-    val cat = categories.firstOrNull {
-        it.optString("group") == groups.getOrNull(gi) && it.optString("name") == names.getOrNull(ni)
-    }
-    val batchOptions = cat?.let { c ->
-        batchesFor(c.optLong("id")).ifEmpty { listOf(c.optString("batch") to "") }
-    } ?: emptyList()
-    var bi by remember { mutableStateOf(0) }
+    var input by remember { mutableStateOf("") }
+    var query by remember { mutableStateOf("") }
+    var pending by remember { mutableStateOf<Pair<JSONObject, String>?>(null) }
 
-    LaunchedEffect(gi) { ni = 0; bi = 0 }
-    LaunchedEffect(gi, ni) { bi = 0 }
+    val rows = remember(categories) {
+        categories.flatMap { c ->
+            val bs = batchesFor(c.optLong("id")).map { it.first }.ifEmpty { listOf(c.optString("batch")) }
+            bs.distinct().map { b -> c to b }
+        }
+    }
+    val filtered = rows.filter { (c, b) ->
+        query.isBlank() || listOf(c.optString("group"), c.optString("name"), b)
+            .any { it.contains(query, ignoreCase = true) }
+    }
 
     AlertDialog(
         onDismissRequest = onCancel,
-        confirmButton = {
-            TextButton(onClick = {
-                val c = categories.firstOrNull {
-                    it.optString("group") == groups.getOrNull(gi) && it.optString("name") == names.getOrNull(ni)
-                }
-                if (c != null) onPick(c, batchOptions.getOrNull(bi)?.first ?: c.optString("batch"))
-            }) { Text("确定") }
-        },
-        dismissButton = { TextButton(onClick = onCancel) { Text("取消") } },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onCancel) { Text("关闭") } },
         title = { Text("选择商品") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Wheel(groups, gi, { gi = it }, Modifier.weight(1f))
-                    Wheel(names, ni, { ni = it }, Modifier.weight(1f))
-                    Wheel(batchOptions.map { it.first.ifBlank { "无" } }, bi, { bi = it }, Modifier.weight(1f))
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("品类", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    Text("型号", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    Text("批号", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                }
-                cat?.let {
-                    Text(
-                        "计价单位 ${it.optString("settlement_unit")}" +
-                            (it.optString("conversion_unit").takeIf { u -> u.isNotBlank() }
-                                ?.let { u -> "　换算 $u（1$u=${it.optString("conversion")}${it.optString("settlement_unit")}）" } ?: ""),
-                        style = MaterialTheme.typography.bodySmall,
+            Column {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = input,
+                        onValueChange = { input = it },
+                        placeholder = { Text("品类 / 型号 / 批号", style = MaterialTheme.typography.bodySmall) },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
                     )
+                    Button(onClick = { query = input.trim() }, modifier = Modifier.padding(start = 6.dp)) { Text("搜索") }
+                }
+                androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
+                if (filtered.isEmpty()) {
+                    Text("无匹配型号", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                } else {
+                    LazyColumn(Modifier.height(280.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(filtered.size) { i ->
+                            val (c, b) = filtered[i]
+                            val tint = cardTints[i % cardTints.size]
+                            Card(
+                                onClick = { pending = c to b },
+                                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = tint.bg),
+                                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    listOf(c.optString("group"), c.optString("name"), b.ifBlank { "无批号" }).joinToString(" · "),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = tint.title,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         },
     )
+
+    pending?.let { (c, b) ->
+        val title = listOf(c.optString("group"), c.optString("name"), b.ifBlank { "无批号" }).joinToString(" · ")
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    pending = null
+                    onPick(c, b)
+                }) { Text("确认") }
+            },
+            dismissButton = { TextButton(onClick = { pending = null }) { Text("取消") } },
+            title = { Text("确认选择") },
+            text = { Text("是否确认选择「$title」？") },
+        )
+    }
 }
 
 @Composable
