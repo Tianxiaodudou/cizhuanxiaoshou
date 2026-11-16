@@ -2086,6 +2086,7 @@ private fun SettingsScreen(api: CzxsApi, onMenu: () -> Unit, onBack: () -> Unit,
     var settings by remember { mutableStateOf(JSONObject()) }
     var message by remember { mutableStateOf<String?>(null) }
     var port by remember { mutableStateOf("") }
+    var entry by remember { mutableStateOf(api.securityEntry) }
     val editable = api.isAdmin
 
     LaunchedEffect(Unit) {
@@ -2105,11 +2106,18 @@ private fun SettingsScreen(api: CzxsApi, onMenu: () -> Unit, onBack: () -> Unit,
             KeyValueRow("当前账号", "${api.accountName}（${if (api.isAdmin) "管理员" else "业务员"}）")
 
             SectionLabel("服务端")
-            KeyValueRow("地址", api.baseUrl + GATEWAY_PREFIX)
+            KeyValueRow("地址", api.baseUrl + "/" + api.securityEntry + GATEWAY_PREFIX)
             KeyValueRow("商家名称", settings.optString("merchant_name").ifBlank { "未设置" })
             Text("商家名称在安装向导中初始化，不可修改；如需更改需重装服务端。", style = MaterialTheme.typography.bodySmall)
             if (editable) {
                 AppTextField("API 端口", port, { port = it }, numeric = true)
+                AppTextField("安全入口（默认 chengtian）", entry, { entry = it })
+                Button(onClick = {
+                    api.setSecurityEntry(entry)
+                    runCatching { api.saveSetting("security_entry", api.securityEntry) }
+                        .onSuccess { message = "安全入口已保存：" + api.securityEntry }
+                        .onFailure { message = "安全入口已保存到本机，服务端同步失败：${it.message}" }
+                }) { Text("保存入口") }
                 Button(onClick = {
                     runCatching { api.saveSetting("api_port", port) }
                         .onSuccess { message = "端口已保存，重启应用后生效" }

@@ -26,6 +26,17 @@ class CzxsApi(private val prefs: SharedPreferences) {
 
     val token: String? get() = prefs.getString(KEY_TOKEN, null)
 
+    val securityEntry: String
+        get() = prefs.getString(KEY_ENTRY, "chengtian")?.ifBlank { "chengtian" } ?: "chengtian"
+
+    fun setSecurityEntry(v: String) {
+        val clean = v.trim().trim('/').ifBlank { "chengtian" }
+        prefs.edit().putString(KEY_ENTRY, clean).apply()
+    }
+
+    /** TCP 访问根：http://host:port/{entry}/app/czxs */
+    private fun apiRoot(): String = baseUrl + "/" + securityEntry + GATEWAY_PREFIX
+
     val accountName: String get() = prefs.getString(KEY_NAME, "") ?: ""
 
     fun saveServer(input: String) {
@@ -203,7 +214,7 @@ class CzxsApi(private val prefs: SharedPreferences) {
 
     /** 导出完整 sq3（kind=model|docs）。 */
     fun exportDatabase(kind: String): ByteArray {
-        val url = URL(baseUrl + GATEWAY_PREFIX + "/api/backup/export?kind=" + encode(kind))
+        val url = URL(apiRoot() + "/api/backup/export?kind=" + encode(kind))
         val conn = url.openConnection() as HttpURLConnection
         try {
             conn.requestMethod = "GET"
@@ -227,7 +238,7 @@ class CzxsApi(private val prefs: SharedPreferences) {
     /** 导入 sq3（multipart/form-data），返回服务端 JSON。 */
     fun importDatabase(kind: String, fileName: String, bytes: ByteArray): JSONObject {
         val boundary = "czxs-" + UUID.randomUUID()
-        val url = URL(baseUrl + GATEWAY_PREFIX + "/api/backup/import?kind=" + encode(kind))
+        val url = URL(apiRoot() + "/api/backup/import?kind=" + encode(kind))
         val conn = url.openConnection() as HttpURLConnection
         try {
             conn.requestMethod = "POST"
@@ -260,7 +271,7 @@ class CzxsApi(private val prefs: SharedPreferences) {
         val qs = if (query.isEmpty()) "" else "?" + query.entries.joinToString("&") {
             encode(it.key) + "=" + encode(it.value)
         }
-        val url = URL(baseUrl + GATEWAY_PREFIX + path + qs)
+        val url = URL(apiRoot() + path + qs)
         val conn = url.openConnection() as HttpURLConnection
         try {
             conn.requestMethod = method
@@ -293,5 +304,6 @@ class CzxsApi(private val prefs: SharedPreferences) {
         const val KEY_TOKEN = "token"
         const val KEY_NAME = "account_name"
         const val KEY_ROLE = "account_role"
+    const val KEY_ENTRY = "security_entry"
     }
 }
