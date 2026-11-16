@@ -101,9 +101,7 @@ func main() {
 	apiOnly := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		want := "/" + entry + "/app/czxs/api/"
 		if !strings.HasPrefix(r.URL.Path, want) {
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(`{"ok":false,"error":{"code":"NOT_FOUND","message":"请通过飞牛网关，或使用 /` + entry + `/ 安全入口访问接口"}}`))
+			http.NotFound(w, r)
 			return
 		}
 		r2 := new(http.Request)
