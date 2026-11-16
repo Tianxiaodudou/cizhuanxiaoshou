@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.jiancai.android.app.czxs
 
@@ -1820,21 +1820,21 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
-                            Row(
+                            androidx.compose.foundation.layout.FlowRow(
                                 Modifier.fillMaxWidth(),
-                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                itemVerticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                             ) {
-                                Capsule("计价", c.optString("settlement_unit"), tint.l1, tint.v1, Modifier.weight(1f))
+                                Capsule("计价", c.optString("settlement_unit"), tint.l1, tint.v1)
                                 ConversionCapsule(
                                     unit = c.optString("conversion_unit").ifBlank { "无" },
                                     factor = c.optString("conversion").ifBlank { "1" },
                                     settlementUnit = c.optString("settlement_unit"),
                                     labelColor = tint.l2,
                                     valueColor = tint.v2,
-                                    modifier = Modifier.weight(1f),
                                 )
-                                Capsule("默认价", c.optString("default_price").ifBlank { "无" }, tint.l3, tint.v3, Modifier.weight(1f))
+                                Capsule("默认价", c.optString("default_price").ifBlank { "无" }, tint.l3, tint.v3)
                                 if (api.isAdmin) {
                                     Row(
                                         Modifier
