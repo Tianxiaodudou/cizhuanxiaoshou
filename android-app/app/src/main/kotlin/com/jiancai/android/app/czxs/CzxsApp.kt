@@ -798,12 +798,16 @@ private fun TableHead(text: String, width: Int) {
 }
 
 private fun unitsOf(cat: JSONObject?): List<Pair<String, Double>> {
-    val arr = cat?.optJSONArray("units") ?: return emptyList()
-    return (0 until arr.length()).map {
-        val u = arr.getJSONObject(it)
-        u.optString("unit") to u.optDouble("conversion", 1.0)
-    }.sortedByDescending { pair -> arr.getJSONObject(0).optBoolean("is_settlement") }
+    if (cat == null) return emptyList()
+    val out = mutableListOf<Pair<String, Double>>()
+    val settle = cat.optString("settlement_unit")
+    val convUnit = cat.optString("conversion_unit")
+    val conv = cat.optDouble("conversion", 1.0)
+    if (settle.isNotBlank()) out += settle to 1.0
+    if (convUnit.isNotBlank() && convUnit != settle) out += convUnit to if (conv > 0) conv else 1.0
+    return out
 }
+
 
 private fun trim(value: Double): String =
     if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
