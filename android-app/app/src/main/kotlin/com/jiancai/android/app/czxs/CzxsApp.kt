@@ -128,9 +128,19 @@ fun CzxsApp(api: CzxsApi) {
 
     fun goBack() {
         if (stack.size > 1) stack.removeAt(stack.lastIndex)
+        // 不变量：只要停在首页，栈里就只有首页，再按返回即退出
+        if (stack.lastOrNull() == Route.Home && stack.size > 1) {
+            stack.clear()
+            stack.add(Route.Home)
+        }
     }
 
     fun navigate(r: Route) {
+        if (r == Route.Home) {
+            stack.clear()
+            stack.add(Route.Home)
+            return
+        }
         if (stack.lastOrNull() != r) stack.add(r)
     }
 
