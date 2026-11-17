@@ -186,6 +186,14 @@ private fun HideSystemBarsWhileActive() {
         val ctrl = androidx.core.view.WindowCompat.getInsetsController(act.window, view)
         ctrl.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
         ctrl.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        act.window.decorView.systemUiVisibility = (
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
     }
     androidx.compose.runtime.DisposableEffect(Unit) {
         onDispose {
@@ -193,6 +201,7 @@ private fun HideSystemBarsWhileActive() {
             act?.let {
                 androidx.core.view.WindowCompat.getInsetsController(it.window, view)
                     .show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                it.window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
             }
         }
     }
