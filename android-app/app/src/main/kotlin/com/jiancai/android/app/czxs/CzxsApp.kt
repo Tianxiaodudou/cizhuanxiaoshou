@@ -487,7 +487,6 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
     var loading by remember { mutableStateOf(false) }
     var submitted by remember { mutableStateOf<JSONObject?>(null) }
     var media by remember { mutableStateOf(listOf<JSONObject>()) }
-    var pendingMedia by remember { mutableStateOf(listOf<Triple<String, String, ByteArray>>()) }
     var viewing by remember { mutableStateOf<JSONObject?>(null) }
     var uploading by remember { mutableStateOf(false) }
     var showTray by remember { mutableStateOf(false) }
@@ -514,15 +513,15 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
 
     fun uploadFiles(files: List<Triple<String, String, ByteArray>>) {
         if (files.isEmpty()) return
+        val oid = orderId ?: run {
+            error = "新单据需先提交生成单号后才能上传图片/视频"
+            return
+        }
         uploading = true
         scope.launch {
             try {
-                if (orderId != null) {
-                    withContext(Dispatchers.IO) { files.forEach { (n, m, b) -> api.uploadMedia(orderId, n, m, b) } }
-                    reloadMedia(orderId)
-                } else {
-                    pendingMedia = pendingMedia + files
-                }
+                withContext(Dispatchers.IO) { files.forEach { (n, m, b) -> api.uploadMedia(oid, n, m, b) } }
+                reloadMedia(oid)
             } catch (e: Exception) {
                 error = e.message
             } finally {
@@ -888,21 +887,23 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
 
             SectionLabel("备注")
             AppTextField("备注", remark, { remark = it })
-            SectionLabel("图片 / 视频")
-            MediaStrip(
-                items = media,
-                uploading = uploading,
-                onAdd = { showTray = true },
-                onOpen = { viewing = it },
-                onDelete = if (orderId != null) { m ->
-                    scope.launch {
-                        try {
-                            withContext(Dispatchers.IO) { api.deleteMedia(m.optLong("id")) }
-                            reloadMedia(orderId)
-                        } catch (e: Exception) { error = e.message }
-                    }
-                } else null,
-            )
+            if (editing) {
+                SectionLabel("图片 / 视频")
+                MediaStrip(
+                    items = media,
+                    uploading = uploading,
+                    onAdd = { showTray = true },
+                    onOpen = { viewing = it },
+                    onDelete = { m ->
+                        scope.launch {
+                            try {
+                                withContext(Dispatchers.IO) { api.deleteMedia(m.optLong("id")) }
+                                orderId?.let { reloadMedia(it) }
+                            } catch (e: Exception) { error = e.message }
+                        }
+                    },
+                )
+            }
 
             error?.let { ErrorText(it) }
             submitted?.let { order ->
