@@ -1926,7 +1926,7 @@ private fun PickOrderScreen(api: CzxsApi, onBack: () -> Unit) {
     var orders by remember { mutableStateOf(listOf<JSONObject>()) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    PageScaffold("选择单据", onBack = onBack) { modifier ->
+    PageScaffold("选择单据", onBack = onBack, scroll = false) { modifier ->
         Column(modifier.padding(PagePadding)) {
             AppTextField("电话 / 姓名 / 地址", keyword, { keyword = it })
             Button(
