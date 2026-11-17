@@ -112,6 +112,68 @@ sealed interface Route {
 private val TABS = listOf("单据" to Route.Orders, "查询" to Route.Query, "改当日单" to Route.Today, "结算" to Route.Settlement, "设置" to Route.Settings)
 
 /** czxs 客户端根：登录守卫 + 底栏 + 页面栈（单 Activity，状态驱动）。 */
+
+@Composable
+private fun CameraReview(
+    shot: Triple<String, String, java.io.File>,
+    onDiscard: () -> Unit,
+    onConfirm: (String, String, ByteArray) -> Unit,
+) {
+    val (name, mime, file) = shot
+    var err by remember { mutableStateOf<String?>(null) }
+    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
+        if (mime == "video/mp4") {
+            AndroidView(
+                factory = { c ->
+                    android.widget.VideoView(c).apply {
+                        setVideoURI(android.net.Uri.fromFile(file))
+                        setOnPreparedListener { it.isLooping = true }
+                        start()
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            val bmp = remember(file.path) { android.graphics.BitmapFactory.decodeFile(file.path) }
+            if (bmp != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = bmp.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        Box(
+            Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(18.dp)
+                .size(40.dp)
+                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape)
+                .clickable(onClick = onDiscard),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { Text("✕", color = androidx.compose.ui.graphics.Color.White, fontSize = 18.sp) }
+
+        Box(
+            Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(22.dp)
+                .background(androidx.compose.ui.graphics.Color(0xFF07C160), androidx.compose.foundation.shape.CircleShape)
+                .clickable {
+                    val raw = runCatching { file.readBytes() }.getOrNull()
+                    val bytes = if (raw != null && mime == "image/jpeg") compressJpeg(raw) else raw
+                    if (bytes != null) onConfirm(name, mime, bytes) else err = "读取文件失败"
+                }
+                .padding(horizontal = 24.dp, vertical = 11.dp),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { Text("完成", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold) }
+
+        Text(
+            if (mime == "video/mp4") "录像预览" else "照片预览",
+            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(22.dp),
+        )
+        err?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFFF8A80), modifier = Modifier.align(androidx.compose.ui.Alignment.Center)) }
+    }
+}
+
 private object FullscreenHost {
     var content by androidx.compose.runtime.mutableStateOf<(@Composable () -> Unit)?>(null)
 }
@@ -1557,8 +1619,6 @@ private fun CameraCaptureScreen(
         FullscreenHost.content = {
             CameraReview(
                 shot = shot,
-                hasAudio = null,
-                audioError = null,
                 onDiscard = {
                     runCatching { shot.third.delete() }
                     captured = null
