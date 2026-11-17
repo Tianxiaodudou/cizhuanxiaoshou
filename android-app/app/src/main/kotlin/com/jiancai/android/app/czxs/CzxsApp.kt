@@ -1187,6 +1187,34 @@ private fun CompactInput(
 
 
 
+
+@Composable
+private fun RemoteVideoThumb(url: String, modifier: Modifier) {
+    var bmp by remember(url) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(url) {
+        bmp = withContext(Dispatchers.IO) {
+            runCatching {
+                val retriever = android.media.MediaMetadataRetriever()
+                retriever.setDataSource(url, emptyMap<String, String>())
+                val frame = retriever.getFrameAtTime(1_000_000, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                retriever.release()
+                frame
+            }.getOrNull()
+        }
+    }
+    val image = bmp
+    if (image != null) {
+        androidx.compose.foundation.Image(
+            bitmap = image.asImageBitmap(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier,
+        )
+    } else {
+        Box(modifier.background(androidx.compose.ui.graphics.Color(0xFFE3E7EF)))
+    }
+}
+
 @Composable
 private fun RemoteImage(url: String, modifier: Modifier, contentScale: ContentScale = ContentScale.Crop) {
     var bmp by remember(url) { mutableStateOf<android.graphics.Bitmap?>(null) }
@@ -1528,10 +1556,164 @@ private fun MediaStrip(
             val id = m.optLong("id")
             val kind = m.optString("kind")
             Box(Modifier.size(72.dp)) {
-                RemoteImage(
-                    url = m.optString("url"),
-                    modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onOpen(m) },
+                if (kind == "video") {
+                    RemoteVideoThumb(
+                        url = m.optString("url"),
+                        modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onOpen(m) },
+                    )
+                } else {
+                    RemoteImage(
+                        url = m.optString("url"),
+                        modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onOpen(m) },
+                    )
+                }
+                if (kind == "video") {
+                    Box(Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.28f)), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Text("▶", color = androidx.compose.ui.graphics.Color.White, fontSize = 22.sp)
+                    }
+                }
+                if (onDelete != null) {
+                    Box(
+                        Modifier.align(androidx.compose.ui.Alignment.TopEnd).size(20.dp)
+                            .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f), androidx.compose.foundation.shape.CircleShape)
+                            .clickable { onDelete(m) },
+                        contentAlignment = androidx.compose.ui.Alignment.Center,
+                    ) { Text("×", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall) }
+                }
+                if (kind == "image") Unit
+            }
+        }
+        Box(
+            Modifier.size(72.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                .clickable(onClick = onAdd),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { Text(if (uploading) "上传中…" else "+", style = MaterialTheme.typography.bodySmall) }
+    }
+    if (onDelete != null) {
+        Text("点击缩略图预览，长按无效；点 × 删除", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+    }
+}
+
+@Composable
+private fun MediaViewerDialog(url: String, kind: String, onClose: () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    var error by remember { mutableStateOf<String?>(null) }
+    var downloading by remember { mutableStateOf(false) }
+
+    val mediaId = Regex("/api/media/(\\d+)").find(url)?.groupValues?.getOrNull(1) ?: System.currentTimeMillis().toString()
+    val ext = if (kind == "video") "mp4" else "jpg"
+    val fileName = "单据媒体-$mediaId.$ext"
+
+    val saveLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(if (kind == "video") "video/mp4" else "image/jpeg")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        downloading = true
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val bytes = java.net.URL(url).openStream().use { it.readBytes() }
+                    ctx.contentResolver.openOutputStream(uri)?.use { out -> out.write(bytes) }
+                        ?: throw IllegalStateException("无法写入所选文件")
+                }
+                error = "已保存"
+            } catch (e: Exception) {
+                error = "保存失败：" + (e.message ?: "")
+            } finally {
+                downloading = false
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
+            if (kind == "video") {
+                AndroidView(
+                    factory = { c ->
+                        android.widget.VideoView(c).apply {
+                            setVideoURI(android.net.Uri.parse(url))
+                            setOnPreparedListener { it.isLooping = false }
+                            start()
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
                 )
+            } else {
+                RemoteImage(url, Modifier.fillMaxSize(), ContentScale.Fit)
+            }
+
+            // 顶部：关闭 / 下载
+            Row(
+                Modifier.align(androidx.compose.ui.Alignment.TopStart).fillMaxWidth()
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier.size(38.dp)
+                        .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f), androidx.compose.foundation.shape.CircleShape)
+                        .clickable(onClick = onClose),
+                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                ) { Text("✕", color = androidx.compose.ui.graphics.Color.White, fontSize = 17.sp) }
+                Box(
+                    Modifier
+                        .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+                        .clickable(enabled = !downloading) { saveLauncher.launch(fileName) }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        if (downloading) "保存中…" else "下载",
+                        color = androidx.compose.ui.graphics.Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+
+            error?.let {
+                Text(
+                    it,
+                    color = if (it == "已保存") androidx.compose.ui.graphics.Color(0xFF7CE38B) else androidx.compose.ui.graphics.Color(0xFFFF8A80),
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(bottom = 26.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MediaStrip(
+    items: List<JSONObject>,
+    uploading: Boolean,
+    onAdd: () -> Unit,
+    onOpen: (JSONObject) -> Unit,
+    onDelete: ((JSONObject) -> Unit)? = null,
+) {
+    val scope = rememberCoroutineScope()
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items.forEach { m ->
+            val id = m.optLong("id")
+            val kind = m.optString("kind")
+            Box(Modifier.size(72.dp)) {
+                if (kind == "video") {
+                    RemoteVideoThumb(
+                        url = m.optString("url"),
+                        modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onOpen(m) },
+                    )
+                } else {
+                    RemoteImage(
+                        url = m.optString("url"),
+                        modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onOpen(m) },
+                    )
+                }
                 if (kind == "video") {
                     Box(Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.28f)), contentAlignment = androidx.compose.ui.Alignment.Center) {
                         Text("▶", color = androidx.compose.ui.graphics.Color.White, fontSize = 22.sp)
