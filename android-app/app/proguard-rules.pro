@@ -1,0 +1,5 @@
+-keep class androidx.camera.** { *; }
+-keep class androidx.lifecycle.** { *; }
+-keep class org.json.** { *; }
+-dontwarn androidx.camera.**
+-dontwarn org.json.**
