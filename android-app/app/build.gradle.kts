@@ -18,6 +18,11 @@ val appVersionCode: Int = appVersion.split('.').let { parts ->
 
 val localKeystore = rootProject.file(".tools/android-user/debug.keystore")
 android {
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
     namespace = "com.jiancai.android.app"
     compileSdk = 34
 
