@@ -1210,6 +1210,89 @@ private fun CompactInput(
 
 
 @Composable
+private fun CameraReview(
+@Composable
+private fun CameraReview(
+    shot: Triple<String, String, java.io.File>,
+    hasAudio: Boolean?,
+    audioError: String?,
+    onDiscard: () -> Unit,
+    onConfirm: (String, String, ByteArray) -> Unit,
+) {
+    val (name, mime, file) = shot
+    var busy by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf<String?>(null) }
+    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
+        if (mime == "video/mp4") {
+            AndroidView(
+                factory = { c ->
+                    android.widget.VideoView(c).apply {
+                        setVideoURI(android.net.Uri.fromFile(file))
+                        setOnPreparedListener { it.isLooping = true }
+                        start()
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            val bmp = remember(file.path) { android.graphics.BitmapFactory.decodeFile(file.path) }
+            if (bmp != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = bmp.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+
+        // 左上：取消
+        Box(
+            Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(18.dp)
+                .size(40.dp)
+                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape)
+                .clickable(onClick = onDiscard),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { Text("✕", color = androidx.compose.ui.graphics.Color.White, fontSize = 18.sp) }
+
+        // 右下：完成
+        Box(
+            Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(22.dp)
+                .background(androidx.compose.ui.graphics.Color(0xFF07C160), androidx.compose.foundation.shape.CircleShape)
+                .clickable(enabled = !busy) {
+                    busy = true
+                    val raw = runCatching { file.readBytes() }.getOrNull()
+                    val bytes = if (raw != null && mime == "image/jpeg") compressJpeg(raw) else raw
+                    busy = false
+                    if (bytes != null) onConfirm(name, mime, bytes) else err = "读取文件失败"
+                }
+                .padding(horizontal = 24.dp, vertical = 11.dp),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { Text(if (busy) "处理中…" else "完成", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold) }
+
+        Column(Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(22.dp)) {
+            Text(
+                if (mime == "video/mp4") "录像预览" else "照片预览",
+                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f),
+                style = MaterialTheme.typography.labelMedium,
+            )
+            if (mime == "video/mp4") {
+                Text(
+                    when (hasAudio) {
+                        true -> "含音频：是"
+                        false -> "含音频：否" + (audioError?.let { "（$it）" } ?: "")
+                        null -> "音频检测中…"
+                    },
+                    color = if (hasAudio == false) androidx.compose.ui.graphics.Color(0xFFFFD54F) else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            err?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFFF8A80), style = MaterialTheme.typography.labelSmall) }
+        }
+    }
+}
+
+@Composable
 private fun FullscreenDialogEffect() {
     val rootView = androidx.compose.ui.platform.LocalView.current
     androidx.compose.runtime.DisposableEffect(Unit) {
@@ -1284,6 +1367,9 @@ private fun CameraCaptureScreen(
     onCaptured: (String, String, ByteArray) -> Unit,
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    var captured by remember { mutableStateOf<Triple<String, String, java.io.File>?>(null) }
+    var hasAudio by remember { mutableStateOf<Boolean?>(null) }
+    var audioError by remember { mutableStateOf<String?>(null) }
     var granted by remember {
         mutableStateOf(
             androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.CAMERA) ==
@@ -1312,13 +1398,33 @@ private fun CameraCaptureScreen(
         return
     }
 
+    val shotNow = captured
+    if (shotNow != null) {
+        FullscreenDialogEffect()
+        CameraReview(
+            shot = shotNow,
+            hasAudio = hasAudio,
+            audioError = audioError,
+            onDiscard = {
+                runCatching { shotNow.third.delete() }
+                captured = null
+                hasAudio = null
+                audioError = null
+            },
+            onConfirm = { n, m, bytes ->
+                captured = null
+                onCaptured(n, m, bytes)
+            },
+        )
+        return
+    }
+
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
     var previewView by remember { mutableStateOf<androidx.camera.view.PreviewView?>(null) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
     var recording by remember { mutableStateOf(false) }
     var torch by remember { mutableStateOf(0) } // 0 关 1 开 2 自动
     var error by remember { mutableStateOf<String?>(null) }
-    var captured by remember { mutableStateOf<Triple<String, String, java.io.File>?>(null) }
     val scope = rememberCoroutineScope()
     val mainExecutor = androidx.core.content.ContextCompat.getMainExecutor(ctx)
 
@@ -1382,7 +1488,20 @@ private fun CameraCaptureScreen(
             override fun accept(event: androidx.camera.video.VideoRecordEvent) {
                 if (event is androidx.camera.video.VideoRecordEvent.Finalize) {
                     recording = false
-                    if (!event.hasError()) captured = Triple(f.name, "video/mp4", f) else error = "录制失败：${event.error}"
+                    if (!event.hasError()) {
+                        hasAudio = runCatching {
+                            val ex = android.media.MediaExtractor()
+                            ex.setDataSource(f.absolutePath)
+                            var found = false
+                            for (i in 0 until ex.trackCount) {
+                                val mime = ex.getTrackFormat(i).getString(android.media.MediaFormat.KEY_MIME) ?: ""
+                                if (mime.startsWith("audio/")) found = true
+                            }
+                            ex.release()
+                            found
+                        }.getOrDefault(false)
+                        captured = Triple(f.name, "video/mp4", f)
+                    } else error = "录制失败：${event.error}"
                 }
             }
         })
@@ -1394,6 +1513,7 @@ private fun CameraCaptureScreen(
         activeRecording = null
     }
 
+    FullscreenDialogEffect()
     Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
         AndroidView(
             factory = { c -> androidx.camera.view.PreviewView(c).apply { implementationMode = androidx.camera.view.PreviewView.ImplementationMode.COMPATIBLE } },
@@ -1511,80 +1631,6 @@ private fun CameraCaptureScreen(
         }
         error?.let {
             Text(it, color = androidx.compose.ui.graphics.Color(0xFFFF6B6B), modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
-        }
-    }
-
-    // 预览阶段：取消丢弃 / 完成上传
-    val shot = captured
-    if (shot != null) {
-        val (name, mime, file) = shot
-        Dialog(
-            onDismissRequest = { runCatching { file.delete() }; captured = null },
-            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-        ) {
-            FullscreenDialogEffect()
-            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
-                if (mime == "video/mp4") {
-                    AndroidView(
-                        factory = { c ->
-                            android.widget.VideoView(c).apply {
-                                setVideoURI(android.net.Uri.fromFile(file))
-                                setOnPreparedListener { it.isLooping = true }
-                                start()
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    val bmp = remember(file.path) {
-                        android.graphics.BitmapFactory.decodeFile(file.path)
-                    }
-                    if (bmp != null) {
-                        androidx.compose.foundation.Image(
-                            bitmap = bmp.asImageBitmap(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-                }
-                // 左上：取消预览并丢弃
-                Box(
-                    Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(18.dp)
-                        .size(38.dp)
-                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f), androidx.compose.foundation.shape.CircleShape)
-                        .clickable {
-                            runCatching { file.delete() }
-                            captured = null
-                        },
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                ) { Text("✕", color = androidx.compose.ui.graphics.Color.White, fontSize = 17.sp) }
-
-                // 右下：完成
-                Box(
-                    Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(22.dp)
-                        .background(androidx.compose.ui.graphics.Color(0xFF07C160), androidx.compose.foundation.shape.CircleShape)
-                        .clickable {
-                            val raw = runCatching { file.readBytes() }.getOrNull()
-                            val bytes = if (raw != null && mime == "image/jpeg") compressJpeg(raw) else raw
-                            if (bytes != null) {
-                                onCaptured(name, mime, bytes)
-                            } else {
-                                error = "读取文件失败"
-                            }
-                            captured = null
-                        }
-                        .padding(horizontal = 22.dp, vertical = 10.dp),
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                ) { Text("完成", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold) }
-
-                Text(
-                    if (mime == "video/mp4") "录像预览" else "照片预览",
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(22.dp),
-                )
-            }
         }
     }
 
