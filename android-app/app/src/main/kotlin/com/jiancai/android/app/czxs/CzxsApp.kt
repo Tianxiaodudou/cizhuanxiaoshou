@@ -72,6 +72,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -487,6 +489,9 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
     var pendingMedia by remember { mutableStateOf(listOf<Triple<String, String, ByteArray>>()) }
     var viewing by remember { mutableStateOf<JSONObject?>(null) }
     var uploading by remember { mutableStateOf(false) }
+    var showTray by remember { mutableStateOf(false) }
+    var showCamera by remember { mutableStateOf(false) }
+    var traySheet by remember { mutableStateOf(false) }
 
     fun reloadMedia(oid: Long) {
         if (oid <= 0) return
@@ -505,6 +510,36 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
     LaunchedEffect(orderId) { orderId?.let { reloadMedia(it) } }
 
     val ctx = androidx.compose.ui.platform.LocalContext.current
+
+    fun uploadFiles(files: List<Triple<String, String, ByteArray>>) {
+        if (files.isEmpty()) return
+        uploading = true
+        scope.launch {
+            try {
+                if (orderId != null) {
+                    withContext(Dispatchers.IO) { files.forEach { (n, m, b) -> api.uploadMedia(orderId, n, m, b) } }
+                    reloadMedia(orderId)
+                } else {
+                    pendingMedia = pendingMedia + files
+                }
+            } catch (e: Exception) {
+                error = e.message
+            } finally {
+                uploading = false
+            }
+        }
+    }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bmp ->
+        if (bmp != null) {
+            val bytes = java.io.ByteArrayOutputStream().use { out ->
+                bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                out.toByteArray()
+            }
+            uploadFiles(listOf(Triple("camera-${System.currentTimeMillis()}.jpg", "image/jpeg", bytes)))
+        }
+    }
+
     val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
             uploading = true
@@ -518,12 +553,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                             if (bytes == null || bytes.size > 200 * 1024 * 1024) null else Triple(name, mime, bytes)
                         }
                     }
-                    if (orderId != null) {
-                        withContext(Dispatchers.IO) { files.forEach { (n, m, b) -> api.uploadMedia(orderId, n, m, b) } }
-                        reloadMedia(orderId)
-                    } else {
-                        pendingMedia = pendingMedia + files
-                    }
+                    uploadFiles(files)
                 } catch (e: Exception) {
                     error = e.message
                 } finally {
@@ -861,7 +891,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
             MediaStrip(
                 items = media,
                 uploading = uploading,
-                onAdd = { pickMedia.launch("*/*") },
+                onAdd = { showTray = true },
                 onOpen = { viewing = it },
                 onDelete = if (orderId != null) { m ->
                     scope.launch {
@@ -887,6 +917,33 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
             }
             viewing?.let { m ->
                 MediaViewerDialog(url = m.optString("url"), kind = m.optString("kind")) { viewing = null }
+            }
+            if (showTray) {
+                AlertDialog(
+                    onDismissRequest = { showTray = false },
+                    confirmButton = {},
+                    dismissButton = { TextButton(onClick = { showTray = false }) { Text("取消") } },
+                    title = { Text("添加图片 / 视频") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(onClick = { showTray = false; pickMedia.launch("*/*") }, modifier = Modifier.fillMaxWidth()) {
+                                Text("从相册选择（可多选）")
+                            }
+                            OutlinedButton(onClick = { showTray = false; showCamera = true }, modifier = Modifier.fillMaxWidth()) {
+                                Text("打开相机（拍照 / 录像）")
+                            }
+                        }
+                    },
+                )
+            }
+            if (showCamera) {
+                CameraCaptureScreen(
+                    onClose = { showCamera = false },
+                    onCaptured = { n, m, b ->
+                        showCamera = false
+                        uploadFiles(listOf(Triple(n, m, b)))
+                    },
+                )
             }
             if (loading) LoadingRow("提交中…")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1140,6 +1197,192 @@ private fun RemoteImage(url: String, modifier: Modifier, contentScale: ContentSc
         )
     } else {
         Box(modifier.background(androidx.compose.ui.graphics.Color(0xFFE5E7EB)))
+    }
+}
+
+
+/** CameraX 拍摄页：预览 + 短按照片 / 长按录视频（720p，1.2Mbps），后摄，补光灯多模式。 */
+@Composable
+private fun CameraCaptureScreen(
+    onClose: () -> Unit,
+    onCaptured: (String, String, ByteArray) -> Unit,
+) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var granted by remember {
+        mutableStateOf(
+            androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.CAMERA) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
+    LaunchedEffect(Unit) { if (!granted) permLauncher.launch(android.Manifest.permission.CAMERA) }
+
+    if (!granted) {
+        Column(
+            Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black).padding(24.dp),
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text("需要相机权限", color = androidx.compose.ui.graphics.Color.White)
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = onClose) { Text("返回") }
+        }
+        return
+    }
+
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    var previewView by remember { mutableStateOf<androidx.camera.view.PreviewView?>(null) }
+    var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
+    var recording by remember { mutableStateOf(false) }
+    var torch by remember { mutableIntStateOf(0) } // 0 关 1 开 2 自动
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val mainExecutor = androidx.core.content.ContextCompat.getMainExecutor(ctx)
+
+    val imageCapture = remember {
+        androidx.camera.core.ImageCapture.Builder()
+            .setCaptureMode(androidx.camera.core.ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .build()
+    }
+    val recorder = remember {
+        androidx.camera.video.Recorder.Builder()
+            .setQualitySelector(
+                androidx.camera.video.QualitySelector.from(
+                    androidx.camera.video.Quality.HD,
+                    androidx.camera.video.FallbackStrategy.lowerQualityOrHigherThan(androidx.camera.video.Quality.HD),
+                )
+            )
+            .setTargetVideoEncodingBitRate(1_200_000)
+            .build()
+    }
+    val videoCapture = remember { androidx.camera.video.VideoCapture.withOutput(recorder) }
+    var activeRecording by remember { mutableStateOf<androidx.camera.video.Recording?>(null) }
+
+    LaunchedEffect(previewView) {
+        val view = previewView ?: return@LaunchedEffect
+        try {
+            val provider = androidx.camera.lifecycle.ProcessCameraProvider.getInstance(ctx).get()
+            val preview = androidx.camera.core.Preview.Builder().build().also { it.setSurfaceProvider(view.surfaceProvider) }
+            provider.unbindAll()
+            camera = provider.bindToLifecycle(
+                lifecycleOwner,
+                androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA,
+                preview, imageCapture, videoCapture,
+            )
+        } catch (e: Exception) {
+            error = "相机启动失败：${e.message}"
+        }
+    }
+
+    fun photo() {
+        val f = java.io.File(ctx.cacheDir, "cap-${System.currentTimeMillis()}.jpg")
+        imageCapture.takePicture(
+            androidx.camera.core.ImageCapture.OutputFileOptions.Builder(f).build(),
+            mainExecutor,
+            object : androidx.camera.core.ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(results: androidx.camera.core.ImageCapture.OutputFileResults) {
+                    runCatching { onCaptured(f.name, "image/jpeg", f.readBytes()) }
+                        .onFailure { error = it.message }
+                }
+
+                override fun onError(e: androidx.camera.core.ImageCaptureException) {
+                    error = e.message
+                }
+            },
+        )
+    }
+
+    fun startVideo() {
+        if (recording) return
+        val f = java.io.File(ctx.cacheDir, "rec-${System.currentTimeMillis()}.mp4")
+        val pending = recorder.prepareRecording(ctx, androidx.camera.video.FileOutputOptions.Builder(f).build())
+        val withAudio = androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val p2 = if (withAudio) pending.withAudioEnabled() else pending
+        activeRecording = p2.start(mainExecutor, object : androidx.core.util.Consumer<androidx.camera.video.VideoRecordEvent> {
+            override fun accept(event: androidx.camera.video.VideoRecordEvent) {
+                if (event is androidx.camera.video.VideoRecordEvent.Finalize) {
+                    recording = false
+                    if (!event.hasError()) {
+                        runCatching { onCaptured(f.name, "video/mp4", f.readBytes()) }.onFailure { error = it.message }
+                    } else {
+                        error = "录制失败：${event.error}"
+                    }
+                }
+            }
+        })
+        recording = true
+    }
+
+    fun stopVideo() {
+        activeRecording?.stop()
+        activeRecording = null
+    }
+
+    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
+        AndroidView(
+            factory = { c -> androidx.camera.view.PreviewView(c).apply { implementationMode = androidx.camera.view.PreviewView.ImplementationMode.COMPATIBLE } },
+            update = { previewView = it },
+            modifier = Modifier.fillMaxSize(),
+        )
+        // 手势层：短按照片，长按录制
+        Box(
+            Modifier.fillMaxSize().pointerInput(Unit) {
+                androidx.compose.foundation.gestures.detectTapGestures(onPress = {
+                    val started = System.currentTimeMillis()
+                    var longFired = false
+                    val hold = scope.launch {
+                        kotlinx.coroutines.delay(420)
+                        longFired = true
+                        startVideo()
+                    }
+                    val released = tryAwaitRelease()
+                    hold.cancel()
+                    val duration = System.currentTimeMillis() - started
+                    if (!released) {
+                        if (recording) stopVideo()
+                    } else if (longFired || duration >= 420) {
+                        if (recording) stopVideo()
+                    } else {
+                        photo()
+                    }
+                })
+            }
+        )
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Text("关闭", color = androidx.compose.ui.graphics.Color.White, modifier = Modifier.clickable(onClick = onClose).padding(8.dp))
+            Text(
+                when (torch) { 0 -> "补光：关"; 1 -> "补光：开"; else -> "补光：自动" },
+                color = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier
+                    .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+                    .clickable {
+                        torch = (torch + 1) % 3
+                        runCatching { camera?.cameraControl?.enableTorch(torch == 1) }
+                    }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+        }
+        Column(
+            Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(bottom = 28.dp),
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+        ) {
+            error?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFFF6B6B)) }
+            Text(
+                if (recording) "录制中…松手结束" else "短按照片 · 长按录制",
+                color = androidx.compose.ui.graphics.Color.White,
+            )
+        }
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            runCatching { activeRecording?.stop() }
+            runCatching { camera?.cameraControl?.enableTorch(false) }
+        }
     }
 }
 
