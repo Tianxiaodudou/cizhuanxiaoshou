@@ -112,8 +112,6 @@ sealed interface Route {
 private val TABS = listOf("单据" to Route.Orders, "查询" to Route.Query, "改当日单" to Route.Today, "结算" to Route.Settlement, "设置" to Route.Settings)
 
 /** czxs 客户端根：登录守卫 + 底栏 + 页面栈（单 Activity，状态驱动）。 */
-@Composable
-
 private object FullscreenHost {
     var content by androidx.compose.runtime.mutableStateOf<(@Composable () -> Unit)?>(null)
 }
@@ -138,6 +136,7 @@ private fun HideSystemBarsWhileActive() {
     }
 }
 
+@Composable
 fun CzxsApp(api: CzxsApi) {
     val stack = remember { mutableStateListOf<Route>(if (api.token.isNullOrBlank()) Route.Login else Route.Home) }
     val route = stack.last()
