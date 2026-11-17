@@ -1208,6 +1208,24 @@ private fun CompactInput(
 
 
 
+
+@Composable
+private fun FullscreenDialogEffect() {
+    val rootView = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val dialogWindow = (rootView.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+        dialogWindow?.setLayout(
+            android.view.WindowManager.LayoutParams.MATCH_PARENT,
+            android.view.WindowManager.LayoutParams.MATCH_PARENT,
+        )
+        dialogWindow?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK))
+        val ctrl = dialogWindow?.let { w -> androidx.core.view.WindowCompat.getInsetsController(w, rootView) }
+        ctrl?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        ctrl?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        onDispose { ctrl?.show(androidx.core.view.WindowInsetsCompat.Type.systemBars()) }
+    }
+}
+
 @Composable
 private fun RemoteVideoThumb(url: String, modifier: Modifier) {
     var bmp by remember(url) { mutableStateOf<android.graphics.Bitmap?>(null) }
@@ -1472,6 +1490,17 @@ private fun CameraCaptureScreen(
                 },
         )
 
+        if (androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            Text(
+                "麦克风未授权：录像将无声（点此授权）",
+                color = androidx.compose.ui.graphics.Color(0xFFFFD54F),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(bottom = 150.dp)
+                    .clickable { permLauncher.launch(arrayOf(android.Manifest.permission.RECORD_AUDIO)) },
+            )
+        }
         if (recording) {
             Text(
                 "● 录制中，松手结束",
@@ -1493,6 +1522,7 @@ private fun CameraCaptureScreen(
             onDismissRequest = { runCatching { file.delete() }; captured = null },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
         ) {
+            FullscreenDialogEffect()
             Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
                 if (mime == "video/mp4") {
                     AndroidView(
@@ -1628,22 +1658,7 @@ private fun MediaViewerDialog(url: String, kind: String, onClose: () -> Unit) {
     val scope = rememberCoroutineScope()
     var error by remember { mutableStateOf<String?>(null) }
     var downloading by remember { mutableStateOf(false) }
-    val rootView = androidx.compose.ui.platform.LocalView.current
-    androidx.compose.runtime.DisposableEffect(Unit) {
-        val dialogWindow = (rootView.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
-        dialogWindow?.setLayout(
-            android.view.WindowManager.LayoutParams.MATCH_PARENT,
-            android.view.WindowManager.LayoutParams.MATCH_PARENT,
-        )
-        val ctrl = dialogWindow?.let { w ->
-            androidx.core.view.WindowCompat.getInsetsController(w, rootView)
-        }
-        ctrl?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-        ctrl?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        onDispose {
-            ctrl?.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-        }
-    }
+    FullscreenDialogEffect()
 
     val mediaId = Regex("/api/media/(\\d+)").find(url)?.groupValues?.getOrNull(1) ?: System.currentTimeMillis().toString()
     val ext = if (kind == "video") "mp4" else "jpg"
