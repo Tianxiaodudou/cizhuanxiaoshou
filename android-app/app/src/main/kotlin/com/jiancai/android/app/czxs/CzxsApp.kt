@@ -113,6 +113,31 @@ private val TABS = listOf("单据" to Route.Orders, "查询" to Route.Query, "�
 
 /** czxs 客户端根：登录守卫 + 底栏 + 页面栈（单 Activity，状态驱动）。 */
 @Composable
+
+private object FullscreenHost {
+    var content by androidx.compose.runtime.mutableStateOf<(@Composable () -> Unit)?>(null)
+}
+
+@Composable
+private fun HideSystemBarsWhileActive() {
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val act = view.context as? android.app.Activity ?: return@LaunchedEffect
+        val ctrl = androidx.core.view.WindowCompat.getInsetsController(act.window, view)
+        ctrl.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        ctrl.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            val act = view.context as? android.app.Activity
+            act?.let {
+                androidx.core.view.WindowCompat.getInsetsController(it.window, view)
+                    .show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+}
+
 fun CzxsApp(api: CzxsApi) {
     val stack = remember { mutableStateListOf<Route>(if (api.token.isNullOrBlank()) Route.Login else Route.Home) }
     val route = stack.last()
@@ -165,6 +190,7 @@ fun CzxsApp(api: CzxsApi) {
 
     val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
 
+    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = topLevel,
@@ -207,6 +233,13 @@ fun CzxsApp(api: CzxsApi) {
             is Route.Payment -> PaymentScreen(api, current.type, onBack = ::goBack) { stack.clear(); stack.add(Route.Home) }
             Route.Login -> Unit
         }
+    }
+    FullscreenHost.content?.let { overlay ->
+        HideSystemBarsWhileActive()
+        androidx.compose.foundation.layout.Box(
+            Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)
+        ) { overlay() }
+    }
     }
 }
 
@@ -939,20 +972,17 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 )
             }
             if (showCamera) {
-                Dialog(
-                    onDismissRequest = { showCamera = false },
-                    properties = androidx.compose.ui.window.DialogProperties(
-                        usePlatformDefaultWidth = false,
-                        decorFitsSystemWindows = false,
-                    ),
-                ) {
-                    CameraCaptureScreen(
-                        onClose = { showCamera = false },
-                        onCaptured = { n, m, b ->
-                            showCamera = false
-                            uploadFiles(listOf(Triple(n, m, b)))
-                        },
-                    )
+                LaunchedEffect(Unit) {
+                    FullscreenHost.content = {
+                        CameraCaptureScreen(
+                            onClose = { FullscreenHost.content = null; showCamera = false },
+                            onCaptured = { n, m, b ->
+                                FullscreenHost.content = null
+                                showCamera = false
+                                uploadFiles(listOf(Triple(n, m, b)))
+                            },
+                        )
+                    }
                 }
             }
             if (loading) LoadingRow("提交中…")
@@ -1522,77 +1552,25 @@ private fun CameraCaptureScreen(
         }
     }
 
-    // 预览阶段：取消丢弃 / 完成上传
-    val shot = captured
-    if (shot != null) {
-        val (name, mime, file) = shot
-        Dialog(
-            onDismissRequest = { runCatching { file.delete() }; captured = null },
-            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-        ) {
-            FullscreenDialogEffect()
-            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
-                if (mime == "video/mp4") {
-                    AndroidView(
-                        factory = { c ->
-                            android.widget.VideoView(c).apply {
-                                setVideoURI(android.net.Uri.fromFile(file))
-                                setOnPreparedListener { it.isLooping = true }
-                                start()
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    val bmp = remember(file.path) {
-                        android.graphics.BitmapFactory.decodeFile(file.path)
-                    }
-                    if (bmp != null) {
-                        androidx.compose.foundation.Image(
-                            bitmap = bmp.asImageBitmap(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-                }
-                // 左上：取消预览并丢弃
-                Box(
-                    Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(18.dp)
-                        .size(38.dp)
-                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f), androidx.compose.foundation.shape.CircleShape)
-                        .clickable {
-                            runCatching { file.delete() }
-                            captured = null
-                        },
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                ) { Text("✕", color = androidx.compose.ui.graphics.Color.White, fontSize = 17.sp) }
-
-                // 右下：完成
-                Box(
-                    Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(22.dp)
-                        .background(androidx.compose.ui.graphics.Color(0xFF07C160), androidx.compose.foundation.shape.CircleShape)
-                        .clickable {
-                            val raw = runCatching { file.readBytes() }.getOrNull()
-                            val bytes = if (raw != null && mime == "image/jpeg") compressJpeg(raw) else raw
-                            if (bytes != null) {
-                                onCaptured(name, mime, bytes)
-                            } else {
-                                error = "读取文件失败"
-                            }
-                            captured = null
-                        }
-                        .padding(horizontal = 22.dp, vertical = 10.dp),
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                ) { Text("完成", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold) }
-
-                Text(
-                    if (mime == "video/mp4") "录像预览" else "照片预览",
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(22.dp),
-                )
-            }
+    // 预览阶段：切到全屏覆盖层显示刚拍内容
+    androidx.compose.runtime.LaunchedEffect(captured) {
+        val shot = captured ?: return@LaunchedEffect
+        FullscreenHost.content = {
+            CameraReview(
+                shot = shot,
+                hasAudio = null,
+                audioError = null,
+                onDiscard = {
+                    runCatching { shot.third.delete() }
+                    captured = null
+                    FullscreenHost.content = { CameraCaptureScreen(onClose = onClose, onCaptured = onCaptured) }
+                },
+                onConfirm = { n, m, bytes ->
+                    captured = null
+                    FullscreenHost.content = null
+                    onCaptured(n, m, bytes)
+                },
+            )
         }
     }
 
@@ -2051,17 +2029,17 @@ private fun NoteScreen(api: CzxsApi, onPick: () -> Unit, onBack: () -> Unit) {
                 MediaViewerDialog(url = m.optString("url"), kind = m.optString("kind")) { viewing = null }
             }
             if (showCamera) {
-                Dialog(
-                    onDismissRequest = { showCamera = false },
-                    properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-                ) {
-                    CameraCaptureScreen(
-                        onClose = { showCamera = false },
-                        onCaptured = { n, m, b ->
-                            showCamera = false
-                            uploadFiles(listOf(Triple(n, m, b)))
-                        },
-                    )
+                LaunchedEffect(Unit) {
+                    FullscreenHost.content = {
+                        CameraCaptureScreen(
+                            onClose = { FullscreenHost.content = null; showCamera = false },
+                            onCaptured = { n, m, b ->
+                                FullscreenHost.content = null
+                                showCamera = false
+                                uploadFiles(listOf(Triple(n, m, b)))
+                            },
+                        )
+                    }
                 }
             }
             error?.let { ErrorText(it) }
