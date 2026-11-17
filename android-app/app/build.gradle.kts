@@ -63,7 +63,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             val relStore = System.getenv("CZXS_KEYSTORE")
             if (!relStore.isNullOrBlank()) signingConfig = signingConfigs.getByName("release")
         }
