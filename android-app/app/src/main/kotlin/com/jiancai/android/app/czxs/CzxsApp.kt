@@ -1294,16 +1294,41 @@ private fun CameraReview(
 private fun FullscreenDialogEffect() {
     val rootView = androidx.compose.ui.platform.LocalView.current
     androidx.compose.runtime.DisposableEffect(Unit) {
-        val dialogWindow = (rootView.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
-        dialogWindow?.setLayout(
-            android.view.WindowManager.LayoutParams.MATCH_PARENT,
-            android.view.WindowManager.LayoutParams.MATCH_PARENT,
-        )
-        dialogWindow?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK))
-        val ctrl = dialogWindow?.let { w -> androidx.core.view.WindowCompat.getInsetsController(w, rootView) }
-        ctrl?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-        ctrl?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        onDispose { ctrl?.show(androidx.core.view.WindowInsetsCompat.Type.systemBars()) }
+        var parent: android.view.ViewParent? = rootView.parent
+        var provider: androidx.compose.ui.window.DialogWindowProvider? = null
+        while (parent != null) {
+            if (parent is androidx.compose.ui.window.DialogWindowProvider) { provider = parent; break }
+            parent = parent.parent
+        }
+        val w = provider?.window
+        w?.let { win ->
+            win.addFlags(android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+            win.setLayout(
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+            )
+            win.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK))
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(win, false)
+            win.decorView.systemUiVisibility = (
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
+            val ctrl = androidx.core.view.WindowCompat.getInsetsController(win, win.decorView)
+            ctrl.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            ctrl.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+        onDispose {
+            w?.let { win ->
+                win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+                win.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
+                val ctrl = androidx.core.view.WindowCompat.getInsetsController(win, win.decorView)
+                ctrl.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
+        }
     }
 }
 
