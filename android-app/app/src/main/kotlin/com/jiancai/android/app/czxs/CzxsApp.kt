@@ -1234,7 +1234,7 @@ private fun CameraCaptureScreen(
     var previewView by remember { mutableStateOf<androidx.camera.view.PreviewView?>(null) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
     var recording by remember { mutableStateOf(false) }
-    var torch by remember { mutableIntStateOf(0) } // 0 关 1 开 2 自动
+    var torch by remember { mutableStateOf(0) } // 0 关 1 开 2 自动
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val mainExecutor = androidx.core.content.ContextCompat.getMainExecutor(ctx)
@@ -1328,7 +1328,7 @@ private fun CameraCaptureScreen(
         // 手势层：短按照片，长按录制
         Box(
             Modifier.fillMaxSize().pointerInput(Unit) {
-                androidx.compose.foundation.gestures.detectTapGestures(onPress = {
+                detectTapGestures(onPress = {
                     val started = System.currentTimeMillis()
                     var longFired = false
                     val hold = scope.launch {
