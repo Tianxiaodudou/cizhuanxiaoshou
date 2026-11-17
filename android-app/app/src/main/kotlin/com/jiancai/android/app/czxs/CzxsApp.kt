@@ -979,6 +979,26 @@ private fun TableHead(text: String, width: Int) {
     )
 }
 
+
+/** 照片上传前压缩：长边压到 maxLong（默认 1920），JPEG 质量 70；小于 1280 不放大。 */
+private fun compressJpeg(bytes: ByteArray, maxLong: Int = 1920, quality: Int = 70): ByteArray {
+    val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return bytes
+    var sample = 1
+    while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxLong) sample *= 2
+    val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+    val decoded = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts) ?: return bytes
+    val longSide = maxOf(decoded.width, decoded.height)
+    val scaled = if (longSide > maxLong) {
+        val ratio = maxLong.toFloat() / longSide
+        android.graphics.Bitmap.createScaledBitmap(decoded, (decoded.width * ratio).toInt(), (decoded.height * ratio).toInt(), true)
+    } else decoded
+    val out = java.io.ByteArrayOutputStream()
+    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, out)
+    return out.toByteArray()
+}
+
 private fun queryDisplayName(ctx: android.content.Context, uri: android.net.Uri): String? {
     return runCatching {
         ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
@@ -1252,8 +1272,14 @@ private fun CameraCaptureScreen(
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         )
     }
-    val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
-    LaunchedEffect(Unit) { if (!granted) permLauncher.launch(android.Manifest.permission.CAMERA) }
+    val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
+        granted = res[android.Manifest.permission.CAMERA] == true
+    }
+    LaunchedEffect(Unit) {
+        if (!granted) permLauncher.launch(
+            arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
+        )
+    }
 
     if (!granted) {
         Column(
@@ -1509,7 +1535,8 @@ private fun CameraCaptureScreen(
                     Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(22.dp)
                         .background(androidx.compose.ui.graphics.Color(0xFF07C160), androidx.compose.foundation.shape.CircleShape)
                         .clickable {
-                            val bytes = runCatching { file.readBytes() }.getOrNull()
+                            val raw = runCatching { file.readBytes() }.getOrNull()
+                            val bytes = if (raw != null && mime == "image/jpeg") compressJpeg(raw) else raw
                             if (bytes != null) {
                                 onCaptured(name, mime, bytes)
                             } else {
@@ -1601,6 +1628,22 @@ private fun MediaViewerDialog(url: String, kind: String, onClose: () -> Unit) {
     val scope = rememberCoroutineScope()
     var error by remember { mutableStateOf<String?>(null) }
     var downloading by remember { mutableStateOf(false) }
+    val rootView = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val dialogWindow = (rootView.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+        dialogWindow?.setLayout(
+            android.view.WindowManager.LayoutParams.MATCH_PARENT,
+            android.view.WindowManager.LayoutParams.MATCH_PARENT,
+        )
+        val ctrl = dialogWindow?.let { w ->
+            androidx.core.view.WindowCompat.getInsetsController(w, rootView)
+        }
+        ctrl?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        ctrl?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        onDispose {
+            ctrl?.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        }
+    }
 
     val mediaId = Regex("/api/media/(\\d+)").find(url)?.groupValues?.getOrNull(1) ?: System.currentTimeMillis().toString()
     val ext = if (kind == "video") "mp4" else "jpg"
