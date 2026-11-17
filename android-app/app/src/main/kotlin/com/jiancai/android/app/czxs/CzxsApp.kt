@@ -1378,7 +1378,15 @@ private fun CameraCaptureScreen(
         if (recording) return
         val f = java.io.File(ctx.cacheDir, "rec-${System.currentTimeMillis()}.mp4")
         val pending = recorder.prepareRecording(ctx, androidx.camera.video.FileOutputOptions.Builder(f).build())
-        activeRecording = pending.start(mainExecutor, object : androidx.core.util.Consumer<androidx.camera.video.VideoRecordEvent> {
+        val withAudio = androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val p2 = try {
+            if (withAudio) pending.withAudioEnabled() else pending
+        } catch (se: SecurityException) {
+            error = "录音权限被拒，录像无声"
+            pending
+        }
+        activeRecording = p2.start(mainExecutor, object : androidx.core.util.Consumer<androidx.camera.video.VideoRecordEvent> {
             override fun accept(event: androidx.camera.video.VideoRecordEvent) {
                 if (event is androidx.camera.video.VideoRecordEvent.Finalize) {
                     recording = false
