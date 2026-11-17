@@ -938,13 +938,21 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 )
             }
             if (showCamera) {
-                CameraCaptureScreen(
-                    onClose = { showCamera = false },
-                    onCaptured = { n, m, b ->
-                        showCamera = false
-                        uploadFiles(listOf(Triple(n, m, b)))
-                    },
-                )
+                Dialog(
+                    onDismissRequest = { showCamera = false },
+                    properties = androidx.compose.ui.window.DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false,
+                    ),
+                ) {
+                    CameraCaptureScreen(
+                        onClose = { showCamera = false },
+                        onCaptured = { n, m, b ->
+                            showCamera = false
+                            uploadFiles(listOf(Triple(n, m, b)))
+                        },
+                    )
+                }
             }
             if (loading) LoadingRow("提交中…")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1351,7 +1359,9 @@ private fun CameraCaptureScreen(
             }
         )
         Row(
-            Modifier.fillMaxWidth().padding(16.dp),
+            Modifier.fillMaxWidth()
+                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
@@ -1369,13 +1379,16 @@ private fun CameraCaptureScreen(
             )
         }
         Column(
-            Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(bottom = 28.dp),
+            Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth()
+                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f))
+                .padding(vertical = 18.dp),
             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
         ) {
             error?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFFF6B6B)) }
             Text(
-                if (recording) "录制中…松手结束" else "短按照片 · 长按录制",
+                if (recording) "● 录制中…松手结束" else "短按画面拍照 · 长按画面录制",
                 color = androidx.compose.ui.graphics.Color.White,
+                fontWeight = FontWeight.SemiBold,
             )
         }
     }
