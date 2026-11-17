@@ -81,15 +81,65 @@ function Login({ onLogin }) {
 }
 
 
+
+function mediaUrl(m) {
+  const token = localStorage.getItem('czxs_token') || ''
+  return PREFIX + m.url + (m.url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token)
+}
+
+function MediaBlock({ items, isAdmin, onOpen, onDelete }) {
+  if (!items || items.length === 0) return null
+  return (
+    <div style={{ margin: '10px 0' }}>
+      <div style={{ fontSize: 12, color: '#667', marginBottom: 6 }}>
+        图片 / 视频（{items.length}）
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {items.map((m) => (
+          <div key={m.id} style={{ position: 'relative', width: 96, height: 96, borderRadius: 12, overflow: 'hidden', background: '#eef1f4', cursor: 'pointer' }}
+            onClick={() => onOpen(m)}>
+            {m.kind === 'video' ? (
+              <>
+                <video src={mediaUrl(m)} preload="metadata" muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 22, background: 'rgba(16,24,40,.28)' }}>▶</span>
+              </>
+            ) : (
+              <img src={mediaUrl(m)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                className="danger"
+                style={{ position: 'absolute', top: 2, right: 2, padding: '0 6px', height: 22, minWidth: 0, borderRadius: 999, fontSize: 12 }}
+                onClick={(e) => { e.stopPropagation(); onDelete(m) }}
+              >×</button>
+            )}
+          </div>
+        ))}
+      </div>
+      {weAreViewingAny(items, onOpen)}
+    </div>
+  )
+}
+
+function weAreViewingAny(_items, _onOpen) { return null }
+
 function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
   const [o, setO] = useState(null)
   const [editing, setEditing] = useState(!!startEdit)
   const [remark, setRemark] = useState('')
   const [lines, setLines] = useState([])
   const [err, setErr] = useState('')
+  const [media, setMedia] = useState([])
+  const [viewing, setViewing] = useState(null)
+  const [mediaErr, setMediaErr] = useState('')
   const load = useCallback(async () => {
     const d = await api('/api/orders/' + id)
     setO(d); setRemark(d.remark || ''); setLines(d.items.map((i) => ({ ...i, input_quantity: i.input_quantity, unit_price: i.unit_price })))
+    try {
+      const m = await api('/api/orders/' + id + '/media')
+      setMedia(Array.isArray(m) ? m : [])
+    } catch (e) { setMedia([]); setMediaErr(e.message) }
   }, [id])
   useEffect(() => { load().catch((e) => setErr(e.message)) }, [load])
   if (!o) return (<Modal width={720} onClose={onClose}><p>{err || '加载中…'}</p><button onClick={onClose}>关闭</button></Modal>)
@@ -117,6 +167,15 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
       <h3>{o.order_no} · {typeLabel[o.type] || o.type} {archived && <span style={{ color: '#c62828' }}>（已归档）</span>}</h3>
       <p>客户：{o.customer_phone} / {o.customer_name} / {o.customer_address || '—'}　下单员：{o.account_name}</p>
       <p>备注：{o.remark || '（空）'}</p>
+      <MediaBlock
+        items={media}
+        isAdmin={isAdmin}
+        onOpen={setViewing}
+        onDelete={async (m) => {
+          if (!confirm('确认删除该媒体文件？')) return
+          try { await api('/api/media/' + m.id, { method: 'DELETE' }); await load(); onChanged?.() } catch (e) { alert(e.message) }
+        }}
+      />
       <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b></p>
       {!hasItems && (o.type === 'receipt' || o.type === 'refund') && (
         <table>
@@ -148,6 +207,17 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
       )}
       {editing && <div className="row">备注：<input value={remark} onChange={(e) => setRemark(e.target.value)} /></div>}
       {err && <div className="err">{err}</div>}
+      {viewing && (
+        <Modal width={760} onClose={() => setViewing(null)}>
+          <h3>{viewing.kind === 'video' ? '视频预览' : '图片预览'}</h3>
+          {viewing.kind === 'video' ? (
+            <video src={mediaUrl(viewing)} controls autoPlay style={{ width: '100%', maxHeight: '70vh', background: '#000' }} />
+          ) : (
+            <img src={mediaUrl(viewing)} alt="" style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', background: '#000' }} />
+          )}
+          <div style={{ marginTop: 10 }}><button className="secondary" onClick={() => setViewing(null)}>关闭</button></div>
+        </Modal>
+      )}
       <div style={{ marginTop: 10 }}>
         {hasItems && !editing && !archived && <button onClick={() => setEditing(true)}>编辑</button>}
         {editing && <button onClick={save}>保存修改</button>}
