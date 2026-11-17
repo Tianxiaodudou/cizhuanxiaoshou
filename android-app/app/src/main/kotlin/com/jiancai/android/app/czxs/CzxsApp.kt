@@ -1211,8 +1211,6 @@ private fun CompactInput(
 
 @Composable
 private fun CameraReview(
-@Composable
-private fun CameraReview(
     shot: Triple<String, String, java.io.File>,
     hasAudio: Boolean?,
     audioError: String?,
