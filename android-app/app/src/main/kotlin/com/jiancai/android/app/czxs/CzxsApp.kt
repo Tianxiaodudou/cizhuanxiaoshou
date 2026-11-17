@@ -426,6 +426,7 @@ private fun HomeScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit, o
 
     detail?.let { o ->
         OrderDetailDialog(
+            api = api,
             order = o,
             isAdmin = api.isAdmin,
             onClose = { detail = null },
@@ -1948,8 +1949,23 @@ private fun SettlementScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
 
 
 // ---------- 单据库 ----------
+private fun statusLabel(s: String): String = when (s) {
+    "submitted" -> "已提交"
+    "archived" -> "已归档"
+    "" -> "未知"
+    else -> "未知状态"
+}
+
+private fun printStatusLabel(s: String): String = when (s) {
+    "pending" -> "待打印"
+    "printed" -> "已打印"
+    "failed" -> "打印失败"
+    else -> ""
+}
+
 @Composable
 private fun OrderDetailDialog(
+    api: CzxsApi,
     order: JSONObject,
     isAdmin: Boolean,
     onClose: () -> Unit,
@@ -1958,58 +1974,211 @@ private fun OrderDetailDialog(
     onDelete: ((Long) -> Unit)? = null,
 ) {
     val type = order.optString("type")
+    val id = order.optLong("id")
     val editable = isAdmin && (type == "delivery" || type == "delivery_return" || type == "pickup" || type == "pickup_return") &&
         order.optString("status") != "archived"
-    AlertDialog(
-        onDismissRequest = onClose,
-        confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (editable) TextButton(onClick = { onEdit(order.optLong("id")); onClose() }) { Text("编辑") }
-                if (isAdmin && order.optString("status") != "archived" && onArchive != null) {
-                    TextButton(onClick = { onArchive(order.optLong("id")); onClose() }) { Text("归档") }
-                }
-                if (isAdmin && order.optString("status") != "archived" && onDelete != null) {
-                    TextButton(onClick = { onDelete(order.optLong("id")); onClose() }) { Text("删除") }
-                }
-                TextButton(onClick = onClose) { Text("关闭") }
-            }
-        },
-        title = { Text("${order.optString("order_no")} · ${typeLabel(type)}") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                KeyValueRow("客户", "${order.optString("customer_name")}--${order.optString("customer_phone")}--${order.optString("customer_address").ifBlank { "无" }}")
-                KeyValueRow("时间", order.optString("created_at").take(16).replace('T', ' '))
-                KeyValueRow("状态", order.optString("status"))
-                KeyValueRow("备注", order.optString("remark").ifBlank { "（空）" })
-                if (order.optString("discount_type").isNotBlank() || order.optString("discount").toDoubleOrNull() ?: 0.0 > 0.0) {
-                    KeyValueRow("优惠", "${order.optString("discount_type")} ${order.optString("discount")}")
-                }
-                KeyValueRow(amountLabel(type), order.optString("order_total"), emphasize = true)
+    var media by remember { mutableStateOf(listOf<JSONObject>()) }
+    var viewing by remember { mutableStateOf<JSONObject?>(null) }
 
-                val linesArr = order.optJSONArray("items") ?: JSONArray()
-                if (linesArr.length() > 0) {
-                    SectionLabel("明细")
-                    LazyColumn(Modifier.height(180.dp)) {
-                        items(linesArr.length()) { i ->
-                            val line = linesArr.getJSONObject(i)
-                            Text(
-                                "${i + 1}. ${line.optString("name")} ${line.optString("batch_tag")} " +
-                                    "${line.optString("input_quantity")}${line.optString("input_unit")} × ${line.optString("unit_price")} = ${line.optString("line_total")}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+    LaunchedEffect(id) {
+        runCatching {
+            withContext(Dispatchers.IO) { api.orderMedia(id) }.let { arr ->
+                (0 until arr.length()).map { i ->
+                    val m = arr.getJSONObject(i)
+                    JSONObject(m.toString()).put("url", api.mediaUrl(m.optLong("id")))
+                }
+            }
+        }.onSuccess { media = it }
+    }
+
+    val payments = order.optJSONArray("payments") ?: JSONArray()
+    val itemsArr = order.optJSONArray("items") ?: JSONArray()
+    val amountLabelText = amountLabel(type)
+
+    Dialog(onDismissRequest = onClose) {
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+            color = androidx.compose.ui.graphics.Color.White,
+            modifier = Modifier.fillMaxWidth().heightIn(max = 720.dp),
+        ) {
+            Column(Modifier.fillMaxWidth()) {
+                // 头部
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 18.dp, end = 10.dp, top = 16.dp, bottom = 10.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.Top,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(order.optString("order_no"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
+                            Chip(typeLabel(type), MaterialTheme.colorScheme.primary)
+                            Chip(statusLabel(order.optString("status")), MaterialTheme.colorScheme.outline)
+                            val ps = printStatusLabel(order.optString("print_status"))
+                            if (ps.isNotBlank()) Chip(ps, MaterialTheme.colorScheme.tertiary)
                         }
                     }
+                    Box(
+                        Modifier.size(30.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(androidx.compose.ui.graphics.Color(0xFFF2F4F7)).clickable(onClick = onClose),
+                        contentAlignment = androidx.compose.ui.Alignment.Center,
+                    ) { Text("✕", style = MaterialTheme.typography.bodyMedium) }
                 }
-                val payments = order.optJSONArray("payments") ?: JSONArray()
-                if (payments.length() > 0) {
-                    SectionLabel("付款方式")
-                    for (i in 0 until payments.length()) {
-                        val pay = payments.getJSONObject(i)
-                        Text("${pay.optString("method")}　${pay.optString("amount")}", style = MaterialTheme.typography.bodySmall)
+                androidx.compose.material3.HorizontalDivider(color = androidx.compose.ui.graphics.Color(0xFFEEF1F4))
+
+                Column(
+                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    // 客户
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .background(androidx.compose.ui.graphics.Color(0xFFF9FAFB), androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                            .padding(12.dp),
+                    ) {
+                        Text(order.optString("customer_name"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(order.optString("customer_phone") + " · " + order.optString("customer_address").ifBlank { "无地址" }, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            order.optString("created_at").take(16).replace('T', ' ') +
+                                (" · " + order.optString("account_name")).takeIf { order.optString("account_name").isNotBlank() }.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+
+                    // 金额
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .background(androidx.compose.ui.graphics.Color(0xFFF9FAFB), androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                            .padding(12.dp),
+                    ) {
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Column {
+                                Text(amountLabelText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                                Text(
+                                    order.optString("order_total"),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+                                val discount = order.optString("discount").toDoubleOrNull() ?: 0.0
+                                if (discount > 0) {
+                                    Text("优惠 ${order.optString("discount_type")} ${order.optString("discount")}", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Text("累计结算 ${order.optString("cumulative_total")}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                            }
+                        }
+                    }
+
+                    // 明细
+                    if (itemsArr.length() > 0) {
+                        Text("明细（${itemsArr.length()} 项）", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .background(androidx.compose.ui.graphics.Color.White, androidx.compose.foundation.shape.RoundedCornerShape(16.dp)),
+                        ) {
+                            for (i in 0 until itemsArr.length()) {
+                                val line = itemsArr.getJSONObject(i)
+                                Row(
+                                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                ) {
+                                    Box(
+                                        Modifier.size(22.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                            .background(androidx.compose.ui.graphics.Color(0xFFEEF7F5)),
+                                        contentAlignment = androidx.compose.ui.Alignment.Center,
+                                    ) { Text("${i + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+                                    Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                                        Text(line.optString("name"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                        Text(
+                                            "批号 ${line.optString("batch_tag").ifBlank { "无" }} · ${line.optString("input_unit")}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                    Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+                                        Text(
+                                            "${line.optString("input_quantity")} × ${line.optString("unit_price")}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                        Text(line.optString("line_total"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 付款方式
+                    if (payments.length() > 0) {
+                        Text("付款方式", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                            for (i in 0 until payments.length()) {
+                                val pay = payments.getJSONObject(i)
+                                Text(
+                                    "${pay.optString("method")} ${pay.optString("amount")}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier
+                                        .background(androidx.compose.ui.graphics.Color(0xFFF2F4F7), androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    // 媒体
+                    if (media.isNotEmpty()) {
+                        Text("图片 / 视频（${media.size}）", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        MediaStrip(items = media, uploading = false, onAdd = {}, onOpen = { viewing = it })
+                    }
+
+                    // 备注
+                    if (order.optString("remark").isNotBlank()) {
+                        Text("备注", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text(order.optString("remark"), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
+
+                // 底部操作
+                androidx.compose.material3.HorizontalDivider(color = androidx.compose.ui.graphics.Color(0xFFEEF1F4))
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (editable) {
+                        Button(onClick = { onEdit(id); onClose() }, modifier = Modifier.weight(1f)) { Text("编辑") }
+                    }
+                    if (isAdmin && order.optString("status") != "archived" && onArchive != null) {
+                        OutlinedButton(onClick = { onArchive(id); onClose() }, modifier = Modifier.weight(1f)) { Text("归档") }
+                    }
+                    if (isAdmin && order.optString("status") != "archived" && onDelete != null) {
+                        OutlinedButton(
+                            onClick = { onDelete(id); onClose() },
+                            modifier = Modifier.weight(1f),
+                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        ) { Text("删除") }
+                    }
+                    OutlinedButton(onClick = onClose, modifier = Modifier.weight(1f)) { Text("关闭") }
+                }
             }
-        },
+        }
+    }
+
+    viewing?.let { m ->
+        MediaViewerDialog(url = m.optString("url"), kind = m.optString("kind")) { viewing = null }
+    }
+}
+
+@Composable
+private fun Chip(text: String, color: androidx.compose.ui.graphics.Color) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelSmall,
+        color = color,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.10f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+            .padding(horizontal = 9.dp, vertical = 3.dp),
     )
 }
 
@@ -2067,6 +2236,7 @@ private fun OrdersScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> Unit,
 
     detail?.let { o ->
         OrderDetailDialog(
+            api = api,
             order = o,
             isAdmin = api.isAdmin,
             onClose = { detail = null },

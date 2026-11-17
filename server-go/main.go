@@ -1318,6 +1318,8 @@ func (a *App) order(oid int64) map[string]any {
 	}
 	var cum float64
 	_ = a.db.QueryRow(`SELECT COALESCE(SUM(CAST(o2.order_total AS REAL)),0) FROM orders o2 JOIN customers c2 ON c2.id=o2.customer_id WHERE c2.phone=?`, o.CPhone).Scan(&cum)
+	var printStatus string
+	_ = a.db.QueryRow(`SELECT COALESCE(status,'') FROM print_jobs WHERE order_id=? ORDER BY id DESC LIMIT 1`, oid).Scan(&printStatus)
 	payments := []map[string]any{}
 	prows, perr := a.db.Query(`SELECT method,custom_method,amount FROM payment_lines WHERE order_id=?`, oid)
 	if perr == nil && prows != nil {
@@ -1332,7 +1334,7 @@ func (a *App) order(oid int64) map[string]any {
 	}
 	return map[string]any{"id": o.ID, "order_no": o.No, "type": o.Type, "status": o.Status, "remark": o.Remark, "payments": payments,
 		"order_total": o.Total, "version": o.Version, "created_at": o.Created, "customer_name": o.CName,
-		"customer_phone": o.CPhone, "customer_address": o.CAddr, "customer_price_mode": o.CMode, "discount": o.Discount, "discount_type": o.DiscountType, "account_name": o.AName, "items": items, "cumulative_total": f2(cum)}
+		"customer_phone": o.CPhone, "customer_address": o.CAddr, "customer_price_mode": o.CMode, "discount": o.Discount, "discount_type": o.DiscountType, "account_name": o.AName, "items": items, "cumulative_total": f2(cum), "print_status": printStatus}
 }
 
 func (a *App) orders(where string, args []any) []map[string]any {
