@@ -930,7 +930,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                                             value = line.price,
                                             onValueChange = { lines[index] = line.copy(price = it) },
                                             singleLine = true,
-                                            readOnly = line.priceLocked,
+                                            readOnly = line.priceLocked && !api.isAdmin,
                                             textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
                                             cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
                                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
