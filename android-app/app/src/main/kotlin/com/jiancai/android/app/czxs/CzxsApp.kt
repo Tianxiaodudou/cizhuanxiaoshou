@@ -1114,7 +1114,9 @@ private fun searchKey(vararg parts: String): String {
     parts.forEach { part ->
         part.forEach { ch ->
             if (ch in '\u4e00'..'\u9fff') {
-                val p = runCatching { com.github.promeg.pinyinhelper.Pinyin.toPinyin(ch) }.getOrNull()
+                val p = runCatching {
+                    net.sourceforge.pinyin4j.PinyinHelper.toHanyuPinyinStringArray(ch)?.firstOrNull()
+                }.getOrNull()
                 sb.append((p?.firstOrNull() ?: ch).uppercaseChar())
             } else {
                 sb.append(ch.uppercaseChar())

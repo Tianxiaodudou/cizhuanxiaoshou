@@ -98,7 +98,7 @@ android {
 }
 
 dependencies {
-    implementation("com.github.promeg:tinypinyin:2.0.3")
+    implementation("com.belerweb:pinyin4j:2.5.1")
 
     implementation("androidx.camera:camera-camera2:1.3.4")
     implementation("androidx.camera:camera-lifecycle:1.3.4")
