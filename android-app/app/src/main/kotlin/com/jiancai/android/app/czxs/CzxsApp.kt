@@ -1107,6 +1107,24 @@ private fun queryDisplayName(ctx: android.content.Context, uri: android.net.Uri)
     }.getOrNull()
 }
 
+
+/** 搜索键：汉字取拼音首字母、字母转大写，用于“只匹配首字母/大写”的搜索。 */
+private fun searchKey(vararg parts: String): String {
+    val sb = StringBuilder()
+    parts.forEach { part ->
+        part.forEach { ch ->
+            if (ch in '\u4e00'..'\u9fff') {
+                val p = runCatching { com.github.promeg.pinyinhelper.Pinyin.toPinyin(ch) }.getOrNull()
+                sb.append((p?.firstOrNull() ?: ch).uppercaseChar())
+            } else {
+                sb.append(ch.uppercaseChar())
+            }
+        }
+        sb.append(' ')
+    }
+    return sb.toString()
+}
+
 private fun unitsOf(cat: JSONObject?): List<Pair<String, Double>> {
     if (cat == null) return emptyList()
     val out = mutableListOf<Pair<String, Double>>()
@@ -1185,7 +1203,6 @@ private fun CategoryPicker(
     onPick: (JSONObject, String) -> Unit,
 ) {
     var input by remember { mutableStateOf("") }
-    var query by remember { mutableStateOf("") }
     var pending by remember { mutableStateOf<Pair<JSONObject, String>?>(null) }
 
     val rows = remember(categories) {
@@ -1195,8 +1212,8 @@ private fun CategoryPicker(
         }
     }
     val filtered = rows.filter { (c, b) ->
-        query.isBlank() || listOf(c.optString("group"), c.optString("name"), b)
-            .any { it.contains(query, ignoreCase = true) }
+        val q = input.trim().uppercase()
+        q.isEmpty() || searchKey(c.optString("group"), c.optString("name"), b).contains(q)
     }
 
     AlertDialog(
@@ -1206,17 +1223,14 @@ private fun CategoryPicker(
         title = { Text("选择商品") },
         text = {
             Column {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = input,
-                        onValueChange = { input = it },
-                        placeholder = { Text("品类 / 型号 / 批号", style = MaterialTheme.typography.bodySmall) },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Button(onClick = { query = input.trim() }, modifier = Modifier.padding(start = 6.dp)) { Text("搜索") }
-                }
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it.uppercase() },
+                    placeholder = { Text("品类 / 型号 / 批号的拼音首字母（大写）", style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
                 if (filtered.isEmpty()) {
                     Text("无匹配型号", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
@@ -2880,15 +2894,15 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
     }
 
     val filtered = list.filter {
-        keyword.isBlank() || it.optString("group").contains(keyword) ||
-            it.optString("name").contains(keyword) || it.optString("batch").contains(keyword)
+        keyword.isBlank() || searchKey(it.optString("group"), it.optString("name"), it.optString("batch"))
+            .contains(keyword.trim().uppercase())
     }
 
     AppScaffold("型号库", onMenu = onMenu, onSearch = onSearch) { inner ->
         Column(Modifier.fillMaxWidth().padding(inner).padding(PagePadding)) {
             error?.let { ErrorText(it) }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                AppTextField("搜索品类/型号/批号", keyword, { keyword = it }, modifier = Modifier.weight(1f))
+                AppTextField("搜索品类/型号/批号（拼音首字母）", keyword, { keyword = it.uppercase() }, modifier = Modifier.weight(1f))
                 if (api.isAdmin) Button(onClick = { editTarget = null; showEditor = true }) { Text("新增") }
             }
             Text(if (api.isAdmin) "管理员可维护型号库" else "业务员只读", style = MaterialTheme.typography.bodySmall)
