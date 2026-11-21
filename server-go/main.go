@@ -1053,8 +1053,8 @@ func (a *App) createOrder(w http.ResponseWriter, r *http.Request, acc int64) {
 				p = f2(bd(it.UnitPrice))
 			}
 			if p == "" {
-				fail(w, 400, "PRICE_REQUIRED", "该批次无价格，请录入单价")
-				return
+				// 无价开单：先记 0，后续由管理员补价
+				p = "0.00"
 			}
 			if it.UnitPrice != "" {
 				_, _ = a.db.Exec(`INSERT INTO customer_prices(customer_id,category_id,batch_tag,unit_price,updated_at) VALUES(?,?,?,?,?)
@@ -1195,8 +1195,9 @@ func (a *App) createPayment(w http.ResponseWriter, r *http.Request, acc int64) {
 func (a *App) updateOrder(w http.ResponseWriter, r *http.Request, acc int64, rawID string) {
 	oid, _ := strconv.ParseInt(strings.TrimSpace(rawID), 10, 64)
 	var in struct {
-		Version int    `json:"version"`
-		Remark  string `json:"remark"`
+		Version   int    `json:"version"`
+		Remark    string `json:"remark"`
+		PriceMode string `json:"price_mode"`
 		Items   []struct {
 			CategoryID int64  `json:"category_id"`
 			BatchTag   string `json:"batch_tag"`
@@ -1212,6 +1213,9 @@ func (a *App) updateOrder(w http.ResponseWriter, r *http.Request, acc int64, raw
 	if err := a.db.QueryRow(`SELECT status,created_at,customer_id,version FROM orders WHERE id=?`, oid).Scan(&status, &created, &cid, &version); err != nil {
 		fail(w, 404, "NOT_FOUND", "单据不存在")
 		return
+	}
+	if in.PriceMode == "open" || in.PriceMode == "hidden" {
+		_, _ = a.db.Exec(`UPDATE customers SET price_mode=? WHERE id=?`, in.PriceMode, cid)
 	}
 	if status == "archived" {
 		fail(w, 409, "ORDER_ARCHIVED", "该单已归档，不可修改")
@@ -1259,8 +1263,7 @@ func (a *App) updateOrder(w http.ResponseWriter, r *http.Request, acc int64, raw
 				ON CONFLICT(customer_id,category_id,batch_tag) DO UPDATE SET unit_price=excluded.unit_price, updated_at=excluded.updated_at`,
 				cid, c.ID, it.BatchTag, p, now())
 		} else if p == "" {
-			fail(w, 400, "PRICE_REQUIRED", "该批次无价格，请录入单价")
-			return
+			p = "0.00"
 		}
 		lines = append(lines, line{c, it.BatchTag, it.InputUnit, it.Quantity, settle, bd(p), settle * bd(p)})
 	}

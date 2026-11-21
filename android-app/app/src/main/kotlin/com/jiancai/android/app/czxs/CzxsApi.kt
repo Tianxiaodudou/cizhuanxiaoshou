@@ -142,6 +142,7 @@ class CzxsApi(private val prefs: SharedPreferences) {
         address: String,
         remark: String,
         items: List<JSONObject>,
+        priceMode: String = "open",
     ): JSONObject {
         val body = JSONObject()
             .put("client_request_id", UUID.randomUUID().toString())
@@ -150,12 +151,13 @@ class CzxsApi(private val prefs: SharedPreferences) {
             .put("customer_name", name)
             .put("address", address)
             .put("remark", remark)
+            .put("price_mode", priceMode)
             .put("items", JSONArray(items))
         return request("POST", "/api/orders", body).getJSONObject("data")
     }
 
-    fun updateOrder(orderId: Long, version: Int, remark: String, items: List<JSONObject>): JSONObject {
-        val body = JSONObject().put("version", version).put("remark", remark).put("items", JSONArray(items))
+    fun updateOrder(orderId: Long, version: Int, remark: String, items: List<JSONObject>, priceMode: String = "open"): JSONObject {
+        val body = JSONObject().put("version", version).put("remark", remark).put("price_mode", priceMode).put("items", JSONArray(items))
         return request("PUT", "/api/orders/$orderId", body).getJSONObject("data")
     }
 

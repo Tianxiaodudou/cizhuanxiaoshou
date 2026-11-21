@@ -807,10 +807,7 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 error = "请移除或替换待审核型号的明细行"
                 return
             }
-            if (!hiddenStaff && !it.priceLocked && it.price.isBlank()) {
-                error = "该批次无价格，请录入单价"
-                return
-            }
+            // 允许无价开单：价格可留空，管理员后续补价
         }
         loading = true
         scope.launch {
@@ -824,8 +821,8 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                         .put("unit_price", if (hiddenStaff) "" else line.price)
                 }
                 val result = withContext(Dispatchers.IO) {
-                    if (orderId != null) api.updateOrder(orderId, version, remark, items)
-                    else api.createOrder(type, phone, name, address, remark, items)
+                    if (orderId != null) api.updateOrder(orderId, version, remark, items, priceMode)
+                    else api.createOrder(type, phone, name, address, remark, items, priceMode)
                 }
                 submitted = result
             } catch (e: ApiException) {
@@ -858,6 +855,26 @@ private fun OrderScreen(api: CzxsApi, type: String, orderId: Long?, onBack: () -
                 readOnly = nameLocked,
                 readOnlyHint = if (nameLocked) "老客户，姓名不可改" else "新客户，提交时创建",
             )
+            if (api.isAdmin) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("价格模式", style = MaterialTheme.typography.labelMedium)
+                    androidx.compose.material3.FilterChip(
+                        selected = priceMode == "open",
+                        onClick = { priceMode = "open" },
+                        label = { Text("明价") },
+                    )
+                    androidx.compose.material3.FilterChip(
+                        selected = priceMode == "hidden",
+                        onClick = { priceMode = "hidden" },
+                        label = { Text("暗价") },
+                    )
+                }
+            }
+
 
             SectionLabel("明细")
             lines.forEachIndexed { index, line ->
