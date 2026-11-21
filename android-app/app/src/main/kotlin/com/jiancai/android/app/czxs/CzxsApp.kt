@@ -1215,7 +1215,8 @@ private fun CategoryPicker(
     }
     val filtered = rows.filter { (c, b) ->
         val q = input.trim().uppercase()
-        q.isEmpty() || searchKey(c.optString("group"), c.optString("name"), b).contains(q)
+        val key = c.optString("search_key").ifBlank { searchKey(c.optString("group"), c.optString("name"), b) }
+        q.isEmpty() || key.contains(q)
     }
 
     AlertDialog(
@@ -2896,8 +2897,9 @@ private fun CategoriesScreen(api: CzxsApi, onMenu: () -> Unit, onSearch: () -> U
     }
 
     val filtered = list.filter {
-        keyword.isBlank() || searchKey(it.optString("group"), it.optString("name"), it.optString("batch"))
-            .contains(keyword.trim().uppercase())
+        keyword.isBlank() || it.optString("search_key").ifBlank {
+            searchKey(it.optString("group"), it.optString("name"), it.optString("batch"))
+        }.contains(keyword.trim().uppercase())
     }
 
     AppScaffold("型号库", onMenu = onMenu, onSearch = onSearch) { inner ->

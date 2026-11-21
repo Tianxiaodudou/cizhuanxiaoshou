@@ -723,6 +723,7 @@ function CategoryModal({ init, onClose, onDone }) {
 
 function Categories() {
   const [rows, setRows] = useState([])
+  const [keyword, setKeyword] = useState('')
   const [edit, setEdit] = useState(undefined)
   const load = useCallback(() => api('/api/categories').then((list) => {
     const key = (g) => (/^\d/.test(g) ? '0' + g : '1' + g)
@@ -734,12 +735,23 @@ function Categories() {
     <>
       <h2>型号库</h2>
       <div style={{ marginBottom: 10 }}>
+        <input
+          placeholder="搜索：拼音首字母（自动大写）"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value.toUpperCase())}
+          style={{ width: 260, marginRight: 8 }}
+        />
         <button onClick={() => setEdit(null)}>+ 新增型号</button>
         <button className="secondary" onClick={load}>刷新</button>
       </div>
       <table>
         <thead><tr><th>品类</th><th>型号</th><th>批号</th><th>计价单位</th><th>换算单位</th><th>默认价</th><th>状态</th><th>操作</th></tr></thead>
-        <tbody>{rows.map((c) => (
+        <tbody>{rows.filter((c) => {
+          const q = keyword.trim().toUpperCase()
+          if (!q) return true
+          const key = (c.search_key || [c.group, c.name, c.batch].join(' ')).toUpperCase()
+          return key.includes(q)
+        }).map((c) => (
           <tr key={c.id}>
             <td>{c.group}</td><td>{c.name}</td><td>{c.batch || '无'}</td><td>{c.settlement_unit}</td>
             <td>{c.conversion_unit ? `${c.conversion_unit}（1${c.conversion_unit}=${c.conversion}${c.settlement_unit}）` : '无'}</td>

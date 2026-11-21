@@ -23,6 +23,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/mozillazg/go-pinyin"
 	"sync"
 	"syscall"
 	"time"
@@ -776,6 +778,7 @@ type Category struct {
 	Status         string  `json:"status"`
 	UnitPrice      string  `json:"unit_price,omitempty"`
 	DefaultPrice   string  `json:"default_price"`
+	SearchKey      string  `json:"search_key,omitempty"`
 }
 
 // UnmarshalJSON 兼容 conversion 传字符串（网页/客户端都发字符串）或数字。
@@ -797,6 +800,26 @@ func (c *Category) UnmarshalJSON(b []byte) error {
 		}
 	}
 	return nil
+}
+
+
+// searchInitials 生成搜索键：汉字取拼音首字母、其它字符转大写。
+func searchInitials(parts ...string) string {
+	var b strings.Builder
+	for _, part := range parts {
+		for _, r := range part {
+			if r >= 0x4E00 && r <= 0x9FFF {
+				arr := pinyin.Pinyin(string(r), pinyin.NewArgs())
+				if len(arr) > 0 && len(arr[0]) > 0 {
+					b.WriteString(strings.ToUpper(string([]rune(arr[0][0])[0])))
+					continue
+				}
+			}
+			b.WriteString(strings.ToUpper(string(r)))
+		}
+		b.WriteByte(' ')
+	}
+	return b.String()
 }
 
 func (a *App) categories(w http.ResponseWriter, r *http.Request, acc int64) {
