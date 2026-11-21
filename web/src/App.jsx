@@ -176,7 +176,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
           try { await api('/api/media/' + m.id, { method: 'DELETE' }); await load(); onChanged?.() } catch (e) { alert(e.message) }
         }}
       />
-      <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : o.status === 'printed' ? '已打印' : '待打印'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b></p>
+      <p>时间：{o.created_at?.slice(0, 16).replace('T', ' ')}　状态：{archived ? '已归档' : '已提交'}　打印：{{pending: '待打印', printed: '已打印', failed: '打印失败'}[o.print_status] || '—'}　版本：v{o.version}　{amountLabel(o.type)}：<b>{Math.abs(Number(o.order_total)).toFixed(2)}</b></p>
       {!hasItems && (o.type === 'receipt' || o.type === 'refund') && (
         <table>
           <thead><tr><th>付款方式</th><th>金额</th></tr></thead>
@@ -195,7 +195,7 @@ function OrderDetailModal({ id, startEdit, onClose, onChanged }) {
                 {[i.settlement_unit, i.conversion_unit].filter((u, idx, arr) => u && arr.indexOf(u) === idx).map((u) => <option key={u} value={u}>{u}</option>)}
               </select></>) : `${i.input_quantity}${i.input_unit}`}</td>
             <td>{editing ? `${(Number(lines[k].input_quantity || 0) * ((lines[k].input_unit && lines[k].input_unit === i.conversion_unit) ? (Number(i.conversion) || 1) : 1)).toFixed(2)}${i.settlement_unit}` : `${i.settlement_quantity}${i.settlement_unit}`}</td>
-            <td>{blindPrice ? '***' : (editing ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price)}</td>
+            <td>{blindPrice ? '***' : (editing && isAdmin ? <input style={{ width: 80 }} value={lines[k].unit_price} onChange={(e) => setLines((ls) => ls.map((x, j) => j === k ? { ...x, unit_price: e.target.value } : x))} /> : i.unit_price)}</td>
             <td>{blindPrice ? '***' : (editing ? (Number(lines[k].input_quantity || 0) * ((lines[k].input_unit && lines[k].input_unit === i.conversion_unit) ? (Number(i.conversion) || 1) : 1) * Number(lines[k].unit_price || 0)).toFixed(2) : i.line_total)}</td>
             {editing && <td>
               <button type="button" className="secondary" onClick={() => setLines((ls) => { const a = [...ls]; if (k > 0) { [a[k - 1], a[k]] = [a[k], a[k - 1]] } return a })}>↑</button>
