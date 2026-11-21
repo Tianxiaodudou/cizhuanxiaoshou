@@ -178,6 +178,7 @@ private object FullscreenHost {
     var content by androidx.compose.runtime.mutableStateOf<(@Composable () -> Unit)?>(null)
 }
 
+@Suppress("DEPRECATION")
 @Composable
 private fun HideSystemBarsWhileActive() {
     val view = androidx.compose.ui.platform.LocalView.current
@@ -1446,7 +1447,7 @@ private fun CameraCaptureScreen(
         return
     }
 
-    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     var previewView by remember { mutableStateOf<androidx.camera.view.PreviewView?>(null) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
     var recording by remember { mutableStateOf(false) }
